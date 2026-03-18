@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# uv
+.python-version
+
+# Generated analysis outputs (reproducible from source layout)
+reticle_analysis.csv
+reticle_analysis_grid.csv
+reticle_analysis_cells.csv
+
+# Superseded by .md version
+reticle_density_report.txt

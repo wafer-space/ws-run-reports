@@ -1,0 +1,10 @@
+[project]
+name = "design-analysis"
+version = "0.1.0"
+description = "GDS/OAS layout analysis tool for wafer.space designs"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = [
+    "klayout",
+]
+

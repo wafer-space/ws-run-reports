@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(file:*)",
+      "Bash(head:*)",
+      "Bash(which klayout:*)",
+      "WebSearch",
+      "Bash(pip index:*)",
+      "WebFetch(domain:gf180mcu-pdk.readthedocs.io)",
+      "WebFetch(domain:www.klayout.org)",
+      "WebFetch(domain:www.klayout.de)",
+      "Bash(uv run:*)",
+      "Bash(git:*)"
+    ]
+  }
+}
