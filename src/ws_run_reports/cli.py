@@ -30,7 +30,7 @@ def cmd_report(args, run):
 
 def cmd_render(args, run):
     from . import render
-    render.render_run(run, out_dir(args, run), jobs=args.jobs)
+    render.render_run(run, out_dir(args, run), jobs=args.jobs, only=args.only)
 
 
 def cmd_site(args, run):
@@ -69,6 +69,7 @@ def main(argv=None):
         p.add_argument("--repo-dir", type=Path, help="checkout of the run repository (default: ../<run>)")
         p.add_argument("--out", type=Path, help="output directory (default: out/)")
         p.add_argument("--jobs", type=int, help="worker processes for the layout steps")
+        p.add_argument("--only", nargs="+", metavar="CODE", help="render only these designs (for testing)")
         if name == "publish":
             p.add_argument("target", choices=["density-report", "gh-pages"])
             p.add_argument("--push", action="store_true", help="push the branch after committing")
