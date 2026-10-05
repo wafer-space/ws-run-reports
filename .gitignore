@@ -6,10 +6,10 @@ __pycache__/
 # uv
 .python-version
 
-# Generated analysis outputs (reproducible from source layout)
-reticle_analysis.csv
-reticle_analysis_grid.csv
-reticle_analysis_cells.csv
+# Scratch space and generated output (reproducible from the source layout)
+/tmp/
+/out/
 
-# Superseded by .md version
-reticle_density_report.txt
+# Assembled layouts
+*.oas
+*.gds

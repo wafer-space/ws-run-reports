@@ -1,0 +1,540 @@
+============================================================================
+  WAFER.SPACE RUN 1 — STANDARD CELL & SRAM DENSITY REPORT
+  GF180MCU Process (GlobalFoundries 180nm), Shuttle G801
+============================================================================
+
+
+INTRODUCTION
+============
+
+This report analyzes the standard cell and SRAM density achieved by the
+24 unique chip designs on the wafer.space Run 1 reticle. The reticle is
+30mm x 24mm and contains 37 slot placements (some designs appear more
+than once for redundancy).
+
+All designs were fabricated on GlobalFoundries' GF180MCU process, a
+180-nanometer (0.18um) technology node. This is a mature, relatively
+large-geometry process — for comparison, modern smartphone chips use
+3nm or 5nm processes with features roughly 50x smaller.
+
+
+WHAT ARE STANDARD CELLS?
+========================
+
+A "standard cell" is a pre-designed, pre-verified building block used to
+construct digital circuits. Think of them like LEGO bricks for chip
+design: each cell performs one simple logic function (an AND gate, a
+flip-flop for storing one bit, a buffer for boosting signal strength),
+and a chip designer assembles thousands or millions of them to build
+complex circuits.
+
+Standard cells in a library all share the same height (so they line up
+in rows) but vary in width depending on their function. A simple
+inverter might be 3um wide, while a flip-flop (which stores data) might
+be 17um wide. Automated tools place these cells in rows and then route
+wires between them.
+
+The "density" of standard cells — how many fit per square millimeter —
+is a key measure of how efficiently a design uses its silicon area.
+Higher density generally means more logic functionality packed into less
+chip area, which reduces cost.
+
+
+STANDARD CELL LIBRARIES ON THIS RETICLE
+========================================
+
+The GF180MCU process offers two standard cell libraries, differing in
+their "track count" — essentially how tall each row of cells is:
+
+  Library             Row Height    Rows per mm    Relative Density
+  ─────────────────────────────────────────────────────────────────
+  mcu7t5v0 (7-track)    4.78 um       209 rows         100% (base)
+  mcu9t5v0 (9-track)    5.94 um       168 rows          80%
+
+The 7-track library packs rows 24% closer together, giving
+proportionally higher density. However, the taller 9-track cells
+provide more space for internal wiring, which can make it easier for
+automated routing tools to complete complex designs without congestion.
+
+Both libraries use the same "5v0" process variant (5-volt tolerant I/O
+with 3.3V core logic). There are no separate 3.3V-only or 5V-only
+standard cell libraries on this reticle — all designs use the same
+5V-tolerant cells. [1]
+
+Most designs chose one library exclusively. Notable exceptions include
+Tiny Tapeout (TTPG/TTP2), where each of the 52 sub-projects
+independently chose their library, and BRWN and JKU2, which mix both
+libraries within a single design. [2]
+
+
+THEORETICAL MAXIMUM STANDARD CELL DENSITY
+==========================================
+
+If you filled an entire square millimeter with nothing but one type of
+standard cell (no wiring space, no gaps), the theoretical maximum
+density would be:
+
+  Cell Type             7-track max    9-track max    What it does
+  ─────────────────────────────────────────────────────────────────
+  Inverter (inv_1)         67k/mm²        54k/mm²    Flips a signal
+  NAND gate (nand2_1)      57k/mm²        46k/mm²    Basic logic gate
+  Buffer (buf_1)           50k/mm²        40k/mm²    Strengthens a signal
+  AND3 gate (and3_1)       32k/mm²        26k/mm²    3-input logic gate
+  Flip-flop (dffq_1)      12k/mm²        10k/mm²    Stores one bit
+
+These are hard upper bounds. [3] In practice, real designs achieve
+significantly less because:
+
+  (a) Routing overhead — wires connecting cells consume ~30-50% of area
+  (b) Mixed cell types — designs use a mix of small and large cells
+  (c) Filler cells — gaps between logic cells must be filled
+  (d) Power planning — power/ground rails consume area
+  (e) Clock distribution — clock tree buffers and wiring take space
+
+A well-optimized design typically achieves 40-70% of the theoretical
+maximum for its dominant cell type. [4]
+
+
+ACHIEVED STANDARD CELL DENSITY — DESIGN AVERAGES
+==================================================
+
+The following table shows the average standard cell density for each
+design's "core area" — the interior of the chip excluding the I/O pad
+ring (a ~350um border of large pads around the perimeter used for
+external connections). [5]
+
+Designs using the 7-track library are marked [7t], 9-track as [9t],
+and mixed as [mix].
+
+  HIGH DENSITY (above 35k SC/mm² core average):
+
+    Design  Library  Core SC/mm²   Total SC   SRAM   Description
+    ──────────────────────────────────────────────────────────────
+    2975    [7t]         55k        780k        0    Densest design overall [6]
+    TQVA    [7t]         43k         98k        2    Quarter-size slot [7]
+    TTPG    [mix]        40k        570k        0    Tiny Tapeout, 52 sub-designs [8]
+    TTP2    [mix]        40k        570k        0    Tiny Tapeout, 52 sub-designs [8]
+    JKU1    [7t]         40k        570k        0    [9]
+    CHES    [9t]         39k        552k        0    Densest 9-track design [10]
+    MOLE    [7t]         35k        499k       12    [11]
+
+  MEDIUM DENSITY (15k-35k SC/mm² core average):
+
+    Design  Library  Core SC/mm²   Total SC   SRAM
+    ──────────────────────────────────────────────────────────────
+    TQVC    [7t]         29k        173k        2    [12]
+    TQVB    [7t]         29k        159k        2    [13]
+    AS03    [mix]        27k        386k        0    [14]
+    CAFE    [7t]         26k        368k       40    [15]
+    GD04    [9t]         24k        140k       12    [16]
+    JKU2    [mix]        24k        141k        0    [17]
+    KIAN    [9t]         23k        335k       42    [18]
+    GD03    [7t]         22k        320k       46    [19]
+    GD02    [7t]         21k        113k       18    [20]
+    TZ01    [7t]         20k        286k       16    [21]
+    RBOY    [9t]         17k        249k       60    [22]
+    RZ80    [9t]         15k        214k        0    [23]
+    HZ80    [9t]         16k         85k        0    [24]
+
+  LOW DENSITY (below 15k SC/mm² core average):
+
+    Design  Library  Core SC/mm²   Total SC   SRAM
+    ──────────────────────────────────────────────────────────────
+    BTAP    [9t]         14k        200k       56    SRAM-dominated [25]
+    WSLG    [7t]         11k        158k        0    [26]
+    BRWN    [mix]         5k         69k        0    [27]
+    MOSB    [9t]          2k         26k        0    [28]
+
+  MINIMAL (analog/test structures):
+
+    ISHI, MOS2, OCD1, OCD2, TRID — fewer than 100 standard cells [29]
+
+
+ACHIEVED DENSITY — PEAK 1mm x 1mm REGIONS
+==========================================
+
+While the averages above include empty or sparse regions, the peak
+density in the best single 1mm x 1mm grid cell shows what the tools
+can achieve when fully utilized:
+
+  Design   Peak SC/mm²   Library   % of Theoretical Max [3]
+  ─────────────────────────────────────────────────────────
+  2975         74k        [7t]      109% of buf_1 max (!) [30]
+  CAFE         56k        [7t]       83% of buf_1 max
+  JKU1         55k        [7t]       81% of buf_1 max
+  TTPG         54k        [mix]      80% of buf_1 max
+  TTP2         54k        [mix]      80% of buf_1 max
+  MOLE         52k        [7t]       77% of buf_1 max
+  KIAN         45k        [9t]      112% of buf_1 max (!) [31]
+  AS03         44k        [7t]       65% of buf_1 max
+  TQVC         43k        [7t]       64% of buf_1 max
+  CHES         42k        [9t]      105% of buf_1 max (!) [31]
+  BTAP         39k        [9t]       97% of buf_1 max
+  TQVB         37k        [7t]       55% of buf_1 max
+  TZ01         35k        [7t]       52% of buf_1 max
+  JKU2         32k        [mix]      48% of buf_1 max
+  TQVA         32k        [7t]       48% of buf_1 max
+  GD02         31k        [7t]       46% of buf_1 max
+  RZ80         24k        [9t]       61% of buf_1 max
+  WSLG         23k        [7t]       34% of buf_1 max
+
+Some designs exceed 100% of the buf_1 theoretical max! This is because
+those designs predominantly use cells smaller than buf_1 (such as
+inverters and fill cells), which pack even more densely. The buf_1
+reference is a rough midpoint — not a hard ceiling. [30][31]
+
+
+7-TRACK vs 9-TRACK LIBRARY COMPARISON
+=======================================
+
+Comparing designs that exclusively use one library:
+
+                              7-track (mcu7t5v0)    9-track (mcu9t5v0)
+  ────────────────────────────────────────────────────────────────────
+  Designs using this lib:     14                    10
+  Best core density:          55k SC/mm² (2975)     39k SC/mm² (CHES)
+  Best peak grid cell:        74k SC/mm² (2975)     45k SC/mm² (KIAN)
+  Median core density:        24k SC/mm²            20k SC/mm²
+
+The 7-track library achieves roughly 20-40% higher density in practice,
+consistent with its 24% theoretical advantage from shorter row
+height. [32] The 9-track library's best result (CHES at 39k SC/mm²)
+falls between the 7-track library's median and best, suggesting that
+good design practices matter at least as much as library choice.
+
+
+SRAM BLOCK USAGE
+=================
+
+SRAM (Static Random-Access Memory) blocks are pre-designed memory
+macros provided by the foundry. Unlike standard cells, which are
+composed by automated tools, SRAM blocks are hand-optimized fixed-size
+units designed to store data as densely as possible.
+
+14 of the 24 designs include SRAM blocks: [33]
+
+  SRAM-HEAVY (40+ blocks, dominating the die):
+
+    Design   SRAM Blocks   Stdcells   Notes
+    ─────────────────────────────────────────
+    RBOY         60          249k     Most SRAM blocks of any design [34]
+    BTAP         56          200k     [25]
+    GD03         46          320k     [19]
+    KIAN         42          335k     [18]
+    CAFE         40          368k     [15]
+
+  SRAM-MODERATE (10-39 blocks):
+
+    GD02         18          113k     [20]
+    TZ01         16          286k     [21]
+    OCD1         16            9      SRAM test vehicle [35]
+    MOLE         12          499k     [11]
+    GD04         12          140k     [16]
+
+  SRAM-LIGHT (1-9 blocks):
+
+    OCD2          8            9      SRAM test vehicle [36]
+    TQVA          2           98k     [7]
+    TQVC          2          173k     [12]
+    TQVB          2          159k     [13]
+
+
+SRAM vs STANDARD CELL TRANSISTOR DENSITY
+==========================================
+
+A critical comparison: how does the transistor density inside a foundry-
+provided SRAM block compare to the density achieved by packing standard
+cells?
+
+"Transistor density" here counts the number of distinct regions where a
+gate electrode (polysilicon) crosses an active area (diffusion) — each
+such crossing forms one transistor. [37]
+
+  SRAM macros (foundry-provided, hand-optimized): [38]
+
+    Macro                  Size          Trans/mm²
+    ────────────────────────────────────────────────
+    sram1024x8 (OCD)     301 x 516 um     385k/mm²    Densest SRAM
+    sram512x8 (OCD)      301 x 322 um     332k/mm²
+    sram256x8 (OCD)      301 x 225 um     270k/mm²
+    sram512x8 (standard) 432 x 485 um     154k/mm²    Most commonly used
+    sram256x8 (standard) 432 x 341 um     124k/mm²
+    sram128x8            432 x 269 um      98k/mm²
+    sram64x8             432 x 233 um      79k/mm²
+
+  Best standard cell regions (automated place-and-route): [39]
+
+    Design     Peak 1mm² Trans/mm²   Library
+    ────────────────────────────────────────────────
+    MOLE           305k/mm²          7-track
+    TTPG           297k/mm²          mixed
+    CAFE           296k/mm²          7-track
+    2975           292k/mm²          7-track
+    JKU1           258k/mm²          7-track
+    TQVC           252k/mm²          7-track
+    CHES           234k/mm²          9-track
+
+  Comparison:
+
+    The standard SRAM macros (154k/mm²) achieve comparable or even
+    LOWER transistor density than the best standard cell regions
+    (250k-305k/mm²). This is surprising — SRAM is typically considered
+    the densest structure on a chip.
+
+    The explanation: the standard SRAM macros (gf180mcu_fd_ip_sram) have
+    large peripheral circuits (address decoders, sense amplifiers, I/O)
+    that dilute the density of the compact bitcell array. The actual
+    6-transistor SRAM bitcells in the core are extremely dense, but the
+    overhead of the surrounding circuitry brings the overall macro
+    density down. [40]
+
+    The OCD (OpenRAM Characterization Design) SRAM variants achieve
+    270k-385k/mm², approaching or exceeding peak stdcell density. These
+    appear to be more compact macro designs with less peripheral
+    overhead. [41]
+
+    For whole-chip averages, SRAM-heavy designs like BTAP (56 blocks,
+    153k trans/mm² core) achieve lower overall transistor density than
+    pure stdcell designs like 2975 (253k trans/mm² core), because the
+    SRAM peripherals and inter-block spacing waste area. [42]
+
+
+KEY FINDINGS
+=============
+
+1. The densest standard cell design (2975) achieves 55k SC/mm² averaged
+   over its core, with a peak of 74k SC/mm² in its densest region.
+   This approaches the theoretical packing limit for the cell mix it
+   uses. [6][30]
+
+2. The 7-track library (mcu7t5v0) consistently achieves ~20-40% higher
+   density than the 9-track library (mcu9t5v0), closely matching the
+   24% theoretical advantage from its shorter row height. [32]
+
+3. Standard cell transistor density (up to 305k/mm²) can exceed that of
+   the commonly-used foundry SRAM macros (154k/mm²), because SRAM
+   peripheral circuits dilute the density of the compact bitcell
+   array. [38][39][40]
+
+4. Designs span a 30x range in stdcell density (2k to 55k SC/mm²
+   core average), reflecting fundamentally different design types —
+   from dense digital SoCs to sparse analog test structures. [6][28]
+
+5. Within a single design, stdcell density typically varies 4-12x
+   between the densest core region and the sparsest edge, driven
+   primarily by the I/O pad ring consuming die perimeter. [43]
+
+
+────────────────────────────────────────────────────────────────────────
+FOOTNOTES
+────────────────────────────────────────────────────────────────────────
+
+[1]  All standard cells in the reticle use library names containing
+     "5v0" (e.g., mcu7t5v0, mcu9t5v0). No 3.3V-specific library
+     variants were found. The "5v0" designation refers to the I/O
+     voltage tolerance of the process variant; core logic typically
+     operates at 3.3V. Source: cell name analysis of 16k unique
+     stdcell definitions across the reticle.
+
+[2]  Library usage per design determined by walking each design's cell
+     hierarchy and classifying stdcell instances by library name prefix.
+     TTPG: 503k mcu7t5v0 + 10k mcu9t5v0. TTP2: 503k mcu7t5v0 + 10k
+     mcu9t5v0. BRWN: 45k mcu9t5v0 + 24k mcu7t5v0. JKU2: 111k
+     mcu9t5v0 + 30k mcu7t5v0.
+
+[3]  Theoretical maximum = (1000um / cell_width) x (1000um / row_height)
+     for a single cell type filling a 1mm x 1mm area with zero routing
+     overhead. 7-track row height = 4.78um, 9-track = 5.94um.
+     Cell dimensions from GF180MCU PDK standard cell library LEF data
+     as present in the reticle layout.
+
+[4]  The 40-70% utilization range is an empirical observation from the
+     achieved-vs-theoretical ratios in this reticle. The best designs
+     reach 65-83% of buf_1 packing (which is itself not the densest
+     possible cell). Routing overhead is the primary consumer of the
+     remaining area.
+
+[5]  Core area estimated as (die_width - 0.70mm) x (die_height -
+     0.70mm), subtracting a 350um pad ring border on each side. I/O pad
+     cells (gf180mcu_fd_io / gf180mcu_ocd_io) are 350um tall as
+     measured in the layout. Full-size slots: die = 3.93 x 5.12mm,
+     core = 3.23 x 4.42mm = 14.3mm². Half-height: die = 3.93 x
+     2.53mm, core = 3.23 x 1.83mm = 5.9mm². Half-width: die = 1.94 x
+     5.12mm, core = 1.24 x 4.42mm = 5.5mm².
+
+[6]  2975 (2975_chip_top): 780k stdcells in 14.3mm² core = 55k SC/mm².
+     Uses mcu7t5v0 exclusively (769k cells from hierarchy walk). Peak
+     grid cell: 74k SC/mm². 3,615k transistor regions. Zero SRAM.
+
+[7]  TQVA (TQVA_chip_top_14_8): 98k stdcells in quarter-size slot
+     (1.94 x 2.53mm die, 2.3mm² core). Core density 43k SC/mm². Uses
+     mcu7t5v0. 2 SRAM blocks, 57 pads.
+
+[8]  TTPG (TTPG_tt_gf_wrapper_6_2) and TTP2 (TTP2_tt_gf_wrapper_6_4)
+     are Tiny Tapeout shuttle designs, each containing 52 independent
+     user projects multiplexed onto shared I/O via tt_mux cells. Each
+     user design's stdcells are prefixed with a unique 2-character hash
+     (e.g., OH_, ZI_) to avoid naming collisions. 503k cells use 7-
+     track, 10k use 9-track. 570k total stdcells, 75 pads, 0 SRAM.
+
+[9]  JKU1 (JKU1_chip_top_10_0): 570k stdcells, 40k SC/mm² core.
+     Uses mcu7t5v0 exclusively. 3,155k transistors. No SRAM, 75 pads.
+
+[10] CHES (CHES_chip_top_10_4): 552k stdcells, 39k SC/mm² core.
+     Uses mcu9t5v0 exclusively — the highest density achieved with the
+     9-track library. 2,717k transistors. No SRAM, 75 pads.
+
+[11] MOLE (MOLE_chip_top_8_4): 499k stdcells, 35k SC/mm² core.
+     Primarily mcu7t5v0 (108k cells at top hierarchy levels). 3,419k
+     transistors (second highest). 12 SRAM blocks, 75 pads.
+
+[12] TQVC (TQVC_chip_top, 2 placements): 173k stdcells in half-height
+     slot (3.93 x 2.53mm). Core density 29k SC/mm². Uses mcu7t5v0.
+     2 SRAM blocks, 73 pads.
+
+[13] TQVB (TQVB_chip_top_14_6): 159k stdcells in half-width slot
+     (1.94 x 5.12mm). Core density 29k SC/mm². mcu7t5v0. 2 SRAM, 73
+     pads.
+
+[14] AS03 (AS03_chip_top_6_0): 386k stdcells, 27k SC/mm² core.
+     Mixed: 368k mcu7t5v0 + 18k mcu9t5v0. No SRAM, 75 pads.
+
+[15] CAFE (CAFE_chip_top_12_0): 368k stdcells, 26k SC/mm² core.
+     mcu7t5v0. 40 SRAM blocks. Peak grid cell: 56k SC/mm². 75 pads.
+
+[16] GD04 (GD04_chip_top, 2 placements): 140k stdcells in half-height
+     slot. Core 24k SC/mm². mcu9t5v0. 12 SRAM blocks, 73 pads.
+
+[17] JKU2 (JKU2_chip_top_0_8): 141k stdcells in half-height slot.
+     Core 24k SC/mm². Mixed: 111k mcu9t5v0 + 30k mcu7t5v0. No SRAM.
+
+[18] KIAN (KIAN_chip_top_8_0): 335k stdcells, 23k SC/mm² core.
+     mcu9t5v0 exclusively. 42 SRAM blocks. Notably uniform density:
+     only 1.1x variation across its logic area (39k-45k SC per grid
+     cell). 75 pads.
+
+[19] GD03 (GD03_chip_top_6_6): 320k stdcells, 22k SC/mm² core.
+     mcu7t5v0. 46 SRAM blocks — SRAM covers nearly all non-pad-ring
+     grid cells, so zero stdcells appear in any 1mm grid cell (all
+     stdcells are co-located with SRAM regions). 75 pads.
+
+[20] GD02 (GD02_chip_top_14_4): 113k stdcells in half-width slot.
+     Core 21k SC/mm². mcu7t5v0. 18 SRAM blocks, 73 pads.
+
+[21] TZ01 (TZ01_chip_top, 2 placements): 286k stdcells, 20k SC/mm²
+     core. mcu7t5v0. 16 SRAM blocks, 75 pads.
+
+[22] RBOY (RBOY_chip_top_12_6): 249k stdcells, 17k SC/mm² core.
+     mcu9t5v0. 60 SRAM blocks — the most of any design. SRAM dominates
+     so completely that no grid cells show non-zero stdcell counts. 75
+     pads.
+
+[23] RZ80 (RZ80_chip_top, 2 placements): 214k stdcells, 15k SC/mm²
+     core. mcu9t5v0 exclusively. No SRAM, 75 pads.
+
+[24] HZ80 (HZ80_chip_top_14_0): 85k stdcells in half-width slot.
+     Core 16k SC/mm². mcu9t5v0. No SRAM, 73 pads.
+
+[25] BTAP (BTAP_chip_top, 2 placements): 200k stdcells, 14k SC/mm²
+     core. mcu9t5v0. 56 SRAM blocks dominate die area — only 2 of 24
+     grid cells contain visible stdcells. 75 pads.
+
+[26] WSLG (WSLG_chip_top_10_2): 158k stdcells, 11k SC/mm² core.
+     mcu7t5v0. No SRAM, 75 pads. Has a distinctive hollow center (zero
+     transistors in middle grid cells), suggesting a large analog block
+     or unused region.
+
+[27] BRWN (BRWN_ENGN2912E_TOP_8_2): 69k stdcells, 5k SC/mm² core.
+     Mixed: 45k mcu9t5v0 + 24k mcu7t5v0. No SRAM, 75 pads.
+
+[28] MOSB (MOSB_chip_top, 2 placements): 26k stdcells, 2k SC/mm²
+     core. Primarily mcu9t5v0 (155 cells at top levels). No SRAM, 75
+     pads. Very sparse — likely a test structure or minimally-populated
+     design.
+
+[29] ISHI: 63 stdcells, 196 pads (pad-dominated). MOS2: 52 stdcells,
+     163 pads. OCD1: 9 stdcells, 16 SRAM blocks (Caravel OpenFrame
+     SRAM test). OCD2: 9 stdcells, 8 SRAM blocks (SRAM characterization
+     design). TRID: 0 stdcells, 95 pads.
+
+[30] 2975's peak of 74k SC/mm² exceeds the buf_1 theoretical max of
+     50k/mm² because the actual cell mix includes many cells smaller
+     than buf_1. Inverters (inv_1) have a theoretical max of 67k/mm²,
+     and fill cells (fill_1) can reach 147k/mm². A mix favoring smaller
+     cells can exceed any single-cell reference point. This does NOT
+     mean 100% utilization — routing overhead is still present, but the
+     small average cell size compensates.
+
+[31] 9-track designs (KIAN at 45k, CHES at 42k) exceeding the 9-track
+     buf_1 max of 40k/mm² follows the same logic as [30]: the actual
+     cell mix includes many cells smaller than buf_1.
+
+[32] Comparing 7-track vs 9-track achieved density: 7-track best = 55k,
+     9-track best = 39k, ratio = 1.41x. 7-track median = 24k, 9-track
+     median = 20k, ratio = 1.20x. The theoretical ratio from row
+     heights alone is 5.94/4.78 = 1.24x. The best-case ratio exceeds
+     this, suggesting that 7-track designs on this reticle also tend to
+     be more aggressively optimized.
+
+[33] SRAM block counts determined by merging all shapes on GDS layer
+     108/5 (SramCore) within each design's cell hierarchy and counting
+     distinct merged polygons. Each "block" is one contiguous SramCore
+     region, typically corresponding to one SRAM macro instance.
+
+[34] RBOY uses 60 SRAM blocks in a 20.1mm² die — approximately 3.0
+     blocks per mm². The SRAM so thoroughly covers the die that all
+     non-pad-ring grid cells overlap SRAM regions.
+
+[35] OCD1 (OCD1_caravel_openframe_top): Caravel OpenFrame design with
+     16 SRAM blocks and only 9 stdcells. 1,529k transistors come almost
+     entirely from the SRAM macros and custom logic.
+
+[36] OCD2 (OCD2_gf180mcu_ocd_sram_top): OpenRAM SRAM characterization
+     design. 8 SRAM blocks, 9 stdcells, 251k transistors in a half-
+     height slot (9.9mm²).
+
+[37] Transistor count methodology: for each region analyzed, shapes on
+     the COMP layer (GDS 22/0, diffusion/active area) are boolean-AND'd
+     with shapes on the Poly2 layer (GDS 30/0, gate polysilicon). Each
+     distinct merged polygon in the result represents one transistor
+     gate crossing. This counts NMOS and PMOS gates separately.
+
+[38] SRAM macro transistor density measured by applying the same COMP &
+     Poly2 intersection methodology [37] to individual SRAM macro cells.
+     "Standard" macros (gf180mcu_fd_ip_sram) are 432um wide; "OCD"
+     variants (gf180mcu_ocd_ip_sram) are 301um wide. Size variants:
+     64x8, 128x8, 256x8, 512x8, 1024x8 (words x bits).
+
+[39] Peak stdcell transistor density from the 1mm x 1mm grid analysis.
+     Values reflect the highest transistor count in any single grid cell
+     for each design, excluding cells that overlap SRAM regions. MOLE
+     peak: 305k trans/mm². TTPG: 297k. CAFE: 296k. 2975: 292k.
+
+[40] SRAM macros contain: (1) the bitcell array — extremely dense
+     6-transistor cells in a regular grid; (2) row decoders; (3) column
+     multiplexers; (4) sense amplifiers; (5) write drivers; (6) control
+     logic; (7) power rings and guard bands. Categories 2-7 are
+     collectively called "peripherals" and can consume 30-50% of the
+     macro area, especially for smaller arrays where the peripheral-to-
+     bitcell ratio is higher.
+
+[41] The OCD SRAM variants (270k-385k trans/mm²) are significantly
+     denser than standard variants (79k-154k trans/mm²). This may
+     reflect a different macro architecture, tighter peripheral design,
+     or reduced guard band spacing for the characterization use case.
+
+[42] Whole-chip transistor density comparison: BTAP (SRAM-heavy, 56
+     blocks) achieves 153k trans/mm² core average. 2975 (pure stdcell)
+     achieves 253k trans/mm² core average — 65% higher despite having no
+     hand-optimized SRAM bitcells.
+
+[43] Within-die density variation measured across 1mm x 1mm grid cells
+     excluding SRAM-overlapping and pad-ring cells. Typical range: CHES
+     3.5x, TZ01 5.4x, JKU1 7.1x, 2975 11.6x. Outliers: KIAN 1.1x
+     (remarkably uniform), TQVC 45.3x (logic concentrated in one area).
+
+────────────────────────────────────────────────────────────────────────
+Data source: analyze_layout.py applied to ws-run1 reticle.oas (320MB).
+Analysis method: KLayout boolean geometry operations on GDS layers.
+Grid resolution: 1mm x 1mm. All density figures rounded to nearest 1k.
+────────────────────────────────────────────────────────────────────────
