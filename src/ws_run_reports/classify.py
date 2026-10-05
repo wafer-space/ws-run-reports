@@ -4,15 +4,17 @@ A project's category is decided, in order, by:
 
 1. an explicit entry in the run configuration (``[categories]`` in
    ``runs/<run>.toml``), which always wins;
-2. the first keyword rule in :data:`RULES` that matches the project's name or
-   description;
+2. the first keyword rule in :data:`RULES` that matches the project's name,
+   or failing that its description. The name goes first because descriptions
+   mention all sorts of things in passing (TinyQV's says it came out of a
+   Tiny Tapeout competition, which does not make it a multi-project die);
 3. what was measured in the layout, for projects whose description says
    nothing useful.
 """
 
 import re
 
-# (category, regex matched against "<name> <details>", case-insensitive).
+# (category, regex matched against the name and then the details, case-insensitive).
 # Order matters: the first match wins, so the specific rules come first and
 # the broad ones ("risc-v", "soc") come last.
 RULES = [
@@ -23,9 +25,9 @@ RULES = [
     ("Memory test chip", r"sram (test|blocks|macros|characteri)|\bsram test\b|efuse|test chip for the .*sram"),
     ("Analog and mixed-signal", r"\badc\b|\bdac\b|\bpll\b|\bdco\b|\btdc\b|analog|op-?amp|charge pump|floating[- ]gate"
                                 r"|mosbius|chipathon|synth\b|eurosynth|bandgap"),
-    ("Test structures", r"test structure|test passives|leakage|pad test|flip chip|characteri[sz]ation|peripherals"),
+    ("Test structures", r"test structure|test passives|leakage|pad test|flip chip|characteri[sz]ation"),
     ("Retro computing", r"\bz80\b|6502|\bsid\b|8-bit cpu|games? console|riscboy|ray ?cast|raybox|\bvga\b"),
-    ("Accelerators", r"accelerator|\btpu\b|machine learning|\bml\b|neural|logic gate network|chess|cordic|path-tracing"
+    ("Accelerators", r"accelerator|tpu\b|machine learning|\bml\b|neural|logic gate network|chess|cordic|path-tracing"
                      r"|ethernet"),
     ("RISC-V and CPUs", r"risc-?v|rv32|picosoc|serv\b|\bcpu\b|\bsoc\b|processor|\balu\b|transport triggered"),
 ]
@@ -46,10 +48,10 @@ def classify(design, overrides=None) -> str:
     if overrides and design.code in overrides:
         return overrides[design.code]
 
-    text = f"{design.project.name} {design.project.details}"
-    for category, pattern in RULES:
-        if re.search(pattern, text, re.IGNORECASE):
-            return category
+    for text in (design.project.name, design.project.details):
+        for category, pattern in RULES:
+            if re.search(pattern, text, re.IGNORECASE):
+                return category
     return classify_by_layout(design)
 
 
