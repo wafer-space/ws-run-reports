@@ -208,7 +208,7 @@ def count_stdcell_usage(cell, cell_info):
             cache[ci] = counts
             return counts
         for inst in c.each_inst():
-            n_copies = sum(1 for _ in inst.cell_inst.each_trans())
+            n_copies = inst.cell_inst.size()
             for key, cnt in get_counts(inst.cell).items():
                 counts[key] += cnt * n_copies
         cache[ci] = counts
@@ -397,7 +397,7 @@ def count_macro_usage(cell, macro_cells):
                 counts[macro_cells[ci]] = 1
             else:
                 for inst in c.each_inst():
-                    n = sum(1 for _ in inst.cell_inst.each_trans())
+                    n = inst.cell_inst.size()
                     for key, cnt in placements(inst.cell).items():
                         counts[key] += cnt * n
             cache[ci] = counts
