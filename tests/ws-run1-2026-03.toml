@@ -1,0 +1,24 @@
+# Regression configuration: ws-run1 as it was when the first density report
+# was written in March 2026 (wafer-space/ws-run1 at commit aa0bfb6).
+#
+# The analysis of this layout must reproduce reference/ws-run1/*.csv exactly.
+# See docs/provenance.md.
+name = "ws-run1"
+title = "wafer.space GF180MCU Run 1"
+number = 1
+shuttle = "G801"
+process = "GF180MCU"
+repo = "wafer-space/ws-run1"
+slots = 40
+
+[layout]
+parts = "layout/reticle-part-*"
+file = "layout/reticle.oas"
+md5 = "316f07f37e148457558053f4d4d11540"
+layer_properties = "lyp/gf180mcu.lyp"
+
+[manifest]
+readme = "README.md"
+
+[images]
+reticle = ["images/reticle_white.png", "images/reticle.svg"]
