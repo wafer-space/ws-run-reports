@@ -19,3 +19,10 @@ csv = "data/manifest.csv"
 
 [images]
 reticle = ["images/G802.png", "images/G802.svg"]
+
+[site]
+# Key of this run in the website's _data/runs.yml, for the shuttle timeline.
+runs_yml_key = "gf180mcu_run_2"
+campaign_url = "https://www.crowdsupply.com/wafer-space/gf180mcu-run-2"
+# Add cob_repo / cob_url and photos_url / photos_prefix / photos_credit here
+# once bonding results and die photographs exist for this run (see ws-run1.toml).

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{% block title %}{{ run.title }}{% endblock %}</title>
+  <meta name="description" content="{% block description %}Designs, density statistics and layout renders from {{ run.title }}.{% endblock %}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ self.title() }}">
+  <meta property="og:description" content="{{ self.description() }}">
+  {% if renders %}<meta property="og:image" content="{{ run.pages_url }}renders/{{ renders.reticle.file }}">{% endif %}
+
+  <script>
+    // Same theme preference as the main website, applied before first paint.
+    (function () {
+      var theme = localStorage.getItem('theme');
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <style>
+    [data-theme="dark"], [data-theme="dark"] body { background-color: #1a1a1a !important; color: #e0e0e0; }
+  </style>
+  <link rel="shortcut icon" href="{{ website }}/favicon.png" />
+  <link rel="stylesheet" type="text/css" href="{{ website }}/assets/css/bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="{{ website }}/assets/css/plugins.css" />
+  <link rel="stylesheet" type="text/css" href="{{ website }}/assets/type/type.css" />
+  <link rel="stylesheet" type="text/css" href="{{ website }}/assets/css/style.css" />
+  <link rel="stylesheet" type="text/css" href="{{ website }}/assets/css/color/sky.css">
+  <link rel="stylesheet" type="text/css" href="{{ website }}/assets/css/color/dark.css">
+  <link rel="stylesheet" type="text/css" href="{{ website }}/assets/css/custom.css">
+  <link rel="stylesheet" type="text/css" href="{{ root }}run.css">
+</head>
+<body>
+  <div class="content-wrapper">
+    <nav class="navbar wide absolute dark-wrapper inverse-text navbar-hover-opacity navbar-expand-lg nav-uppercase">
+      <div class="container-fluid flex-row justify-content-center">
+        <div class="navbar-brand" data-default-logo="white">
+          <a href="{{ website }}/"><img src="{{ website }}/assets/images/logo-light.webp"
+            srcset="{{ website }}/assets/images/logo-light.webp 1x, {{ website }}/assets/images/logo-light@2x.webp 2x"
+            class="logo-light" alt="wafer.space - Budget silicon manufacturing" /></a>
+          <a href="{{ website }}/"><img src="{{ website }}/assets/images/logo.webp"
+            srcset="{{ website }}/assets/images/logo.webp 1x, {{ website }}/assets/images/logo@2x.webp 2x"
+            class="logo-dark d-none" alt="wafer.space - Budget silicon manufacturing" /></a>
+        </div>
+        <div class="navbar-other ms-auto order-lg-3">
+          <ul class="navbar-nav flex-row align-items-center" data-sm-skip="true">
+            <li class="nav-item">
+              <div class="navbar-hamburger d-lg-none d-xl-none ms-auto">
+                <button class="hamburger animate plain" data-bs-toggle="offcanvas-nav"><span></span></button>
+              </div>
+            </li>
+            <li class="nav-item d-none d-lg-block">
+              <button id="runThemeToggle" class="btn btn-sm btn-circle btn-outline-primary theme-toggle me-2"
+                aria-label="Switch between light and dark mode"><i class="icofont-moon"></i></button>
+            </li>
+            <li class="nav-item d-none d-lg-block"><a href="{{ website }}/free.html" class="btn btn-default">Free Silicon?</a></li>
+          </ul>
+        </div>
+        <div class="navbar-collapse offcanvas-nav">
+          <div class="offcanvas-header d-lg-none d-xl-none">
+            <a href="{{ website }}/"><img src="{{ website }}/assets/images/logo-light.webp" alt="wafer.space" /></a>
+            <button class="plain offcanvas-close offcanvas-nav-close"><i class="jam jam-close"></i></button>
+          </div>
+          <ul class="navbar-nav mx-auto" data-sm-skip-collapsible-behavior="true">
+            <li class="nav-item"><a class="nav-link" href="{{ website }}/">Home</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ website }}/about.html">About</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ website }}/price.html">Pricing</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ website }}/technology.html">Technology</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ website }}/design-help.html">Design Help</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ website }}/news">News</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ website }}/faq.html">FAQ</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    {% block content %}{% endblock %}
+
+    <footer class="dark-wrapper inverse-text">
+      <div class="container inner">
+        <div class="row">
+          <div class="col-md-12 col-lg-4 text-center text-lg-start">
+            <div class="widget">
+              <a href="{{ website }}"><img src="{{ website }}/assets/images/logo-light.webp" alt="wafer.space - Budget silicon manufacturing" /></a>
+              <div class="space20"></div>
+              <p>Budget silicon manufacturing.</p>
+            </div>
+          </div>
+          <div class="space30 d-lg-none d-xl-none"></div>
+          <div class="col-6 col-lg-4">
+            <div class="widget">
+              <h5 class="widget-title">{{ run.title | replace('wafer.space ', '') }}</h5>
+              <ul class="list-unstyled mb-0">
+                <li><a href="{{ root }}index.html">Run overview</a></li>
+                <li><a href="{{ run.github_url }}">Layout and manifest on GitHub</a></li>
+                <li><a href="{{ run.github_url }}/blob/density-report/reticle_density_report.md">Density report</a></li>
+                {% if run.site.campaign_url %}<li><a href="{{ run.site.campaign_url }}">Campaign page</a></li>{% endif %}
+              </ul>
+            </div>
+          </div>
+          <div class="col-6 col-lg-4">
+            <div class="widget">
+              <h5 class="widget-title">About this page</h5>
+              <p class="small mb-0">Generated on {{ generated }} by
+                <a href="https://github.com/wafer-space/ws-run-reports">ws-run-reports</a> from the public reticle
+                layout. Every figure is measured from the layout; the data files are linked from the overview.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="{{ website }}/assets/js/jquery.min.js"></script>
+  <script src="{{ website }}/assets/js/popper.min.js"></script>
+  <script src="{{ website }}/assets/js/bootstrap.min.js"></script>
+  <script src="{{ website }}/assets/js/plugins.js"></script>
+  <script src="{{ website }}/assets/js/scripts.js"></script>
+  <script src="{{ root }}run.js"></script>
+</body>
+</html>

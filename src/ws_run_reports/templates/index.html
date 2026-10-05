@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+{% set short_title = run.title | replace('wafer.space ', '') %}
+{% block title %}{{ short_title }} — wafer.space{% endblock %}
+
+{% macro stat(value, label, note='') %}
+<div class="col-6 col-md-4 col-lg-2 mb-20">
+  <div class="box bg-white shadow p-20 text-center h-100">
+    <h3 class="mb-5 color-dark run-stat">{{ value }}</h3>
+    <p class="mb-0 font-weight-600 color-dark small">{{ label }}</p>
+    {% if note %}<p class="mb-0 small text-muted">{{ note }}</p>{% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro project_card(d) %}
+<div class="col-sm-6 col-lg-4 col-xl-3 mb-30">
+  <a class="run-card box bg-white shadow h-100" href="projects/{{ d.code }}.html">
+    <figure class="run-card-image">
+      {% if renders and renders.designs[d.code] %}
+      <img src="renders/{{ renders.designs[d.code].files.thumb }}" alt="Layout render of {{ d.name }}" loading="lazy">
+      {% endif %}
+      <span class="run-code">{{ d.code }}</span>
+    </figure>
+    <div class="run-card-body">
+      <span class="badge rounded-pill run-badge" style="background: {{ category_colour[d.category] }}">{{ d.category }}</span>
+      <h5 class="post-title mb-5">{{ d.name }}</h5>
+      <p class="mb-0 text-muted small">
+        {{ d.slot_label }} slot
+        {% if d.logic_cells %} · {{ d.logic_cells | count }} logic cells{% endif %}
+        {% if d.sram_blocks %} · {{ d.sram_blocks }} SRAM{% endif %}
+        {% if not d.logic_cells and d.transistors %} · {{ d.transistors | count }} transistors{% endif %}
+      </p>
+      <p class="mb-0 small run-card-icons">
+        {% if d.code in photos %}<span title="Die photograph available"><i class="jam jam-camera"></i> photo</span>{% endif %}
+        {% if d.code in cob %}<span title="Chip-on-board bonding results available"><i class="jam jam-cpu"></i> bonded</span>{% endif %}
+        {% if d.placements > 1 %}<span title="Placed {{ d.placements }} times on the reticle">× {{ d.placements }}</span>{% endif %}
+      </p>
+    </div>
+  </a>
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="wrapper image-wrapper bg-image page-title-wrapper inverse-text"
+     data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
+  <div class="container inner text-center">
+    <div class="space90"></div>
+    <h1 class="page-title">{{ short_title }}</h1>
+    <p class="lead">Shuttle {{ run.shuttle }} · {{ stats.designs | length }} public designs on one reticle</p>
+  </div>
+</div>
+
+<!-- Headline numbers -->
+<div class="wrapper light-wrapper">
+  <div class="container inner">
+    <h2 class="section-title mb-40 text-center">What was built</h2>
+    <div class="row justify-content-center">
+      {{ stat(stats.designs | length, 'Public designs', 'of ' ~ run.slots ~ ' reticle slots') }}
+      {{ stat(open_source, 'Open source', 'with a public repository') }}
+      {{ stat(stats.transistors | count, 'Transistors', 'across the unique designs') }}
+      {{ stat(stats.logic_cells | count, 'Logic cells', 'gates and flip-flops') }}
+      {{ stat('%.0f KiB' | format(stats.sram_bits / 8 / 1024), 'SRAM', 'in foundry and custom macros') }}
+      {{ stat(pads | count, 'Bond pads', '') }}
+    </div>
+    <p class="text-center text-muted small mb-0">Private designs on the reticle are not in the public layout and are
+      not counted. Designs placed more than once are counted once.</p>
+  </div>
+</div>
+
+<!-- Reticle and status -->
+<div id="reticle" class="wrapper gray-wrapper">
+  <div class="container inner">
+    <div class="row gutter-50">
+      <div class="col-lg-8 mb-30">
+        <h2 class="section-title mb-20">The reticle</h2>
+        {% if renders %}
+        <div class="run-reticle shadow">
+          <img src="renders/{{ renders.reticle.file }}" alt="Render of the {{ run.shuttle }} reticle"
+               width="{{ renders.reticle.width_px }}" height="{{ renders.reticle.height_px }}">
+          {% for p in placements %}
+          {% set d = design_by_code[p.code] %}
+          <a class="run-reticle-slot" href="projects/{{ p.code }}.html" title="{{ p.code }} — {{ d.name }}"
+             style="left: {{ '%.3f' | format(p.left * 100) }}%; top: {{ '%.3f' | format(p.top * 100) }}%; width: {{ '%.3f' | format(p.width * 100) }}%; height: {{ '%.3f' | format(p.height * 100) }}%;"><span>{{ p.code }}</span></a>
+          {% endfor %}
+        </div>
+        <p class="small text-muted mt-10 mb-0">Every design rendered from the layout at the same scale and placed where
+          it sits on the {{ '%.0f' | format(renders.reticle.width_mm) }} × {{ '%.1f' | format(renders.reticle.height_mm) }} mm
+          reticle. Dark gaps are private designs. Select a die for its details.</p>
+        {% else %}
+        <p class="text-muted">Renders have not been generated for this run yet.</p>
+        {% endif %}
+      </div>
+      <div class="col-lg-4">
+        <h2 class="section-title mb-20">Shuttle status</h2>
+        {% if timeline %}
+        <ul class="run-timeline">
+          {% for item in timeline %}
+          <li class="{{ 'done' if item.done else 'pending' }} run-timeline-{{ item.status }}">
+            <span class="run-timeline-date">{{ item.display_date or item.date }}</span>
+            <strong>{{ item.title }}</strong>
+            <span class="small text-muted">{{ item.description }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="small text-muted mb-0">From the <a href="{{ website }}/">wafer.space</a> run schedule.</p>
+        {% else %}
+        <p class="text-muted">No schedule is published for this run.</p>
+        {% endif %}
+        <div class="space20"></div>
+        <a class="btn btn-default btn-sm" href="{{ run.github_url }}">Layout on GitHub</a>
+        {% if run.site.campaign_url %}<a class="btn btn-outline-primary btn-sm" href="{{ run.site.campaign_url }}">Campaign</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- How the silicon was used -->
+<div id="usage" class="wrapper light-wrapper">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">How people used their silicon</h2>
+    <p class="lead text-center mb-40">Where the area of {{ stats.designs | length }} dies
+      ({{ '%.0f' | format(stats.die_area_mm2) }} mm² of silicon) actually went</p>
+
+    <div class="run-bar run-bar-large mb-10">
+      {% for part in total_area if part.share > 0.001 %}
+      <div style="width: {{ '%.2f' | format(part.share * 100) }}%; background: {{ part.colour }}"
+           title="{{ part.label }}: {{ '%.1f' | format(part.mm2) }} mm² ({{ part.share | pct }})">
+        {% if part.share > 0.06 %}<span>{{ part.share | pct }}</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <ul class="run-legend mb-40">
+      {% for part in total_area %}
+      <li><i style="background: {{ part.colour }}"></i><strong>{{ part.label }}</strong> {{ part.share | pct }}
+        <span class="text-muted">— {{ area_notes[part.label] }}</span></li>
+      {% endfor %}
+    </ul>
+
+    <div class="row gutter-50">
+      <div class="col-lg-6 mb-30">
+        <h3 class="mb-20">What people built</h3>
+        {% for name, group in categories %}
+        <a class="run-category" href="#cat-{{ loop.index }}">
+          <span class="run-category-name">{{ name }}</span>
+          <span class="run-category-bar"><i style="width: {{ '%.1f' | format(group | length / (categories[0][1] | length) * 100) }}%; background: {{ category_colour[name] }}"></i></span>
+          <span class="run-category-count">{{ group | length }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      <div class="col-lg-6 mb-30">
+        <h3 class="mb-20">Slot sizes and libraries</h3>
+        <table class="table table-sm run-table">
+          <thead><tr><th>Slot size</th><th class="text-end">Public designs</th></tr></thead>
+          <tbody>
+            {% for label, n in slot_mix %}<tr><td>{{ label }}</td><td class="text-end">{{ n }}</td></tr>{% endfor %}
+          </tbody>
+        </table>
+        <table class="table table-sm run-table mb-0">
+          <thead><tr><th>Standard cell library</th><th class="text-end">Logic cells</th><th class="text-end">Share</th></tr></thead>
+          <tbody>
+            {% for lib in stats.libraries %}
+            <tr><td>{{ lib | library_label }} <span class="text-muted small">{{ lib }}</span></td>
+              <td class="text-end">{{ stats.library_logic_totals[lib] | count }}</td>
+              <td class="text-end">{{ (stats.library_logic_totals[lib] / stats.logic_cells) | pct }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3 class="mb-10">Area budget of every design</h3>
+    <p class="text-muted small mb-20">Each bar is one die, split the same way as above. Sorted by how much of the die is logic.</p>
+    <div class="run-rows">
+      {% for d in stats.designs | sort(attribute='utilisation', reverse=true) %}
+      <a class="run-row" href="projects/{{ d.code }}.html">
+        <span class="run-row-label"><strong>{{ d.code }}</strong> <span class="text-muted">{{ d.name }}</span></span>
+        <span class="run-bar">
+          {% for part in area_bar(d.area_breakdown) if part.share > 0.001 %}
+          <i style="width: {{ '%.2f' | format(part.share * 100) }}%; background: {{ part.colour }}"
+             title="{{ part.label }}: {{ '%.2f' | format(part.mm2) }} mm² ({{ part.share | pct }})"></i>
+          {% endfor %}
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Density guidance -->
+<div id="density" class="wrapper dark-wrapper inverse-text">
+  <div class="container inner">
+    <div class="row">
+      <div class="col-lg-8 offset-lg-2 text-center">
+        <h2 class="title-color color-white">What fits on 1&nbsp;mm² of {{ run.process }} silicon?</h2>
+        <h3 class="display-3">Theoretical maximum against what designers achieved</h3>
+        <p class="lead">The maximum packs one cell type edge to edge with no room for wiring. Real designs need
+          the wiring.</p>
+        <div class="space20"></div>
+      </div>
+    </div>
+    <div class="row text-center gutter-30 justify-content-center">
+      {% for ref in reference %}
+      <div class="col-md-6 col-lg-3 mb-30">
+        <div class="box bg-white shadow p-30 h-100">
+          <h3 class="mb-5 color-dark">~{{ '{:,.0f}'.format(ref.best) }}</h3>
+          <p class="mb-0 font-weight-600 color-dark">{{ ref.label }}s per mm²</p>
+          <p class="mb-10 small text-muted">theoretical maximum</p>
+          {% for e in ref.entries %}
+          <p class="mb-0 small text-muted">{{ e.library }}: {{ e.cell.per_mm2 | k }} <span class="run-mono">{{ e.cell.cell_type }}</span></p>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="space30"></div>
+    <div class="row justify-content-center text-center gutter-30">
+      {% if digital %}
+      <div class="col-md-4 mb-20">
+        <div class="box bg-white shadow p-30 h-100">
+          <h3 class="mb-5 color-dark">{{ digital[0].core_density | k }}</h3>
+          <p class="mb-0 font-weight-600 color-dark">Best whole-die average</p>
+          <p class="mb-0 small text-muted">logic cells/mm² of core — {{ digital[0].pct_of_buffer_max | pct }} of the buffer maximum</p>
+          <p class="mb-0 small"><a href="projects/{{ digital[0].code }}.html">{{ digital[0].name }}</a></p>
+        </div>
+      </div>
+      <div class="col-md-4 mb-20">
+        <div class="box bg-white shadow p-30 h-100">
+          <h3 class="mb-5 color-dark">{{ best_peak.peak_cells | k }}</h3>
+          <p class="mb-0 font-weight-600 color-dark">Best single mm²</p>
+          <p class="mb-0 small text-muted">logic cells — {{ best_peak.peak_pct_of_buffer_max | pct }} of the buffer maximum</p>
+          <p class="mb-0 small"><a href="projects/{{ best_peak.code }}.html">{{ best_peak.name }}</a></p>
+        </div>
+      </div>
+      <div class="col-md-4 mb-20">
+        <div class="box bg-white shadow p-30 h-100">
+          <h3 class="mb-5 color-dark">{{ median_density | k }}</h3>
+          <p class="mb-0 font-weight-600 color-dark">Typical design</p>
+          <p class="mb-0 small text-muted">median logic cells/mm² of core across {{ digital | length }} digital designs</p>
+          <p class="mb-0 small text-muted">{{ median_utilisation | pct }} of the core covered by logic cells</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div id="guidance" class="wrapper gray-wrapper">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">Sizing your own design</h2>
+    <p class="lead text-center mb-40">What each slot size held on this run, and what it would hold at this run's densities</p>
+    <div class="table-responsive">
+      <table class="table run-table bg-white shadow">
+        <thead><tr>
+          <th>Slot</th><th>Die</th><th class="text-end">Core area</th><th class="text-end">Designs</th>
+          <th class="text-end">Most logic cells</th><th class="text-end">Median</th>
+          <th class="text-end">At typical density<br><span class="small text-muted">{{ median_density | k }}/mm²</span></th>
+          <th class="text-end">At best density<br><span class="small text-muted">{{ best_density | k }}/mm²</span></th>
+        </tr></thead>
+        <tbody>
+          {% for row in slot_guidance %}
+          <tr><td><strong>{{ row.label }}</strong></td><td>{{ row.die }}</td>
+            <td class="text-end">{{ '%.1f' | format(row.core_mm2) }} mm²</td><td class="text-end">{{ row.designs }}</td>
+            <td class="text-end">{{ row.best | count }}</td><td class="text-end">{{ row.median | count }}</td>
+            <td class="text-end">{{ row.at_median_density | count }}</td>
+            <td class="text-end">{{ row.at_best_density | count }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="small text-muted mb-40">Core area is the die minus a 350 µm pad ring on each side. "At typical density"
+      and "at best density" multiply the core area by this run's median and best whole-die densities; SRAM and analog
+      blocks take their area out of that.</p>
+
+    <h3 class="mb-10">Logic density of every digital design</h3>
+    <p class="text-muted small mb-20">Solid bar: average over the core. Outlined bar: the densest single mm². The scale
+      ends at the buffer theoretical maximum ({{ scale_max | k }} cells/mm²).</p>
+    <div class="run-rows">
+      {% for d in digital %}
+      <a class="run-row" href="projects/{{ d.code }}.html">
+        <span class="run-row-label"><strong>{{ d.code }}</strong> <span class="text-muted">{{ d.library_label }}</span></span>
+        <span class="run-density">
+          <i class="peak" style="width: {{ '%.2f' | format([d.peak_cells / scale_max, 1] | min * 100) }}%"></i>
+          <i class="core" style="width: {{ '%.2f' | format([d.core_density / scale_max, 1] | min * 100) }}%"></i>
+        </span>
+        <span class="run-row-value">{{ d.core_density | k }} <span class="text-muted">/ {{ d.peak_cells | k }}</span></span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Projects -->
+<div id="projects" class="wrapper light-wrapper">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">The projects</h2>
+    <p class="lead text-center mb-40">Grouped by what they are. Each links to renders, measurements and any photographs
+      or bonding results.</p>
+    {% for name, group in categories %}
+    <h3 id="cat-{{ loop.index }}" class="run-category-title">
+      <i style="background: {{ category_colour[name] }}"></i>{{ name }}
+      <span class="text-muted">{{ group | length }}</span>
+    </h3>
+    <div class="row">
+      {% for d in group | sort(attribute='code') %}{{ project_card(d) }}{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if photos %}
+<div id="photos" class="wrapper gray-wrapper">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">The real silicon</h2>
+    <p class="lead text-center mb-40">Optical micrographs of the fabricated dies by {{ run.site.photos_credit }}</p>
+    <div class="row">
+      {% for code, photo in photos | dictsort %}
+      <div class="col-6 col-md-4 col-lg-3 mb-30">
+        <a class="run-photo shadow" href="projects/{{ code }}.html#photo">
+          <img src="{{ photo.preview }}" alt="Die photograph of {{ code }}" loading="lazy">
+          <span>{{ code }}</span>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="small text-muted text-center mb-0">Full resolution images:
+      <a href="{{ run.site.photos_url }}">{{ run.site.photos_url }}</a></p>
+  </div>
+</div>
+{% endif %}
+
+{% if cob %}
+<div id="bonding" class="wrapper {{ 'light-wrapper' if photos else 'gray-wrapper' }}">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">Chip-on-board bonding</h2>
+    <p class="lead text-center mb-30">Wire bonding results for the dies packaged directly onto PCBs</p>
+    <div class="text-center mb-30">
+      {% for code, url in cob | dictsort %}
+      <a class="btn btn-outline-primary btn-sm mb-10" href="projects/{{ code }}.html#bonding">{{ code }}</a>
+      {% endfor %}
+    </div>
+    <div class="run-embed shadow">
+      <iframe src="{{ run.site.cob_url }}/" title="Chip-on-board results for {{ short_title }}" loading="lazy"></iframe>
+    </div>
+    <p class="small text-muted text-center mt-10 mb-0">Embedded from <a href="{{ run.site.cob_url }}/">{{ run.site.cob_url }}/</a></p>
+  </div>
+</div>
+{% endif %}
+
+<div id="data" class="wrapper gray-wrapper">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">Data and method</h2>
+    <p class="lead text-center mb-30">Everything on this page is measured from the public reticle layout</p>
+    <div class="row">
+      <div class="col-lg-6 mb-30">
+        <ul class="run-method">
+          <li><strong>Logic cells</strong> are standard cell instances, excluding fillers, taps, antenna diodes and tie cells.</li>
+          <li><strong>Transistors</strong> are places where gate polysilicon crosses diffusion.</li>
+          <li><strong>Core area</strong> is the die minus a 350 µm pad ring on each side.</li>
+          <li><strong>Theoretical maximum</strong> tiles one cell at its placement boundary with no routing.</li>
+          <li><strong>Densest mm²</strong> is the best cell of a 1 mm grid over each die, skipping SRAM.</li>
+        </ul>
+      </div>
+      <div class="col-lg-6 mb-30">
+        <p>The full written analysis is the
+          <a href="{{ run.github_url }}/blob/density-report/reticle_density_report.md">density report</a>.
+          The measurements behind it:</p>
+        <ul class="run-files">
+          {% for name in data_files %}<li><a href="data/{{ name }}">{{ name }}</a></li>{% endfor %}
+        </ul>
+        <p class="small text-muted mb-0">Generated by
+          <a href="https://github.com/wafer-space/ws-run-reports">ws-run-reports</a> from
+          <span class="run-mono">{{ run.layout.file }}</span> (md5 <span class="run-mono">{{ run.layout.md5 }}</span>).</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

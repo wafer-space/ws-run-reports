@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% set short_title = run.title | replace('wafer.space ', '') %}
+{% set render = renders.designs[design.code] if renders and design.code in renders.designs else none %}
+{% set photo = photos[design.code] if design.code in photos else none %}
+{% set cob_url = cob[design.code] if design.code in cob else none %}
+{% set map = heatmap(design) %}
+{% block title %}{{ design.code }} {{ design.name }} — {{ short_title }}{% endblock %}
+{% block description %}{{ design.project.details or design.name }}{% endblock %}
+
+{% block content %}
+<div class="wrapper image-wrapper bg-image page-title-wrapper inverse-text"
+     data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
+  <div class="container inner text-center">
+    <div class="space90"></div>
+    <p class="mb-10"><a class="run-crumb" href="{{ root }}index.html">{{ short_title }}</a></p>
+    <h1 class="page-title">{{ design.name }}</h1>
+    <p class="lead"><span class="run-code-inline">{{ design.code }}</span> · {{ design.category }} · {{ design.slot_label }} slot</p>
+  </div>
+</div>
+
+<div class="wrapper light-wrapper">
+  <div class="container inner">
+    <div class="row gutter-50">
+      <div class="col-lg-7 mb-30">
+        {% if render %}
+        <div class="run-viewer shadow">
+          <a id="render-link" href="{{ root }}renders/{{ render.files.full }}">
+            <img id="render-image" src="{{ root }}renders/{{ render.files.full }}"
+                 width="{{ render.width_px }}" height="{{ render.height_px }}" alt="Layout render of {{ design.name }}">
+          </a>
+        </div>
+        <div class="run-viewer-tabs" role="group" aria-label="Layers to show">
+          {% for key, label in renders.styles.items() %}
+          <button type="button" class="btn btn-sm {{ 'btn-default' if loop.first else 'btn-outline-primary' }}"
+                  data-render="{{ root }}renders/{{ render.files[key] }}">{{ label }}</button>
+          {% endfor %}
+        </div>
+        <p class="small text-muted mt-10 mb-0">Rendered from the layout at {{ '%.1f' | format(1000 / renders.px_per_mm) }} µm
+          per pixel. Layers:
+          {% for key, layer in renders.layers.items() %}<span class="run-swatch"><i style="background: {{ layer.colour }}"></i>{{ layer.label }}</span>{% endfor %}
+        </p>
+        {% else %}
+        <p class="text-muted">No render has been generated for this design yet.</p>
+        {% endif %}
+      </div>
+
+      <div class="col-lg-5">
+        {% if design.project.details %}<p class="lead">{{ design.project.details }}</p>{% endif %}
+        <p>
+          {% if design.project.repository %}
+          <a class="btn btn-default btn-sm mb-10" href="{{ design.project.repository }}">Source repository</a>
+          {% endif %}
+          {% if photo %}<a class="btn btn-outline-primary btn-sm mb-10" href="#photo">Die photograph</a>{% endif %}
+          {% if cob_url %}<a class="btn btn-outline-primary btn-sm mb-10" href="#bonding">Bonding results</a>{% endif %}
+        </p>
+        <table class="table table-sm run-table">
+          <tbody>
+            <tr><th>Die</th><td>{{ '%.2f' | format(design.width_mm) }} × {{ '%.2f' | format(design.height_mm) }} mm
+              ({{ '%.1f' | format(design.die_area_mm2) }} mm²)</td></tr>
+            <tr><th>Core area</th><td>{{ '%.1f' | format(design.core_area_mm2) }} mm² inside the pad ring</td></tr>
+            <tr><th>Placements</th><td>{{ design.placements }} on the reticle</td></tr>
+            <tr><th>Bond pads</th><td>{{ design.pads }}</td></tr>
+            <tr><th>Transistors</th><td>{{ '{:,}'.format(design.transistors) }}</td></tr>
+            <tr><th>Logic cells</th><td>{{ '{:,}'.format(design.logic_cells) }}
+              {% if design.fill_cells %}<span class="text-muted">+ {{ '{:,}'.format(design.fill_cells) }} filler and tap cells</span>{% endif %}</td></tr>
+            {% if design.libraries %}
+            <tr><th>Libraries</th><td>
+              {% for lib, n in design.libraries | dictsort(by='value', reverse=true) %}
+              {{ lib | library_label }} <span class="text-muted">({{ n | count }})</span>{{ ', ' if not loop.last }}
+              {% endfor %}</td></tr>
+            {% endif %}
+            <tr><th>SRAM</th><td>{{ design.sram_blocks }} blocks{% if design.sram_bits %},
+              {{ '{:,}'.format(design.sram_bits) }} bits{% endif %}</td></tr>
+          </tbody>
+        </table>
+
+        {% if design.logic_cells %}
+        <h4 class="mb-10">Logic density</h4>
+        <table class="table table-sm run-table">
+          <tbody>
+            <tr><th>Core average</th><td>{{ design.core_density | k }} cells/mm²
+              <span class="text-muted">({{ design.pct_of_buffer_max | pct }} of buffer maximum)</span></td></tr>
+            <tr><th>Densest mm²</th><td>{{ design.peak_cells | k }} cells
+              <span class="text-muted">({{ design.peak_pct_of_buffer_max | pct }} of buffer maximum)</span></td></tr>
+            <tr><th>Core covered by logic</th><td>{{ design.utilisation | pct }}</td></tr>
+            <tr><th>Transistor density</th><td>{{ design.core_transistor_density | k }}/mm² average,
+              {{ design.peak_transistors | k }} in the densest mm²</td></tr>
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrapper gray-wrapper">
+  <div class="container inner">
+    <div class="row gutter-50">
+      <div class="col-lg-7 mb-30">
+        <h3 class="mb-10">Where the area went</h3>
+        <div class="run-bar run-bar-large mb-10">
+          {% for part in area_bar(design.area_breakdown) if part.share > 0.001 %}
+          <div style="width: {{ '%.2f' | format(part.share * 100) }}%; background: {{ part.colour }}"
+               title="{{ part.label }}: {{ '%.2f' | format(part.mm2) }} mm²">
+            {% if part.share > 0.08 %}<span>{{ part.share | pct }}</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        <ul class="run-legend">
+          {% for part in area_bar(design.area_breakdown) %}
+          <li><i style="background: {{ part.colour }}"></i><strong>{{ part.label }}</strong>
+            {{ '%.2f' | format(part.mm2) }} mm² <span class="text-muted">({{ part.share | pct }})</span></li>
+          {% endfor %}
+        </ul>
+
+        {% if design.cell_usage %}
+        <h3 class="mt-30 mb-10">Most used cells</h3>
+        <table class="table table-sm run-table bg-white">
+          <thead><tr><th>Cell</th><th>Library</th><th class="text-end">Instances</th><th>What it does</th></tr></thead>
+          <tbody>
+            {% for key, n in (design.cell_usage | dictsort(by='value', reverse=true))[:10] %}
+            <tr><td class="run-mono">{{ key[1] }}</td><td>{{ key[0] | library_label }}</td>
+              <td class="text-end">{{ '{:,}'.format(n) }}</td><td class="text-muted">{{ key[1] | describe_cell }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+
+        {% if design.macros %}
+        <h3 class="mt-30 mb-10">SRAM macros</h3>
+        <table class="table table-sm run-table bg-white">
+          <thead><tr><th>Macro</th><th class="text-end">Count</th><th class="text-end">Bits each</th></tr></thead>
+          <tbody>
+            {% for name, n in design.macros | dictsort %}
+            <tr><td class="run-mono">{{ name }}</td><td class="text-end">{{ n }}</td>
+              <td class="text-end">{{ '{:,}'.format(stats.macros[name].bits) }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+
+      <div class="col-lg-5 mb-30">
+        {% if map and design.logic_cells %}
+        <h3 class="mb-10">Logic density map</h3>
+        <svg class="run-heatmap" viewBox="0 0 {{ map.width }} {{ map.height }}" role="img"
+             aria-label="Logic cells per square millimetre across the die">
+          {% for c in map.cells %}
+          {% if c.sram %}
+          <rect x="{{ '%.3f' | format(c.x) }}" y="{{ '%.3f' | format(c.y) }}" width="{{ '%.3f' | format(c.w) }}" height="{{ '%.3f' | format(c.h) }}" class="sram"><title>SRAM</title></rect>
+          {% else %}
+          <rect x="{{ '%.3f' | format(c.x) }}" y="{{ '%.3f' | format(c.y) }}" width="{{ '%.3f' | format(c.w) }}" height="{{ '%.3f' | format(c.h) }}" style="fill-opacity: {{ '%.3f' | format(0.06 + 0.94 * c.level) }}"><title>{{ '{:,}'.format(c.cells) }} logic cells, {{ '{:,}'.format(c.transistors) }} transistors</title></rect>
+          {% if c.w > 0.6 and c.h > 0.6 %}<text x="{{ '%.3f' | format(c.x + c.w / 2) }}" y="{{ '%.3f' | format(c.y + c.h / 2) }}" class="{{ 'light' if c.level > 0.55 else '' }}">{{ c.cells | k }}</text>{% endif %}
+          {% endif %}
+          {% endfor %}
+        </svg>
+        <p class="small text-muted mb-0">Logic cells in each square millimetre of the die. Hatched squares overlap an
+          SRAM macro and are not counted. Edge squares are smaller than 1 mm².</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if photo %}
+<div id="photo" class="wrapper light-wrapper">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">The fabricated die</h2>
+    <p class="lead text-center mb-30">Optical micrograph by {{ run.site.photos_credit }}</p>
+    <div class="row">
+      <div class="col-lg-8 offset-lg-2 text-center">
+        <a class="run-viewer shadow d-inline-block" href="{{ photo.thumb_url }}">
+          <img src="{{ root }}{{ photo.preview }}" alt="Die photograph of {{ design.name }}" loading="lazy">
+        </a>
+        <p class="small text-muted mt-10 mb-0">
+          <a href="{{ photo.thumb_url }}">Larger image</a>{% if photo.full_url %} ·
+          <a href="{{ photo.full_url }}">full resolution (very large file)</a>{% endif %} ·
+          <a href="{{ run.site.photos_url }}">all photographs</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if cob_url %}
+<div id="bonding" class="wrapper {{ 'gray-wrapper' if photo else 'light-wrapper' }}">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">Chip-on-board bonding</h2>
+    <p class="lead text-center mb-30">Wire bonding results for {{ design.code }}</p>
+    <div class="run-embed shadow">
+      <iframe src="{{ cob_url }}" title="Chip-on-board bonding results for {{ design.code }}" loading="lazy"></iframe>
+    </div>
+    <p class="small text-muted text-center mt-10 mb-0">Embedded from <a href="{{ cob_url }}">{{ cob_url }}</a></p>
+  </div>
+</div>
+{% endif %}
+
+<div class="wrapper dark-wrapper inverse-text">
+  <div class="container inner run-pager">
+    <a href="{{ previous.code }}.html">← {{ previous.code }} <span>{{ previous.name }}</span></a>
+    <a href="{{ root }}index.html#projects">All projects</a>
+    <a href="{{ following.code }}.html"><span>{{ following.name }}</span> {{ following.code }} →</a>
+  </div>
+</div>
+{% endblock %}

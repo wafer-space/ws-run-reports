@@ -19,3 +19,15 @@ csv = "data/manifest.csv"
 
 [images]
 reticle = ["images/G801.png", "images/G801.svg"]
+
+[site]
+# Key of this run in the website's _data/runs.yml, for the shuttle timeline.
+runs_yml_key = "gf180mcu_run_1"
+campaign_url = "https://www.crowdsupply.com/wafer-space/gf180mcu-run-1"
+# Chip-on-board bonding results, one directory per project code.
+cob_repo = "wafer-space/ws-run1-cob"
+cob_url = "https://wafer.space/ws-run1-cob"
+# Optical die photographs, named <prefix><code>_<setup>[_th|_66p].jpg
+photos_url = "https://data.wafer.space/infosecdj.net/release-1/"
+photos_prefix = "wafer-space_gf180mcu-ws1-"
+photos_credit = "InfoSec DJ"

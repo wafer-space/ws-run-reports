@@ -9,6 +9,7 @@ dependencies = [
     "klayout",
     "jinja2",
     "pillow",
+    "pyyaml>=6.0.3",
 ]
 
 [project.scripts]
