@@ -101,6 +101,7 @@ def publish_pages(run, out_dir: Path, clone: Path, url: str):
 
 
 def publish(run, out_dir: Path, target: str, push: bool = False):
+    out_dir = out_dir.resolve()
     clone = out_dir / "publish" / target
     if clone.exists():
         shutil.rmtree(clone)
