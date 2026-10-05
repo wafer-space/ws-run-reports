@@ -56,3 +56,39 @@ the CSVs. The following parts of it have no generator in the original commit:
 
 No record of that session survives, so those figures can only be checked by
 recomputing them.
+
+## Checking the current code against it
+
+`tests/ws-run1-2026-03.toml` describes the March layout. With a checkout of
+`wafer-space/ws-run1` at commit `aa0bfb6`:
+
+```bash
+uv run ws-run-reports analyze tests/ws-run1-2026-03.toml --repo-dir <checkout> --out out/regression
+md5sum out/regression/ws-run1/reticle_analysis{,_cells,_grid}.csv
+```
+
+must print the three md5 sums in the table above. This was last confirmed on
+5 October 2026 with klayout 0.30.7.
+
+Generating the report from the same data reproduces the March figures for
+logic cell counts, transistor counts, core densities and peak densities. Two
+kinds of figure differ, both because the March method was wrong:
+
+* **Theoretical maximum density, and every "% of max".** The March report took
+  cell width and row height from the cell bounding box (4.22 x 4.78 um for a
+  7-track `buf_1`). Cells are placed at their boundary (3.36 x 3.92 um); the
+  wells overhang and overlap the neighbours. The maxima were about 35% too low,
+  so for example the densest square millimetre of design 2975 is 41% of the
+  buffer maximum, not 62%, and no design exceeds the flip-flop transistor
+  maximum.
+* **SRAM block counts.** The March report counted SramCore marker shapes, and
+  each GF180MCU macro has two. MOLE has 6 macros (as its own description
+  says), not 12.
+
+## Later changes to ws-run1
+
+On 21 September 2026 the ws-run1 layout was re-published as `G801` with the
+RZML project made public (md5 `3ae7349e205f60d9f997cf7d3a688500`), and the
+project list moved to `data/manifest.csv`. `runs/ws-run1.toml` describes that
+layout, so current reports cover 30 designs where the March report had 24
+unique designs.
