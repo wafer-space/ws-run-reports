@@ -406,10 +406,13 @@ def count_macro_usage(cell, macro_cells):
     return dict(placements(cell))
 
 
-def measure_macros(layout, top_cell, layers, macro_cells):
-    """Measure each distinct SRAM macro: size, transistor count and number of placements."""
+def measure_macros(layout, layers, macro_cells):
+    """Measure each distinct SRAM macro: size and transistor count.
+
+    The number of placements is filled in from the per-slot results, which
+    avoids walking the reticle's fill cells.
+    """
     dbu = layout.dbu
-    totals = count_macro_usage(top_cell, macro_cells)
     rows = {}
     for cell_idx, name in macro_cells.items():
         if name in rows:
@@ -421,7 +424,7 @@ def measure_macros(layout, top_cell, layers, macro_cells):
             "width_um": f"{bbox.width() * dbu:.3f}",
             "height_um": f"{bbox.height() * dbu:.3f}",
             "transistor_count": count_transistors(layout, cell, layers["comp"], layers["poly2"]),
-            "instances": totals.get(name, 0),
+            "instances": 0,
         }
     return [rows[name] for name in sorted(rows)]
 
@@ -474,7 +477,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     print("Measuring standard cell library and SRAM macros...")
     library_rows = measure_library(layout, stdcell_prefixes, cell_info, layers)
     macro_cells = find_macro_cells(layout)
-    macro_rows = measure_macros(layout, top_cell, layers, macro_cells)
+    macro_rows = measure_macros(layout, layers, macro_cells)
     print(f"  {len(library_rows)} distinct standard cells, {len(macro_rows)} distinct SRAM macros")
 
     # The marker layer is added after the library is measured so the markers
@@ -524,6 +527,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     all_cell_usage = []
     slot_macro_rows = []
     slot_area_rows = []
+    macro_totals = Counter()
     for cell_name, cell, trans in slots:
         slot_id = extract_slot_id(cell_name)
         metrics, grid_rows, usage = results[cell.cell_index()]
@@ -545,6 +549,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
             all_cell_usage.append((slot_id, cell_name, lib, cell_type, is_fill, count))
         for macro, count in sorted(metrics["macros"].items()):
             slot_macro_rows.append({"slot_id": slot_id, "cell_name": cell_name, "macro": macro, "instances": count})
+            macro_totals[macro] += count
         slot_area_rows.append({
             "slot_id": slot_id,
             "cell_name": cell_name,
@@ -552,6 +557,9 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
             "sram_area_mm2": f"{metrics['sram_area_mm2']:.4f}",
             "pad_area_mm2": f"{metrics['pad_area_mm2']:.4f}",
         })
+
+    for row in macro_rows:
+        row["instances"] = macro_totals[row["macro"]]
 
     print(f"\nWriting {paths['summary']}...")
     with open(paths["summary"], "w", newline="") as f:

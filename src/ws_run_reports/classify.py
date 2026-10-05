@@ -62,7 +62,7 @@ def classify_by_layout(design) -> str:
       design.logic_cells          logic standard cells (0 for hand-drawn layouts)
       design.custom_transistors   transistors outside standard cells and SRAM macros
       design.transistors          all transistors
-      design.sram_blocks          SRAM macros
+      design.sram_macros          SRAM macros
       design.utilisation          share of the core covered by logic cells (0..1)
 
     The default below calls a die "analog" when most of its transistors are

@@ -69,7 +69,7 @@
               {{ lib | library_label }} <span class="text-muted">({{ n | count }})</span>{{ ', ' if not loop.last }}
               {% endfor %}</td></tr>
             {% endif %}
-            <tr><th>SRAM</th><td>{{ design.sram_blocks }} blocks{% if design.sram_bits %},
+            <tr><th>SRAM</th><td>{{ design.sram_label }} {{ 'macros' if design.macros else 'layout' if design.has_sram else 'macros' }}{% if design.sram_bits %},
               {{ '{:,}'.format(design.sram_bits) }} bits{% endif %}</td></tr>
           </tbody>
         </table>
@@ -80,8 +80,10 @@
           <tbody>
             <tr><th>Core average</th><td>{{ design.core_density | k }} cells/mm²
               <span class="text-muted">({{ design.pct_of_buffer_max | pct }} of buffer maximum)</span></td></tr>
+            {% if design.peak_cells >= design.core_density %}
             <tr><th>Densest mm²</th><td>{{ design.peak_cells | k }} cells
               <span class="text-muted">({{ design.peak_pct_of_buffer_max | pct }} of buffer maximum)</span></td></tr>
+            {% endif %}
             <tr><th>Core covered by logic</th><td>{{ design.utilisation | pct }}</td></tr>
             <tr><th>Transistor density</th><td>{{ design.core_transistor_density | k }}/mm² average,
               {{ design.peak_transistors | k }} in the densest mm²</td></tr>

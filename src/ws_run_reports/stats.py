@@ -50,6 +50,10 @@ CELL_DESCRIPTIONS = {
     "dfxtp": "D flip-flop (1 bit storage)", "dfrtp": "D flip-flop with reset", "dfstp": "D flip-flop with set",
     "sdffq": "Scan D flip-flop", "sdffrnq": "Scan D flip-flop with reset",
     "latq": "Latch (level-sensitive)", "latrnq": "Latch with reset", "dlyb": "Delay buffer",
+    "dlxtp": "Latch (level-sensitive)", "dlxfp": "Latch (level-sensitive)", "dlybuff": "Delay buffer", "clkbuff": "Clock buffer",
+    "nand2b": "2-input NAND, one input inverted", "nor2b": "2-input NOR, one input inverted",
+    "and2b": "2-input AND, one input inverted", "or2b": "2-input OR, one input inverted",
+    "maj3": "3-input majority gate", "fa": "Full adder", "ha": "Half adder",
     "dlya": "Delay buffer", "dlyc": "Delay buffer", "dlyd": "Delay buffer",
     "addh": "Half adder", "addf": "Full adder", "icgtp": "Clock gating cell", "bufz": "Tri-state buffer",
     "invz": "Tri-state inverter", "hold": "Bus hold cell",
@@ -168,6 +172,7 @@ class Design:
     fill_area_mm2: float = 0.0
     stdcell_transistors: int = 0
     sram_area_mm2: float = 0.0
+    sram_macro_area_mm2: float = 0.0
     pad_area_mm2: float = 0.0
     macros: dict = field(default_factory=dict)          # macro name -> instances
     sram_bits: int = 0
@@ -181,6 +186,25 @@ class Design:
     @property
     def name(self) -> str:
         return self.project.name or self.code
+
+    @property
+    def sram_macros(self) -> int:
+        """Number of SRAM macros identified by name.
+
+        ``sram_blocks`` counts SramCore marker shapes instead, and the
+        GF180MCU macros contain two of those each.
+        """
+        return sum(self.macros.values())
+
+    @property
+    def has_sram(self) -> bool:
+        return bool(self.macros) or self.sram_blocks > 0
+
+    @property
+    def sram_label(self) -> str:
+        if self.macros:
+            return str(self.sram_macros)
+        return "custom" if self.sram_blocks else "0"
 
     @property
     def die_area_mm2(self) -> float:
@@ -425,6 +449,12 @@ def load(run: Run, out_dir: Path) -> RunStats:
         d.macros[macro.name] = count
         d.sram_bits += macro.bits * count
         d.sram_transistors += macro.transistors * count
+        d.sram_macro_area_mm2 += macro.area_mm2 * count
+
+    # The SramCore marker only covers the bitcell arrays. Where the macros are
+    # known, their whole footprint is the area the design gave up to memory.
+    for d in designs.values():
+        d.sram_area_mm2 = max(d.sram_area_mm2, d.sram_macro_area_mm2)
 
     stats = RunStats(run=run, designs=sorted(designs.values(), key=lambda d: d.code),
                      library=library, macros=macros, placements=len(summary))

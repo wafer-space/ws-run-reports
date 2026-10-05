@@ -59,7 +59,7 @@ def short(text: str, limit: int = 70) -> str:
 def density_rows(designs):
     return [
         [link(d), d.library_label, k(d.core_density), pct(d.pct_of_buffer_max), pct(d.utilisation),
-         count(d.logic_cells), d.sram_blocks, short(d.name)]
+         count(d.logic_cells), d.sram_label, short(d.name)]
         for d in designs
     ]
 
@@ -178,7 +178,7 @@ def build_report(stats) -> str:
         add("### Minimal (analog, custom or test structures)\n")
         add(f"These designs contain fewer than {MINIMAL_LOGIC_CELLS:,} logic standard cells:\n")
         add(table(["Design", "Logic SC", "Transistors", "SRAM", "Pads", "Project"],
-                  [[link(d), f"{d.logic_cells:,}", count(d.transistors), d.sram_blocks, d.pads, short(d.name)]
+                  [[link(d), f"{d.logic_cells:,}", count(d.transistors), d.sram_label, d.pads, short(d.name)]
                    for d in sorted(minimal, key=lambda d: d.code)]) + "\n")
 
     # --- Peak grid -----------------------------------------------------------
@@ -233,20 +233,21 @@ def build_report(stats) -> str:
             f"{nand2 / flops:.1f} NAND2 gates per flip-flop.\n")
 
     # --- SRAM ----------------------------------------------------------------
-    with_sram = sorted((d for d in designs if d.sram_blocks), key=lambda d: (-d.sram_blocks, d.code))
+    with_sram = sorted((d for d in designs if d.has_sram), key=lambda d: (-d.sram_macros, d.code))
     add("## SRAM Block Usage\n")
     add("SRAM (Static Random-Access Memory) blocks are pre-designed memory macros. Unlike standard cells, which "
         "are composed by automated tools, SRAM blocks are hand-optimized fixed-size units designed to store data "
         "as densely as possible.\n")
     if with_sram:
-        add(f"{len(with_sram)} of the {len(designs)} designs include SRAM blocks, holding "
+        add(f"{len(with_sram)} of the {len(designs)} designs include SRAM, holding "
             f"{stats.sram_bits / 8 / 1024:.0f} KiB of memory between them:\n")
-        add(table(["Design", "SRAM Blocks", "SRAM bits", "SRAM area", "Logic SC", "Project"],
-                  [[link(d), d.sram_blocks, f"{d.sram_bits:,}" if d.sram_bits else "—",
+        add(table(["Design", "SRAM macros", "SRAM bits", "SRAM area", "Logic SC", "Project"],
+                  [[link(d), d.sram_label, f"{d.sram_bits:,}" if d.sram_bits else "—",
                     f"{d.sram_area_mm2:.2f} mm² ({pct(d.sram_area_mm2 / d.core_area_mm2)} of core)",
                     count(d.logic_cells), short(d.name)] for d in with_sram]) + "\n")
-        add("SRAM blocks are counted from the SramCore marker layer (GDS 108/5). Bit counts are only known for "
-            "macros whose name states their size.\n")
+        add("SRAM macros are identified by cell name, and their area is the macro footprint. \"custom\" marks a "
+            "design with SRAM marker shapes (GDS 108/5) but no recognised macro, where the count and size are "
+            "not known and the area is that of the marked bitcell arrays.\n")
     else:
         add("None of the designs on this reticle include SRAM blocks.\n")
 
@@ -330,7 +331,7 @@ def build_report(stats) -> str:
         ["Design", "Cell", "Die (mm)", "Core mm²", "Placements", "Pads", "Logic SC", "Infra SC", "Transistors",
          "SRAM", "Libraries"],
         [[link(d), f"`{d.cell_name}`", f"{d.width_mm:.2f} x {d.height_mm:.2f}", f"{d.core_area_mm2:.1f}",
-          d.placements, d.pads, f"{d.logic_cells:,}", f"{d.fill_cells:,}", f"{d.transistors:,}", d.sram_blocks,
+          d.placements, d.pads, f"{d.logic_cells:,}", f"{d.fill_cells:,}", f"{d.transistors:,}", d.sram_label,
           ", ".join(f"{lib}: {n:,}" for lib, n in sorted(d.libraries.items(), key=lambda kv: -kv[1])) or "—"]
          for d in designs]) + "\n")
 
@@ -350,6 +351,9 @@ def build_report(stats) -> str:
         "- **Peak figures** are the best single cell of a 1mm x 1mm grid laid over each design, skipping grid "
         "cells that overlap an SRAM macro. Grid cells at the top and right edges of a die are smaller than 1mm², "
         "so peaks are lower bounds.\n"
+        "- **SRAM macros** are counted by cell name. The `sram_block_count` column of the summary CSV is kept "
+        "for comparison with earlier results; it counts SramCore marker shapes, of which each GF180MCU macro "
+        "has two.\n"
         "- Designs placed more than once on the reticle are counted once.\n")
     add("### Difference from the March 2026 Run 1 report\n")
     add("The first version of the Run 1 report measured cell width and row height from each cell's overall "
@@ -357,7 +361,8 @@ def build_report(stats) -> str:
         "overlap its neighbours, so it is larger than the area a placed cell occupies: 4.22 x 4.78um instead of "
         "3.36 x 3.92um for a 7-track buffer. Theoretical maximum densities in that version were therefore about "
         "35% too low, and every \"% of max\" figure correspondingly too high. This report uses the placement "
-        "boundary. Measured counts and achieved densities are unchanged.\n")
+        "boundary. It also reported SRAM \"blocks\" by counting SramCore marker shapes, which gave twice the "
+        "number of macros. Logic cell counts, transistor counts and achieved densities are unchanged.\n")
 
     add("---\n")
     add(f"*Generated by [ws-run-reports](https://github.com/wafer-space/ws-run-reports) from "

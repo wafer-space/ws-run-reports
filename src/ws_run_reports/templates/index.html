@@ -27,7 +27,7 @@
       <p class="mb-0 text-muted small">
         {{ d.slot_label }} slot
         {% if d.logic_cells %} · {{ d.logic_cells | count }} logic cells{% endif %}
-        {% if d.sram_blocks %} · {{ d.sram_blocks }} SRAM{% endif %}
+        {% if d.has_sram %} · {{ d.sram_label }} SRAM{% endif %}
         {% if not d.logic_cells and d.transistors %} · {{ d.transistors | count }} transistors{% endif %}
       </p>
       <p class="mb-0 small run-card-icons">
@@ -272,7 +272,7 @@
       blocks take their area out of that.</p>
 
     <h3 class="mb-10">Logic density of every digital design</h3>
-    <p class="text-muted small mb-20">Solid bar: average over the core. Outlined bar: the densest single mm². The scale
+    <p class="text-muted small mb-20">Solid bar: average over the core. Outlined bar: the densest single mm² outside SRAM (a dash where memory covers most of the die). The scale
       ends at the buffer theoretical maximum ({{ scale_max | k }} cells/mm²).</p>
     <div class="run-rows">
       {% for d in digital %}
@@ -282,7 +282,7 @@
           <i class="peak" style="width: {{ '%.2f' | format([d.peak_cells / scale_max, 1] | min * 100) }}%"></i>
           <i class="core" style="width: {{ '%.2f' | format([d.core_density / scale_max, 1] | min * 100) }}%"></i>
         </span>
-        <span class="run-row-value">{{ d.core_density | k }} <span class="text-muted">/ {{ d.peak_cells | k }}</span></span>
+        <span class="run-row-value">{{ d.core_density | k }} <span class="text-muted">/ {{ d.peak_cells | k if d.peak_cells >= d.core_density else "—" }}</span></span>
       </a>
       {% endfor %}
     </div>
