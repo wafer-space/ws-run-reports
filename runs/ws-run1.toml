@@ -9,14 +9,13 @@ slots = 40
 
 [layout]
 # Paths are relative to a checkout of the run repository.
-parts = "layout/reticle-part-*"
-file = "layout/reticle.oas"
-md5 = "316f07f37e148457558053f4d4d11540"
+parts = "layout/G801-part-*"
+file = "layout/G801.oas"
+md5 = "3ae7349e205f60d9f997cf7d3a688500"
 layer_properties = "lyp/gf180mcu.lyp"
 
 [manifest]
-# Run 1 only lists its projects in the README table.
-readme = "README.md"
+csv = "data/manifest.csv"
 
 [images]
-reticle = ["images/reticle_white.png", "images/reticle.svg"]
+reticle = ["images/G801.png", "images/G801.svg"]
