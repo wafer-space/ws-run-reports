@@ -31,10 +31,27 @@ def git(*args, cwd, capture=False):
 
 
 def _remote_url(run) -> str:
+    """URL to publish to: the run checkout's origin if it is the run repository, else GitHub over ssh.
+
+    The checkout's origin is only trusted when the directory is the top of its
+    own git repository and the URL names the run repository. A plain copy of
+    the run's files kept inside another repository would otherwise report that
+    other repository's remote.
+    """
+    default = f"git+ssh://github.com/{run.repo}.git"
     try:
-        return git("remote", "get-url", "origin", cwd=run.repo_dir, capture=True)
+        top = Path(git("rev-parse", "--show-toplevel", cwd=run.repo_dir, capture=True)).resolve()
+        url = git("remote", "get-url", "origin", cwd=run.repo_dir, capture=True)
     except (subprocess.CalledProcessError, FileNotFoundError):
-        return f"git+ssh://github.com/{run.repo}.git"
+        return default
+    if top != run.repo_dir.resolve() or not _names_repo(url, run.repo):
+        return default
+    return url
+
+
+def _names_repo(url: str, repo: str) -> bool:
+    path = url.removesuffix("/").removesuffix(".git")
+    return path.endswith("/" + repo) or path.endswith(":" + repo)
 
 
 def _remote_has(url: str, branch: str) -> bool:
@@ -107,7 +124,9 @@ def publish(run, out_dir: Path, target: str, push: bool = False):
         shutil.rmtree(clone)
     clone.parent.mkdir(parents=True, exist_ok=True)
     url = _remote_url(run)
-    print(f"Preparing {target} for {run.repo} in {clone}")
+    if not _names_repo(url, run.repo):
+        raise ValueError(f"refusing to publish {run.name} to {url}: it is not {run.repo}")
+    print(f"Preparing {target} for {run.repo} ({url}) in {clone}")
     builder = publish_density_report if target == "density-report" else publish_pages
     branch, message = builder(run, out_dir, clone, url)
     committed = _commit(clone, message)
