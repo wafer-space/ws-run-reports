@@ -1,0 +1,22 @@
+# wafer.space GF180MCU Run 1
+name = "ws-run1"
+title = "wafer.space GF180MCU Run 1"
+number = 1
+shuttle = "G801"
+process = "GF180MCU"
+repo = "wafer-space/ws-run1"
+slots = 40
+
+[layout]
+# Paths are relative to a checkout of the run repository.
+parts = "layout/reticle-part-*"
+file = "layout/reticle.oas"
+md5 = "316f07f37e148457558053f4d4d11540"
+layer_properties = "lyp/gf180mcu.lyp"
+
+[manifest]
+# Run 1 only lists its projects in the README table.
+readme = "README.md"
+
+[images]
+reticle = ["images/reticle_white.png", "images/reticle.svg"]

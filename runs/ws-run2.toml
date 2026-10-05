@@ -1,0 +1,21 @@
+# wafer.space GF180MCU Run 2
+name = "ws-run2"
+title = "wafer.space GF180MCU Run 2"
+number = 2
+shuttle = "G802"
+process = "GF180MCU"
+repo = "wafer-space/ws-run2"
+slots = 54
+
+[layout]
+# Paths are relative to a checkout of the run repository.
+parts = "layout/G802-part-*"
+file = "layout/G802.oas"
+md5 = "57fa57f52eac82835a051f2a353e5a30"
+layer_properties = "lyp/gf180mcu.lyp"
+
+[manifest]
+csv = "data/manifest.csv"
+
+[images]
+reticle = ["images/G802.png", "images/G802.svg"]
