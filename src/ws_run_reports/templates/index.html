@@ -311,18 +311,19 @@
 <div id="photos" class="wrapper gray-wrapper">
   <div class="container inner">
     <h2 class="section-title mb-10 text-center">The real silicon</h2>
-    <p class="lead text-center mb-40">Optical micrographs of the fabricated dies by {{ run.site.photos_credit }}</p>
+    <p class="lead text-center mb-40">Optical micrographs of the fabricated dies {{ photo_credit() }}</p>
     <div class="row">
       {% for code, photo in photos | dictsort %}
       <div class="col-6 col-md-4 col-lg-3 mb-30">
         <a class="run-photo shadow" href="projects/{{ code }}.html#photo">
-          <img src="{{ photo.preview }}" alt="Die photograph of {{ code }}" loading="lazy">
+          <img src="{{ photo.preview }}" alt="Die photograph of {{ code }} by {{ run.site.photos_credit }}" loading="lazy">
           <span>{{ code }}</span>
         </a>
       </div>
       {% endfor %}
     </div>
-    <p class="small text-muted text-center mb-0">Full resolution images:
+    <p class="small text-muted text-center mb-0">Microscope images {{ photo_credit() }}.
+      {% if run.site.photos_viewer_url %}Each project page links to a zoomable viewer of its die. {% endif %}Full resolution images:
       <a href="{{ run.site.photos_url }}">{{ run.site.photos_url }}</a></p>
   </div>
 </div>

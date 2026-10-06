@@ -46,7 +46,9 @@ copy `runs/ws-run2.toml` and change:
 | `[manifest] csv` | The project list (`data/manifest.csv`) |
 | `[site] runs_yml_key` | The run's key in the website's `_data/runs.yml`, for the shuttle timeline |
 | `[site] cob_repo`, `cob_url` | Chip-on-board bonding results, once they exist |
-| `[site] photos_url`, `photos_prefix`, `photos_credit` | Die photographs, once they exist |
+| `[site] photos_url`, `photos_prefix` | Die photographs, once they exist |
+| `[site] photos_credit`, `photos_credit_url`, `photos_year`, `photos_licence`, `photos_licence_url` | Copyright line shown wherever a photograph appears: "© 2026 Name, Licence", with links |
+| `[site] photos_viewer_url` | The photographer's zoomable viewer for one die, with `{code}`, `{CODE}` and `{setup}` filled in. Listed first on each project page |
 | `[categories]` | Optional `CODE = "Category"` overrides for the classifier |
 
 The reticle is expected to follow the layout used so far: one top cell whose

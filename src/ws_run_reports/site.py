@@ -14,6 +14,7 @@ from datetime import date
 from pathlib import Path
 
 from jinja2 import Environment, PackageLoader, select_autoescape
+from markupsafe import Markup
 
 from . import external, report
 from . import stats as stats_module
@@ -181,6 +182,20 @@ def build_context(run, out_dir: Path) -> dict:
     }
 
 
+def _photo_credit(run) -> Markup:
+    """Copyright line for the die photographs: "© 2026 Name, Licence", linked where the run gives URLs."""
+    def linked(text, url):
+        return Markup('<a href="{}">{}</a>').format(url, text) if url else Markup.escape(text)
+
+    site = run.site
+    credit = linked(site.get("photos_credit", ""), site.get("photos_credit_url"))
+    if site.get("photos_year"):
+        credit = Markup("© {} {}").format(site["photos_year"], credit)
+    if site.get("photos_licence"):
+        credit = Markup("{}, {}").format(credit, linked(site["photos_licence"], site.get("photos_licence_url")))
+    return credit
+
+
 def build_site(run, out_dir: Path) -> Path:
     """Render ``index.html`` and one page per project into ``out_dir/site``."""
     context = build_context(run, out_dir)
@@ -191,7 +206,7 @@ def build_site(run, out_dir: Path) -> Path:
                       autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
     env.filters.update(k=report.k, pct=report.pct, count=report.count, library_label=library_label,
                        describe_cell=describe_cell)
-    env.globals.update(area_bar=_area_bar, heatmap=_heatmap)
+    env.globals.update(area_bar=_area_bar, heatmap=_heatmap, photo_credit=lambda: _photo_credit(run))
 
     # The data behind the page, so every figure on it can be checked.
     data_dir = site_dir / "data"

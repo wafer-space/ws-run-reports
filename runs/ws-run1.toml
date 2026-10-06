@@ -30,4 +30,12 @@ cob_url = "https://wafer.space/ws-run1-cob"
 # Optical die photographs, named <prefix><code>_<setup>[_th|_66p].jpg
 photos_url = "https://data.wafer.space/infosecdj.net/release-1/"
 photos_prefix = "wafer-space_gf180mcu-ws1-"
-photos_credit = "InfoSec DJ"
+# Shown as "© <year> <credit>, <licence>" wherever a photograph appears.
+# https://infosecdj.net/ has a self-signed certificate, so these links are http.
+photos_credit = "InfoSecDJ"
+photos_credit_url = "http://infosecdj.net/"
+photos_year = 2026
+photos_licence = "CC BY-SA 4.0"
+photos_licence_url = "https://creativecommons.org/licenses/by-sa/4.0/"
+# The photographer's zoomable viewer of one die; the first link on a project page.
+photos_viewer_url = "http://infosecdj.net/map/wafer-space/gf180mcu-ws1-{code}/infosecdj_{setup}/"

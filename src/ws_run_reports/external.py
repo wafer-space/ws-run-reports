@@ -71,9 +71,14 @@ def die_photos(run, site_dir: Path) -> dict:
     The published photographs are very large (the "thumbnails" are about 3 MB
     and the full images hundreds of megabytes), so the page shows a resized
     preview and links to the originals.
+
+    ``photos_viewer_url`` is an optional template for the photographer's
+    zoomable viewer of one die, with ``{code}`` (lower case), ``{CODE}`` and
+    ``{setup}`` (the imaging setup from the file name) filled in.
     """
     base = run.site.get("photos_url")
     prefix = run.site.get("photos_prefix")
+    viewer = run.site.get("photos_viewer_url")
     if not base or not prefix:
         return {}
 
@@ -88,6 +93,9 @@ def die_photos(run, site_dir: Path) -> dict:
                 continue
             entry = photos.setdefault(m.group(1).upper(), {"setup": m.group(2)})
             entry["thumb_url" if m.group(3) == "_th" else "full_url"] = base + name
+        if viewer:
+            for code, entry in photos.items():
+                entry["viewer_url"] = viewer.format(code=code.lower(), CODE=code, setup=entry["setup"])
         out_dir = site_dir / "photos"
         out_dir.mkdir(parents=True, exist_ok=True)
         for code, entry in sorted(photos.items()):

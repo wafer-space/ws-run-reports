@@ -168,18 +168,19 @@
 <div id="photo" class="wrapper light-wrapper">
   <div class="container inner">
     <h2 class="section-title mb-10 text-center">The fabricated die</h2>
-    <p class="lead text-center mb-30">Optical micrograph by {{ run.site.photos_credit }}</p>
+    <p class="lead text-center mb-30">Optical micrograph {{ photo_credit() }}</p>
     <div class="row">
       <div class="col-lg-8 offset-lg-2 text-center">
-        <a class="run-viewer shadow d-inline-block" href="{{ photo.thumb_url }}">
-          <img src="{{ root }}{{ photo.preview }}" alt="Die photograph of {{ design.name }}" loading="lazy">
+        <a class="run-viewer shadow d-inline-block" href="{{ photo.viewer_url or photo.thumb_url }}">
+          <img src="{{ root }}{{ photo.preview }}"
+               alt="Die photograph of {{ design.name }} by {{ run.site.photos_credit }}" loading="lazy">
         </a>
         <p class="small text-muted mt-10 mb-0">
-          <a href="{{ photo.thumb_url }}">Larger image</a>{% if photo.full_url %} ·
+          {% if photo.viewer_url %}<a href="{{ photo.viewer_url }}"><strong>{{ run.site.photos_credit }}'s zoomable viewer</strong></a> ·
+          {% endif %}<a href="{{ photo.thumb_url }}">Larger image</a>{% if photo.full_url %} ·
           <a href="{{ photo.full_url }}">full resolution (very large file)</a>{% endif %} ·
           <a href="{{ run.site.photos_url }}">all photographs</a>
-        </p>
-      </div>
+        </p>      </div>
     </div>
   </div>
 </div>
