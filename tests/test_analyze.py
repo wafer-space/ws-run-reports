@@ -197,3 +197,25 @@ def test_without_exclusion_everything_counts(caravel, tmp_path):
 def test_unknown_group_is_an_error(caravel, tmp_path):
     with pytest.raises(ValueError, match="unknown group"):
         analyze.analyze(caravel, tmp_path / "out" / "reticle_analysis.csv", jobs=1, measure={"exclude": ["nope"]})
+
+
+def test_report_says_what_was_excluded(caravel, tmp_path):
+    from ws_run_reports import config, report, stats
+
+    out = tmp_path / "out"
+    measure = {"exclude": ["harness"], "groups": {"harness": ["caravel_core"]},
+               "keep": ["user_project_wrapper"], "core_cell": "user_project_wrapper"}
+    analyze.analyze(caravel, out / "reticle_analysis.csv", jobs=1, measure=measure)
+    (tmp_path / "manifest.csv").write_text(
+        "CODE,PROJECT,SLOT_SIZE,TOP,SHA256,LAYOUT,VISIBILITY,PROJECT_DETAILS,REPOSITORY\n"
+        "6079,Example,1x1,caravel,,,Public,An example,https://example.com/x\n")
+    run = config.Run(name="test", title="Test Shuttle", number=0, shuttle="T1", process="GF180MCU", repo="x/y",
+                     slots=2, repo_dir=tmp_path, layout={"file": "caravel.oas", "md5": ""},
+                     manifest={"csv": "manifest.csv"}, measure=measure)
+    run_stats = stats.load(run, out)
+    (design,) = run_stats.designs
+    assert design.core_area_mm2 == pytest.approx(1.5)
+    assert "Outside the user area" in design.area_breakdown
+    text = report.build_report(run_stats)
+    assert "Excluded from the measurements:** harness (`caravel_core`)" in text
+    assert "area of each design's `user_project_wrapper` cell" in text

@@ -30,14 +30,16 @@ AREA_COLOURS = {
     "Filler and tap cells": "#b9c7d6",
     "Other": "#e6ebf0",
     "Pad ring": "#f0b84c",
+    "Outside the user area": "#f0b84c",
 }
-AREA_ORDER = ["Logic cells", "SRAM", "Filler and tap cells", "Other", "Pad ring"]
+AREA_ORDER = ["Logic cells", "SRAM", "Filler and tap cells", "Other", "Pad ring", "Outside the user area"]
 AREA_NOTES = {
     "Logic cells": "gates and flip-flops doing the design's actual work",
     "SRAM": "memory macros",
     "Filler and tap cells": "inserted by the tools to keep rows continuous and wells tied",
     "Other": "routing channels, analog and custom layout, power grid and empty space",
     "Pad ring": "the 350 µm border of I/O cells and bond pads",
+    "Outside the user area": "the pad frame and shared harness around the user's design, not measured",
 }
 CATEGORY_COLOURS = ["#5ca7db", "#9b6bd6", "#45c4a0", "#f0b84c", "#e2626b", "#6f7bd9", "#3fb6c9", "#d98a4f",
                     "#8fb84e", "#c56bb4", "#7d8a99", "#a0a8b3"]
@@ -95,7 +97,7 @@ def _heatmap(design):
 def _area_bar(breakdown):
     total = sum(breakdown.values()) or 1
     return [{"label": label, "mm2": breakdown[label], "share": breakdown[label] / total,
-             "colour": AREA_COLOURS[label]} for label in AREA_ORDER]
+             "colour": AREA_COLOURS[label]} for label in AREA_ORDER if label in breakdown]
 
 
 def build_context(run, out_dir: Path) -> dict:

@@ -83,7 +83,9 @@ def build_report(stats) -> str:
     add(f"This report analyzes the standard cell and SRAM density achieved by the {len(designs)} unique public chip "
         f"designs on the [wafer.space](https://wafer.space/) {run.title.split('wafer.space ')[-1]} reticle. "
         f"The reticle has {run.slots} slots; the public layout contains {stats.placements} slot placements "
-        "(some designs appear more than once, and private designs are not included).\n")
+        "(some designs appear more than once, and private designs are not included).\n"
+        + ("\n> **Partial measurement:** parts of every die are excluded from these figures; see "
+           "[Methodology](#methodology).\n" if stats.exclusions else ""))
     add("All designs were fabricated on GlobalFoundries' GF180MCU process, a 180-nanometer (0.18um) technology "
         "node. This is a mature, relatively large-geometry process — for comparison, modern smartphone chips use "
         "3nm or 5nm processes with features roughly 50x smaller.\n")
@@ -342,9 +344,11 @@ def build_report(stats) -> str:
         + ", ".join(f"`{p}`" for p in FILL_CELL_PREFIXES) + ".\n"
         "- **Transistor counts** are the number of merged polygons in the boolean AND of the diffusion (22/0) and "
         "gate polysilicon (30/0) layers.\n"
-        f"- **Core area** is (die width − {2 * stats_module.PAD_RING_MM:.2f}mm) x (die height − "
-        f"{2 * stats_module.PAD_RING_MM:.2f}mm), removing a {stats_module.PAD_RING_MM * 1000:.0f}um pad ring from "
-        "each side.\n"
+        + (f"- **Core area** is the area of each design's `{stats.meta['core_cell']}` cell.\n"
+           if stats.meta.get("core_cell") else
+           f"- **Core area** is (die width − {2 * stats_module.PAD_RING_MM:.2f}mm) x (die height − "
+           f"{2 * stats_module.PAD_RING_MM:.2f}mm), removing a {stats_module.PAD_RING_MM * 1000:.0f}um pad ring "
+           "from each side.\n") +
         "- **Cell dimensions** are the width and height of each standard cell's placement boundary (GDS 0/0), "
         "measured from the cells present in this layout.\n"
         "- **Theoretical maximum** = (1000um / cell width) x (1000um / row height).\n"
@@ -354,7 +358,8 @@ def build_report(stats) -> str:
         "- **SRAM macros** are counted by cell name. The `sram_block_count` column of the summary CSV is kept "
         "for comparison with earlier results; it counts SramCore marker shapes, of which each GF180MCU macro "
         "has two.\n"
-        "- Designs placed more than once on the reticle are counted once.\n")
+        "- Designs placed more than once on the reticle are counted once.\n"
+        + exclusion_note(stats))
     add("### Difference from the March 2026 Run 1 report\n")
     add("The first version of the Run 1 report measured cell width and row height from each cell's overall "
         "bounding box. That box includes n-well and implant shapes which deliberately overhang the cell and "
@@ -370,6 +375,20 @@ def build_report(stats) -> str:
         f"[{run.repo}]({run.github_url}). Analysis method: KLayout boolean geometry operations on GDS layers. "
         "Grid resolution: 1mm x 1mm. Density figures are rounded to the nearest 1k.*")
     return "\n".join(out) + "\n"
+
+
+def exclusion_note(stats) -> str:
+    """A Markdown paragraph saying which cells were left out of the measurements, or nothing."""
+    if not stats.exclusions:
+        return ""
+    groups = "; ".join(f"{name.replace('_', ' ')} (" + ", ".join(f"`{p}`" for p in patterns) + ")"
+                       for name, patterns in stats.exclusions.items())
+    keep = stats.meta.get("keep") or []
+    kept = (" Cells matching " + ", ".join(f"`{p}`" for p in keep) + " are measured even inside those."
+            if keep else "")
+    return ("- **Excluded from the measurements:** " + groups + "." + kept + " Logic cell, transistor and "
+            "SRAM figures therefore cover only part of each die and are not directly comparable with reports "
+            "that measure whole dies. Bond pads and die sizes are measured on the whole die.\n")
 
 
 def write_report(run, out_dir: Path) -> Path:

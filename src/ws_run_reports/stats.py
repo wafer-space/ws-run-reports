@@ -5,6 +5,7 @@ views of the :class:`RunStats` built by :func:`load`.
 """
 
 import csv
+import json
 import re
 import statistics
 from collections import Counter, defaultdict
@@ -192,6 +193,8 @@ class Design:
     grid: list = field(default_factory=list)            # (gx, gy, transistors, logic cells)
     buffer_max_per_mm2: float = 0.0
     category: str = ""
+    # Area of the run's core cell (e.g. a Caravel user_project_wrapper), when it names one.
+    measured_core_mm2: float | None = None
 
     @property
     def name(self) -> str:
@@ -222,8 +225,14 @@ class Design:
 
     @property
     def core_area_mm2(self) -> float:
-        """Die area inside the I/O pad ring."""
+        """Die area inside the I/O pad ring, or the area of the run's core cell."""
+        if self.measured_core_mm2 is not None:
+            return self.measured_core_mm2
         return max(0.0, self.width_mm - 2 * PAD_RING_MM) * max(0.0, self.height_mm - 2 * PAD_RING_MM)
+
+    @property
+    def outside_core_label(self) -> str:
+        return "Pad ring" if self.measured_core_mm2 is None else "Outside the user area"
 
     @property
     def core_density(self) -> float:
@@ -274,7 +283,7 @@ class Design:
         ring = self.die_area_mm2 - self.core_area_mm2
         used = self.logic_area_mm2 + self.fill_area_mm2 + self.sram_area_mm2
         return {
-            "Pad ring": ring,
+            self.outside_core_label: ring,
             "Logic cells": self.logic_area_mm2,
             "SRAM": self.sram_area_mm2,
             "Filler and tap cells": self.fill_area_mm2,
@@ -294,6 +303,12 @@ class RunStats:
     library: dict        # (library, cell_type) -> LibCell
     macros: dict         # name -> Macro
     placements: int
+    meta: dict = field(default_factory=dict)   # reticle_analysis_meta.json: what was measured and excluded
+
+    @property
+    def exclusions(self) -> dict:
+        """Groups of cells left out of the measurements: name -> cell name patterns."""
+        return self.meta.get("exclude", {})
 
     # --- library level -------------------------------------------------
 
@@ -449,6 +464,8 @@ def load(run: Run, out_dir: Path) -> RunStats:
         if d is not None:
             d.sram_area_mm2 = float(r["sram_area_mm2"])
             d.pad_area_mm2 = float(r["pad_area_mm2"])
+            if r.get("core_area_mm2"):
+                d.measured_core_mm2 = float(r["core_area_mm2"])
 
     for r in _read(Path(f"{stem}_slot_macros.csv")):
         d = first_cell.get(r["cell_name"])
@@ -466,8 +483,10 @@ def load(run: Run, out_dir: Path) -> RunStats:
     for d in designs.values():
         d.sram_area_mm2 = max(d.sram_area_mm2, d.sram_macro_area_mm2)
 
+    meta_path = Path(f"{stem}_meta.json")
     stats = RunStats(run=run, designs=sorted(designs.values(), key=lambda d: d.code),
-                     library=library, macros=macros, placements=len(summary))
+                     library=library, macros=macros, placements=len(summary),
+                     meta=json.loads(meta_path.read_text()) if meta_path.exists() else {})
     for d in stats.designs:
         d.buffer_max_per_mm2 = stats.buffer_max(d.primary_library) if d.libraries else 0.0
         d.category = classify(d, run.categories)
