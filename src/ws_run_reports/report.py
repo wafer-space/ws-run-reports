@@ -5,6 +5,7 @@ from pathlib import Path
 
 from . import stats as stats_module
 from .analyze import FILL_CELL_PREFIXES
+from .features import FEATURE_LABELS
 from .stats import REFERENCE_CELLS, FLIP_FLOP_RE, describe_cell, library_label, library_long_label
 
 REPORT_NAME = "reticle_density_report.md"
@@ -298,6 +299,10 @@ def build_report(stats) -> str:
     add("Infrastructure cells are excluded from logic cell counts but their transistors (decoupling capacitors in "
         "particular) are included in transistor counts.\n")
 
+    # --- Process features ---------------------------------------------------------
+    if stats.has_features:
+        add(features_section(stats))
+
     # --- Key findings ---------------------------------------------------------
     add("## Key Findings\n")
     findings = []
@@ -387,6 +392,38 @@ def build_report(stats) -> str:
         f"[{run.repo}]({run.github_url}). Analysis method: KLayout boolean geometry operations on GDS layers. "
         "Grid resolution: 1mm x 1mm. Density figures are rounded to the nearest 1k.*")
     return "\n".join(out) + "\n"
+
+
+def features_section(stats) -> str:
+    """Which transistor voltages and optional process features the designs use."""
+    designs = stats.designs
+    out = ["## Process Features and Voltages\n",
+           f"Which transistor voltages and optional devices of the {stats.run.process} process the "
+           f"{len(designs)} designs use. Voltages count both the libraries a design chose (standard cells and "
+           "SRAM) and transistors the designer drew. Devices count only what the designer drew: standard cells, "
+           "SRAM macros, I/O pads and fill are left out, because every die has them. A single test structure "
+           "counts the same as a large block.\n"]
+    rows = [[v, f"{len(stats.voltage_users(v))} of {len(designs)}",
+             ", ".join(f"`{d.code}`" for d in stats.voltage_users(v))] for v in stats.voltage_levels]
+    out.append(table(["Transistor voltage", "Designs", "Which"], rows) + "\n")
+    rows = [[label, f"{len(users)} of {len(designs)}", ", ".join(f"`{d.code}`" for d in users) or "—"]
+            for _, label, users in stats.feature_popularity]
+    out.append(table(["Device", "Designs drawing it", "Which"], rows) + "\n")
+    rows = []
+    for d in designs:
+        gates = " / ".join(f"{d.custom_gates.get(v, 0):,}" for v in ("3.3 V", "5 V", "6 V"))
+        devices = ", ".join(FEATURE_LABELS[key] + (f" ({', '.join(d.mim_levels)})" if key == "mim" and d.mim_levels
+                                                   else "") for key in d.device_features)
+        rows.append([link(d), ", ".join(d.voltages) or "—", gates, devices or "—",
+                     ", ".join(lib.replace("gf180mcu_", "") for lib in d.io_libraries) or "—"])
+    out.append(table(["Design", "Voltages", "Custom transistors 3.3 / 5 / 6 V", "Devices drawn", "I/O library"],
+                     rows) + "\n")
+    out.append("Detection uses the open GF180MCU layers: a transistor is gate polysilicon (30/0) over diffusion "
+               "(22/0), thick oxide inside Dualgate (55/0), 5 V where V5_XTOR (112/1) also covers it and 6 V where "
+               "it does not; MIM capacitors are FuseTop (75/0) shapes; poly resistors are Poly2 under RES_MK "
+               "(110/5), high resistance under the Resistor layer (62/0) and otherwise unsalicided under SAB "
+               "(49/0) or salicided. Other devices are found by their marker layers.\n")
+    return "\n".join(out)
 
 
 def windowed(stats) -> bool:

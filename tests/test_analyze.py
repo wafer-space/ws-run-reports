@@ -298,3 +298,27 @@ def test_features_count_only_what_the_designer_drew(analog, tmp_path):
     assert found["res_poly_high"][0] == 1
     assert "moscap" not in found, "the pad's MOS capacitor is library content"
     assert found["io:gf180mcu_fd_io"] == (1, 0.0)
+
+
+def test_features_in_stats_and_report(analog, tmp_path):
+    from ws_run_reports import config, report, stats
+
+    out = tmp_path / "out"
+    analyze.analyze(analog, out / "reticle_analysis.csv", jobs=1)
+    (tmp_path / "manifest.csv").write_text(
+        "CODE,PROJECT,SLOT_SIZE,TOP,SHA256,LAYOUT,VISIBILITY,PROJECT_DETAILS,REPOSITORY\n"
+        "ANLG,Analog,1x1,chip_top,,,Public,Test devices,\n")
+    run = config.Run(name="test", title="Test Shuttle", number=0, shuttle="T1", process="GF180MCU", repo="x/y",
+                     slots=1, repo_dir=tmp_path, layout={"file": "analog.oas", "md5": ""},
+                     manifest={"csv": "manifest.csv"})
+    run_stats = stats.load(run, out)
+    (d,) = run_stats.designs
+    assert d.custom_gates == {"3.3 V": 1, "5 V": 1, "6 V": 2}
+    assert d.voltages == {"3.3 V": ["1 custom transistor"], "5 V": ["7t-5V standard cells", "1 custom transistor"],
+                          "6 V": ["2 custom transistors"]}
+    assert d.device_features == ["mim", "res_poly_high"]
+    assert d.mim_levels == ["Metal4"]
+    assert d.io_libraries == {"gf180mcu_fd_io": 1}
+    text = report.build_report(run_stats)
+    assert "## Process Features and Voltages" in text
+    assert "| MIM capacitors | 1 of 1 | `ANLG` |" in text

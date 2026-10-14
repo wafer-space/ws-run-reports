@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .classify import classify
+from .features import FEATURES, FEATURE_LABELS, MIM_VIA_LEVELS
 from .config import Project, Run
 
 OUTPUT_STEM = "reticle_analysis"
@@ -59,6 +60,9 @@ CELL_DESCRIPTIONS = {
     "addh": "Half adder", "addf": "Full adder", "icgtp": "Clock gating cell", "bufz": "Tri-state buffer",
     "invz": "Tri-state inverter", "hold": "Bus hold cell",
 }
+
+# Supply voltage of the SRAM macro families: the foundry macros are 5 V, Open Circuit Design's 3.3 V.
+SRAM_FAMILY_VOLTAGE = {"fd": "5 V", "ocd": "3.3 V"}
 
 FLIP_FLOP_RE = re.compile(r"^s?d(ff|f[a-z]*t)")
 SRAM_SIZE_RE = re.compile(r"sram(\d+)x(\d+)")
@@ -194,6 +198,7 @@ class Design:
     density_map: list = field(default_factory=list)     # every 1 mm square: dicts from _map.csv
     sram_rects: list = field(default_factory=list)      # (macro, x0, y0, x1, y1) in mm from the die corner
     windows: dict = field(default_factory=dict)         # kind -> densest 1 mm window, from _windows.csv
+    features: dict = field(default_factory=dict)        # feature -> (count, area_um2), designer-drawn only
     buffer_max_per_mm2: float = 0.0
     category: str = ""
     # Area of the run's core cell (e.g. a Caravel user_project_wrapper), when it names one.
@@ -293,6 +298,43 @@ class Design:
             "Other": max(0.0, self.core_area_mm2 - used),
         }
 
+    # --- process features -------------------------------------------------
+
+    @property
+    def device_features(self) -> list:
+        """Designer-drawn device features present, in display order (voltages excluded)."""
+        return [key for key, _, group in FEATURES if group == "device" and key in self.features]
+
+    @property
+    def custom_gates(self) -> dict:
+        """Designer-drawn transistors by voltage: '3.3 V' -> count."""
+        return {label: self.features[key][0] for key, label in
+                (("gates_3v3", "3.3 V"), ("gates_5v", "5 V"), ("gates_6v", "6 V")) if key in self.features}
+
+    @property
+    def mim_levels(self) -> list:
+        return [metal for metal in MIM_VIA_LEVELS.values() if f"mim_on_{metal.lower()}" in self.features]
+
+    @property
+    def io_libraries(self) -> dict:
+        return {key[3:]: n for key, (n, _) in self.features.items() if key.startswith("io:")}
+
+    @property
+    def voltages(self) -> dict:
+        """Transistor voltage -> what on the die uses it: libraries chosen and the designer's own devices."""
+        found = defaultdict(list)
+        for lib, n in sorted(self.libraries.items(), key=lambda kv: -kv[1]):
+            volts = library_voltage(lib)
+            if volts:
+                found[f"{volts:g} V"].append(f"{library_label(lib)} standard cells")
+        for name in sorted(self.macros):
+            family = Macro(name, 0, 0, 0, 0).family
+            if family in SRAM_FAMILY_VOLTAGE:
+                found[SRAM_FAMILY_VOLTAGE[family]].append(f"{family} SRAM")
+        for label, n in self.custom_gates.items():
+            found[label].append(f"{n:,} custom transistor{'s' if n != 1 else ''}")
+        return {v: found[v] for v in sorted(found, key=lambda v: float(v.split()[0]))}
+
     @property
     def slot_label(self) -> str:
         return {"1x1": "1 × 1", "1x0p5": "1 × ½", "0p5x1": "½ × 1", "0p5x0p5": "½ × ½"}.get(
@@ -385,6 +427,26 @@ class RunStats:
         for d in self.designs:
             groups[d.category].append(d)
         return dict(sorted(groups.items(), key=lambda kv: (-len(kv[1]), kv[0])))
+
+    @property
+    def has_features(self) -> bool:
+        return any(d.features for d in self.designs)
+
+    def feature_users(self, feature: str) -> list:
+        return [d for d in self.designs if feature in d.features]
+
+    def voltage_users(self, voltage: str) -> list:
+        return [d for d in self.designs if voltage in d.voltages]
+
+    @property
+    def voltage_levels(self) -> list:
+        return sorted({v for d in self.designs for v in d.voltages}, key=lambda v: float(v.split()[0]))
+
+    @property
+    def feature_popularity(self) -> list:
+        """(feature, label, designs using it) for every device feature, most used first."""
+        rows = [(key, label, self.feature_users(key)) for key, label, group in FEATURES if group == "device"]
+        return sorted(rows, key=lambda row: -len(row[2]))
 
     def single_library_designs(self, library: str) -> list:
         return [d for d in self.digital_designs if not d.is_mixed and d.primary_library == library]
@@ -483,6 +545,11 @@ def load(run: Run, out_dir: Path) -> RunStats:
         d.windows[r["kind"]] = window
         if r["kind"] == "densest_sram_free":
             d.peak_cells, d.peak_transistors = window["cells"], window["transistors"]
+
+    for r in _read(Path(f"{stem}_features.csv")):
+        d = first_cell.get(r["cell_name"])
+        if d is not None:
+            d.features[r["feature"]] = (int(r["count"]), float(r["area_um2"]))
 
     for r in _read(Path(f"{stem}_slot_areas.csv")):
         d = first_cell.get(r["cell_name"])
