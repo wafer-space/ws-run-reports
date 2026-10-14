@@ -149,16 +149,20 @@ def render_run(run, out_dir: Path, jobs=None, only=None) -> Path:
     layout = kdb.Layout()
     layout.read(str(layout_path))
     dbu = layout.dbu
-    top_cell = layout.top_cells()[0]
+    top_cell = max(layout.top_cells(), key=lambda c: c.bbox().area())
     slots = enumerate_slots(top_cell)
+    reticle_box = top_cell.bbox()
 
+    # Placements relative to the reticle's lower left corner, whatever the
+    # reticle's size, origin or number of slots.
     unique = {}
     placements = []
     for cell_name, cell, trans in slots:
         code = extract_slot_id(cell_name)
         unique.setdefault(code, cell)
-        bbox = cell.bbox()
-        placements.append({"code": code, "x_mm": trans.disp.x * dbu / 1000, "y_mm": trans.disp.y * dbu / 1000,
+        bbox = cell.bbox().transformed(trans)
+        placements.append({"code": code, "x_mm": (bbox.left - reticle_box.left) * dbu / 1000,
+                           "y_mm": (bbox.bottom - reticle_box.bottom) * dbu / 1000,
                            "width_mm": bbox.width() * dbu / 1000, "height_mm": bbox.height() * dbu / 1000})
 
     _STATE.update(layout=layout, view=_make_view(layout))
@@ -182,7 +186,6 @@ def render_run(run, out_dir: Path, jobs=None, only=None) -> Path:
 
     # Reticle overview: paste the design tiles at their placements. Layout y
     # runs upwards, image y runs downwards.
-    reticle_box = top_cell.bbox()
     reticle_w_mm = reticle_box.width() * dbu / 1000
     reticle_h_mm = reticle_box.height() * dbu / 1000
     overview = Image.new("RGB", (round(reticle_w_mm * RETICLE_PX_PER_MM), round(reticle_h_mm * RETICLE_PX_PER_MM)),

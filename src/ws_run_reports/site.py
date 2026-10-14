@@ -20,6 +20,7 @@ from . import external, report
 from . import stats as stats_module
 from .analyze import GRID_SIZE_UM
 from .classify import CATEGORY_ORDER
+from .config import SLOT_FRACTIONS
 from .stats import REFERENCE_CELLS, describe_cell, library_label
 
 WEBSITE = "https://wafer.space"
@@ -51,10 +52,10 @@ def _slot_guidance(stats):
     digital = [d for d in stats.digital_designs if d.logic_cells >= report.MINIMAL_LOGIC_CELLS]
     best_density = max((d.core_density for d in digital), default=0)
     median_density = statistics.median([d.core_density for d in digital]) if digital else 0
-    for slot_size in ("1x1", "1x0p5", "0p5x1", "0p5x0p5"):
+    present = {d.project.slot_size for d in stats.designs}
+    known = [s for s in SLOT_FRACTIONS if s in present]
+    for slot_size in known + sorted(present - set(known)):
         group = [d for d in stats.designs if d.project.slot_size == slot_size]
-        if not group:
-            continue
         sample = group[0]
         cells = sorted(d.logic_cells for d in group if d in digital)
         rows.append({
@@ -181,6 +182,9 @@ def build_context(run, out_dir: Path) -> dict:
         "open_source": sum(1 for d in stats.designs if d.project.repository),
         "pads": sum(d.pads for d in stats.designs),
         "design_by_code": {d.code: d for d in stats.designs},
+        "core_area_text": (f"Core area is the area of each die's {stats.meta['core_cell']} cell."
+                           if stats.meta.get("core_cell") else
+                           f"Core area is the die minus a {stats_module.PAD_RING_MM * 1000:.0f} µm pad ring on each side."),
     }
 
 

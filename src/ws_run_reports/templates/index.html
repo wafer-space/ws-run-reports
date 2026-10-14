@@ -85,7 +85,8 @@
         </div>
         <p class="small text-muted mt-10 mb-0">Every design rendered from the layout at the same scale and placed where
           it sits on the {{ '%.0f' | format(renders.reticle.width_mm) }} × {{ '%.1f' | format(renders.reticle.height_mm) }} mm
-          reticle. Dark gaps are private designs. Select a die for its details.</p>
+          reticle.{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}
+          Select a die for its details.</p>
         {% else %}
         <p class="text-muted">Renders have not been generated for this run yet.</p>
         {% endif %}
@@ -267,7 +268,7 @@
         </tbody>
       </table>
     </div>
-    <p class="small text-muted mb-40">Core area is the die minus a 350 µm pad ring on each side. "At typical density"
+    <p class="small text-muted mb-40">{{ core_area_text }} "At typical density"
       and "at best density" multiply the core area by this run's median and best whole-die densities; SRAM and analog
       blocks take their area out of that.</p>
 
@@ -356,7 +357,11 @@
         <ul class="run-method">
           <li><strong>Logic cells</strong> are standard cell instances, excluding fillers, taps, antenna diodes and tie cells.</li>
           <li><strong>Transistors</strong> are places where gate polysilicon crosses diffusion.</li>
-          <li><strong>Core area</strong> is the die minus a 350 µm pad ring on each side.</li>
+          <li><strong>Core area:</strong> {{ core_area_text }}</li>
+          {% if stats.exclusions %}<li><strong>Excluded from the measurements:</strong>
+            {% for name, patterns in stats.exclusions.items() %}{{ name | replace('_', ' ') }}
+            (<span class="run-mono">{{ patterns | join(', ') }}</span>){{ '; ' if not loop.last }}{% endfor %}.
+            Bond pads and die sizes are measured on the whole die.</li>{% endif %}
           <li><strong>Theoretical maximum</strong> tiles one cell at its placement boundary with no routing.</li>
           <li><strong>Densest mm²</strong> is the best cell of a 1 mm grid over each die, skipping SRAM.</li>
         </ul>
