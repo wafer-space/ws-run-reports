@@ -21,6 +21,7 @@ from pathlib import Path
 
 import klayout.db as kdb
 
+from . import density
 from .exclude import Selection, core_area_um2, selection_for
 
 # GDS layer definitions (from gf180mcu.lyp)
@@ -212,15 +213,20 @@ def count_stdcell_usage(cell, cell_info, selection=Selection()):
 
 def count_transistors(layout, cell, l_comp, l_poly2, selection=Selection()):
     """Count transistor regions (COMP AND Poly2) in a cell hierarchy."""
+    return transistor_region(layout, cell, l_comp, l_poly2, selection).count()
+
+
+def transistor_region(layout, cell, l_comp, l_poly2, selection=Selection()):
+    """The merged gates (COMP AND Poly2) in a cell hierarchy, one polygon per transistor."""
     if l_comp is None or l_poly2 is None:
-        return 0
+        return kdb.Region()
     comp = kdb.Region()
     comp.insert(selection.iterator(layout, cell, l_comp))
     poly2 = kdb.Region()
     poly2.insert(selection.iterator(layout, cell, l_poly2))
     transistors = comp & poly2
     transistors.merge()
-    return transistors.count()
+    return transistors
 
 
 def enumerate_slots(top_cell):
@@ -261,6 +267,7 @@ def analyze_slot(layout, cell, dbu, layers, selection=Selection()):
     pad_count, pad_region = count_region(layout, cell, layers["pad"])
     sram_count, sram_region = count_region(layout, cell, layers["sram"], selection)
     dbu2_per_mm2 = 1e6 / (dbu * dbu)
+    gates = transistor_region(layout, cell, layers["comp"], layers["poly2"], selection)
     return {
         "die_area_mm2": bbox.area() / dbu2_per_mm2,
         "sram_area_mm2": sram_region.area() / dbu2_per_mm2,
@@ -270,8 +277,9 @@ def analyze_slot(layout, cell, dbu, layers, selection=Selection()):
         "pad_count": pad_count,
         "sram_block_count": sram_count,
         "stdcell_count": count_rsi(layout, cell, layers["marker"], selection=selection),
-        "transistor_count": count_transistors(layout, cell, layers["comp"], layers["poly2"], selection),
+        "transistor_count": gates.count(),
         "sram_region": sram_region,
+        "transistor_region": gates,
     }
 
 
@@ -325,6 +333,14 @@ def _analyze_cell_index(cell_index):
     selection = _STATE["selection"]
     metrics = analyze_slot(layout, cell, dbu, layers, selection)
     grid_rows = analyze_slot_grid(layout, cell, dbu, layers, metrics.pop("sram_region"), selection)
+    bins, rects = density.measure(layout, cell, layers["marker"], metrics.pop("transistor_region"),
+                                  _STATE["macro_cells"], selection)
+    origin = cell.bbox().p1
+    metrics["sram_rects"] = [(name, (r.left - origin.x) * dbu / 1000, (r.bottom - origin.y) * dbu / 1000,
+                              (r.right - origin.x) * dbu / 1000, (r.top - origin.y) * dbu / 1000)
+                             for name, r in rects]
+    metrics["map"] = density.map_rows(bins)
+    metrics["windows"] = density.densest_windows(bins)
     usage = count_stdcell_usage(cell, _STATE["cell_info"], selection)
     metrics["macros"] = count_macro_usage(cell, _STATE["macro_cells"], selection)
     metrics["core_area_mm2"] = (core_area_um2(layout, cell, selection.core_cell) / 1e6
@@ -426,6 +442,9 @@ def output_paths(output_path):
         "slot_macros": sibling("_slot_macros"),
         "slot_areas": sibling("_slot_areas"),
         "meta": output_path.parent / (output_path.stem + "_meta.json"),
+        "sram_rects": sibling("_sram_rects"),
+        "map": sibling("_map"),
+        "windows": sibling("_windows"),
     }
 
 
@@ -518,6 +537,8 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     all_cell_usage = []
     slot_macro_rows = []
     slot_area_rows = []
+    sram_rect_rows, map_rows, window_rows = [], [], []
+    written = set()
     macro_totals = Counter()
     for cell_name, cell, trans in slots:
         slot_id = extract_slot_id(cell_name)
@@ -541,6 +562,16 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
         for macro, count in sorted(metrics["macros"].items()):
             slot_macro_rows.append({"slot_id": slot_id, "cell_name": cell_name, "macro": macro, "instances": count})
             macro_totals[macro] += count
+        # The fine-grained files describe a design, not a placement: write them once.
+        first_placement = cell_name not in written
+        written.add(cell_name)
+        for rect in metrics["sram_rects"] if first_placement else []:
+            sram_rect_rows.append((slot_id, cell_name, rect[0]) + tuple(f"{v:.3f}" for v in rect[1:]))
+        for gx, gy, x, y, w, h, n, tr, sram in metrics["map"] if first_placement else []:
+            map_rows.append((slot_id, cell_name, gx, gy, f"{x:.2f}", f"{y:.2f}", f"{w:.3f}", f"{h:.3f}", n, tr,
+                             f"{sram:.3f}"))
+        for kind, (x, y, n, tr, sram) in sorted(metrics["windows"].items()) if first_placement else []:
+            window_rows.append((slot_id, cell_name, kind, f"{x:.2f}", f"{y:.2f}", n, tr, f"{sram:.3f}"))
         slot_area_rows.append({
             "slot_id": slot_id,
             "cell_name": cell_name,
@@ -581,6 +612,15 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
         with open(paths[kind], "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fields)
             writer.writeheader()
+            writer.writerows(rows)
+
+    for kind, fields, rows in (("sram_rects", density.SRAM_RECT_FIELDS, sram_rect_rows),
+                               ("map", density.MAP_FIELDS, map_rows),
+                               ("windows", density.WINDOW_FIELDS, window_rows)):
+        print(f"Writing {paths[kind]}...")
+        with open(paths[kind], "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(fields)
             writer.writerows(rows)
 
     print(f"Writing {paths['meta']}...")

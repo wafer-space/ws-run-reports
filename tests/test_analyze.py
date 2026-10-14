@@ -219,3 +219,26 @@ def test_report_says_what_was_excluded(caravel, tmp_path):
     text = report.build_report(run_stats)
     assert "Excluded from the measurements:** harness (`caravel_core`)" in text
     assert "area of each design's `user_project_wrapper` cell" in text
+
+
+def test_density_map_windows_and_sram(reticle, tmp_path):
+    paths = analyze.analyze(reticle, tmp_path / "out" / "reticle_analysis.csv", jobs=1)
+    first = read(paths["summary"])[0]["cell_name"]
+
+    squares = [r for r in read(paths["map"]) if r["cell_name"] == first]
+    assert len(squares) == 6, "every 1 mm square of the 2.0 x 2.5 mm die, including the one with SRAM"
+    assert sum(int(r["stdcell_count"]) for r in squares) == 41
+    assert sum(int(r["transistor_count"]) for r in squares) == 84
+    sram = {(r["grid_x"], r["grid_y"]): float(r["sram_fraction"]) for r in squares}
+    assert sram[("1", "1")] == pytest.approx(0.08)
+    assert sram[("0", "0")] == 0
+    top_row = [r for r in squares if r["grid_y"] == "2"]
+    assert {r["height_mm"] for r in top_row} == {"0.500"}, "edge squares are partial"
+
+    (rect,) = [r for r in read(paths["sram_rects"]) if r["cell_name"] == first]
+    assert (rect["x0_mm"], rect["y0_mm"], rect["x1_mm"], rect["y1_mm"]) == ("1.200", "1.500", "1.600", "1.700")
+
+    windows = {r["kind"]: r for r in read(paths["windows"]) if r["cell_name"] == first}
+    assert windows["densest_sram_free"]["stdcell_count"] == "41"
+    assert windows["densest_sram_free"]["sram_fraction"] == "0.000"
+    assert windows["densest_any"]["stdcell_count"] == "41"
