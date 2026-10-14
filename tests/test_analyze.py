@@ -242,3 +242,59 @@ def test_density_map_windows_and_sram(reticle, tmp_path):
     assert windows["densest_sram_free"]["stdcell_count"] == "41"
     assert windows["densest_sram_free"]["sram_fraction"] == "0.000"
     assert windows["densest_any"]["stdcell_count"] == "41"
+
+
+@pytest.fixture
+def analog(tmp_path):
+    """A die with designer-drawn devices of every voltage, a MIM cap, a resistor, a pad and a standard cell."""
+    layout = kdb.Layout()
+    layout.dbu = DBU
+
+    def box(cell, layer, x0, y0, x1, y1):
+        cell.shapes(layout.layer(*layer)).insert(kdb.Box(um(x0), um(y0), um(x1), um(y1)))
+
+    def gate(cell, x, y):
+        box(cell, (22, 0), x, y, x + 2, y + 1)
+        box(cell, (30, 0), x + 0.8, y - 0.5, x + 1.2, y + 1.5)
+
+    inv = make_stdcell(layout, "gf180mcu_fd_sc_mcu7t5v0__inv_1", 2.24, 2)
+    box(inv, (55, 0), 0, 0, 2.24, 3.92)          # library cells are thick oxide too, and must not count
+    pad = layout.create_cell("gf180mcu_fd_io__bi_t")
+    box(pad, (55, 0), 0, 0, 75, 350)
+    gate(pad, 10, 10)
+    box(pad, (166, 5), 0, 0, 20, 20)             # a MOS capacitor in the pad
+
+    design = layout.create_cell("ANLG_chip_top_0_0")
+    box(design, (0, 0), 0, 0, 2000, 2000)
+    gate(design, 100, 100)                       # 3.3 V
+    gate(design, 200, 100)                       # 5 V
+    box(design, (55, 0), 190, 90, 210, 110)
+    box(design, (112, 1), 190, 90, 210, 110)
+    gate(design, 300, 100)                       # 6 V
+    gate(design, 310, 100)
+    box(design, (55, 0), 290, 90, 320, 110)
+    box(design, (75, 0), 500, 500, 520, 520)     # MIM cap on Via4 (Metal4)
+    box(design, (41, 0), 505, 505, 506, 506)
+    box(design, (30, 0), 600, 600, 610, 601)     # high-resistance poly resistor
+    box(design, (110, 5), 599, 599, 611, 602)
+    box(design, (62, 0), 599, 599, 611, 602)
+    design.insert(kdb.CellInstArray(inv.cell_index(), kdb.Trans(um(800), um(800))))
+    design.insert(kdb.CellInstArray(pad.cell_index(), kdb.Trans(um(1500), um(0))))
+    top = layout.create_cell("reticle")
+    top.insert(kdb.CellInstArray(design.cell_index(), kdb.Trans()))
+    path = tmp_path / "analog.oas"
+    layout.write(str(path))
+    return path
+
+
+def test_features_count_only_what_the_designer_drew(analog, tmp_path):
+    paths = analyze.analyze(analog, tmp_path / "out" / "reticle_analysis.csv", jobs=1)
+    found = {r["feature"]: (int(r["count"]), float(r["area_um2"])) for r in read(paths["features"])}
+    assert found["gates_3v3"][0] == 1
+    assert found["gates_5v"][0] == 1
+    assert found["gates_6v"][0] == 2
+    assert found["mim"] == (1, pytest.approx(400.0))
+    assert found["mim_on_metal4"][0] == 1
+    assert found["res_poly_high"][0] == 1
+    assert "moscap" not in found, "the pad's MOS capacitor is library content"
+    assert found["io:gf180mcu_fd_io"] == (1, 0.0)

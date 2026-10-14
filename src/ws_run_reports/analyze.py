@@ -21,7 +21,7 @@ from pathlib import Path
 
 import klayout.db as kdb
 
-from . import density
+from . import density, features
 from .exclude import Selection, core_area_um2, selection_for
 
 # GDS layer definitions (from gf180mcu.lyp)
@@ -340,6 +340,8 @@ def _analyze_cell_index(cell_index):
                               (r.right - origin.x) * dbu / 1000, (r.top - origin.y) * dbu / 1000)
                              for name, r in rects]
     metrics["map"] = density.map_rows(bins)
+    metrics["features"] = {**features.measure(layout, cell, _STATE["designer"]),
+                           **features.io_libraries(cell, selection, _STATE["io_cells"])}
     metrics["windows"] = density.densest_windows(bins)
     usage = count_stdcell_usage(cell, _STATE["cell_info"], selection)
     metrics["macros"] = count_macro_usage(cell, _STATE["macro_cells"], selection)
@@ -445,6 +447,7 @@ def output_paths(output_path):
         "sram_rects": sibling("_sram_rects"),
         "map": sibling("_map"),
         "windows": sibling("_windows"),
+        "features": sibling("_features"),
     }
 
 
@@ -512,7 +515,9 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     jobs = max(1, min(jobs or min(4, os.cpu_count() or 1), len(order)))
     print(f"Analysing {len(order)} unique designs with {jobs} worker(s)...")
 
-    _STATE.update(layout=layout, layers=layers, cell_info=cell_info, macro_cells=macro_cells, selection=selection)
+    _STATE.update(layout=layout, layers=layers, cell_info=cell_info, macro_cells=macro_cells, selection=selection,
+                  designer=features.designer_selection(selection, features.library_cells(layout)),
+                  io_cells=features.io_cells(layout))
     results = {}
     if jobs == 1:
         iterator = map(_analyze_cell_index, order)
@@ -537,7 +542,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     all_cell_usage = []
     slot_macro_rows = []
     slot_area_rows = []
-    sram_rect_rows, map_rows, window_rows = [], [], []
+    sram_rect_rows, map_rows, window_rows, feature_rows = [], [], [], []
     written = set()
     macro_totals = Counter()
     for cell_name, cell, trans in slots:
@@ -570,6 +575,8 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
         for gx, gy, x, y, w, h, n, tr, sram in metrics["map"] if first_placement else []:
             map_rows.append((slot_id, cell_name, gx, gy, f"{x:.2f}", f"{y:.2f}", f"{w:.3f}", f"{h:.3f}", n, tr,
                              f"{sram:.3f}"))
+        for feature, (n, area) in sorted(metrics["features"].items()) if first_placement else []:
+            feature_rows.append((slot_id, cell_name, feature, n, f"{area:.3f}"))
         for kind, (x, y, n, tr, sram) in sorted(metrics["windows"].items()) if first_placement else []:
             window_rows.append((slot_id, cell_name, kind, f"{x:.2f}", f"{y:.2f}", n, tr, f"{sram:.3f}"))
         slot_area_rows.append({
@@ -616,7 +623,8 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
 
     for kind, fields, rows in (("sram_rects", density.SRAM_RECT_FIELDS, sram_rect_rows),
                                ("map", density.MAP_FIELDS, map_rows),
-                               ("windows", density.WINDOW_FIELDS, window_rows)):
+                               ("windows", density.WINDOW_FIELDS, window_rows),
+                               ("features", features.FIELDS, feature_rows)):
         print(f"Writing {paths[kind]}...")
         with open(paths[kind], "w", newline="") as f:
             writer = csv.writer(f)
