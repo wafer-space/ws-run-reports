@@ -191,6 +191,9 @@ class Design:
     peak_cells: int = 0
     peak_transistors: int = 0
     grid: list = field(default_factory=list)            # (gx, gy, transistors, logic cells)
+    density_map: list = field(default_factory=list)     # every 1 mm square: dicts from _map.csv
+    sram_rects: list = field(default_factory=list)      # (macro, x0, y0, x1, y1) in mm from the die corner
+    windows: dict = field(default_factory=dict)         # kind -> densest 1 mm window, from _windows.csv
     buffer_max_per_mm2: float = 0.0
     category: str = ""
     # Area of the run's core cell (e.g. a Caravel user_project_wrapper), when it names one.
@@ -458,6 +461,28 @@ def load(run: Run, out_dir: Path) -> RunStats:
         d.grid.append((int(r["grid_x"]), int(r["grid_y"]), transistors, cells))
         d.peak_cells = max(d.peak_cells, cells)
         d.peak_transistors = max(d.peak_transistors, transistors)
+
+    # The sliding-window peaks replace the fixed grid's where they were measured.
+    for r in _read(Path(f"{stem}_map.csv")):
+        d = first_cell.get(r["cell_name"])
+        if d is not None:
+            d.density_map.append({"gx": int(r["grid_x"]), "gy": int(r["grid_y"]), "x": float(r["x_mm"]),
+                                  "y": float(r["y_mm"]), "w": float(r["width_mm"]), "h": float(r["height_mm"]),
+                                  "cells": int(r["stdcell_count"]), "transistors": int(r["transistor_count"]),
+                                  "sram": float(r["sram_fraction"])})
+    for r in _read(Path(f"{stem}_sram_rects.csv")):
+        d = first_cell.get(r["cell_name"])
+        if d is not None:
+            d.sram_rects.append((r["macro"], float(r["x0_mm"]), float(r["y0_mm"]), float(r["x1_mm"]), float(r["y1_mm"])))
+    for r in _read(Path(f"{stem}_windows.csv")):
+        d = first_cell.get(r["cell_name"])
+        if d is None:
+            continue
+        window = {"x": float(r["x_mm"]), "y": float(r["y_mm"]), "cells": int(r["stdcell_count"]),
+                  "transistors": int(r["transistor_count"]), "sram": float(r["sram_fraction"])}
+        d.windows[r["kind"]] = window
+        if r["kind"] == "densest_sram_free":
+            d.peak_cells, d.peak_transistors = window["cells"], window["transistors"]
 
     for r in _read(Path(f"{stem}_slot_areas.csv")):
         d = first_cell.get(r["cell_name"])

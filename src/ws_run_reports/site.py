@@ -72,7 +72,9 @@ def _slot_guidance(stats):
 
 
 def _heatmap(design):
-    """Grid cells for the per-design density map, with image-style (top-down) rows."""
+    """Squares, SRAM outlines and the densest window for the per-design density map, in image (top-down) mm."""
+    if design.density_map:
+        return _full_heatmap(design)
     if not design.grid:
         return None
     step = GRID_SIZE_UM / 1000
@@ -92,7 +94,29 @@ def _heatmap(design):
             else:
                 entry.update(sram=True)
             cells.append(entry)
-    return {"cells": cells, "width": design.width_mm, "height": design.height_mm, "peak": peak}
+    return {"cells": cells, "width": design.width_mm, "height": design.height_mm, "peak": peak,
+            "rects": [], "window": None}
+
+
+def _full_heatmap(design):
+    """Every 1 mm square shaded by logic cells per mm², with SRAM macros and the densest SRAM-free window."""
+    def flip(y, h):
+        return design.height_mm - y - h
+
+    def per_mm2(square):
+        area = square["w"] * square["h"]
+        return square["cells"] / area if area else 0
+
+    peak = max((per_mm2(s) for s in design.density_map), default=0) or 1
+    cells = [{"x": s["x"], "y": flip(s["y"], s["h"]), "w": s["w"], "h": s["h"], "cells": s["cells"],
+              "transistors": s["transistors"], "level": per_mm2(s) / peak, "sram_share": s["sram"]}
+             for s in design.density_map]
+    rects = [{"name": name, "x": x0, "y": flip(y0, y1 - y0), "w": x1 - x0, "h": y1 - y0}
+             for name, x0, y0, x1, y1 in design.sram_rects]
+    best = design.windows.get("densest_sram_free")
+    window = {"x": best["x"], "y": flip(best["y"], 1.0), "w": 1.0, "h": 1.0, "cells": best["cells"]} if best else None
+    return {"cells": cells, "width": design.width_mm, "height": design.height_mm, "peak": peak,
+            "rects": rects, "window": window}
 
 
 def _area_bar(breakdown):
@@ -182,6 +206,7 @@ def build_context(run, out_dir: Path) -> dict:
         "open_source": sum(1 for d in stats.designs if d.project.repository),
         "pads": sum(d.pads for d in stats.designs),
         "design_by_code": {d.code: d for d in stats.designs},
+        "windowed": report.windowed(stats),
         "core_area_text": (f"Core area is the area of each die's {stats.meta['core_cell']} cell."
                            if stats.meta.get("core_cell") else
                            f"Core area is the die minus a {stats_module.PAD_RING_MM * 1000:.0f} µm pad ring on each side."),

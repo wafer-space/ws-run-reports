@@ -187,9 +187,14 @@ def build_report(stats) -> str:
 
     # --- Peak grid -----------------------------------------------------------
     add("## Achieved Density — Peak 1mm x 1mm Regions\n")
-    add("While the averages above include sparse regions, the peak density in the best single 1mm x 1mm grid "
-        "cell shows the maximum density achieved anywhere on each design. Grid cells that overlap an SRAM macro "
-        "are excluded.\n")
+    if windowed(stats):
+        add("While the averages above include sparse regions, the densest 1mm x 1mm square found anywhere on a "
+            "design shows the highest density it achieved. The square slides over the die in 100um steps and may "
+            "not touch an SRAM macro.\n")
+    else:
+        add("While the averages above include sparse regions, the peak density in the best single 1mm x 1mm grid "
+            "cell shows the maximum density achieved anywhere on each design. Grid cells that overlap an SRAM macro "
+            "are excluded.\n")
     peaks = sorted((d for d in digital if d.peak_cells), key=lambda d: -d.peak_cells)[:15]
     add(table(["Design", "Peak Logic SC/mm²", "% of buffer max", "Library"],
               [[link(d), k(d.peak_cells), f"{pct(d.peak_pct_of_buffer_max)} of {k(d.buffer_max_per_mm2)}",
@@ -354,9 +359,13 @@ def build_report(stats) -> str:
         "- **Cell dimensions** are the width and height of each standard cell's placement boundary (GDS 0/0), "
         "measured from the cells present in this layout.\n"
         "- **Theoretical maximum** = (1000um / cell width) x (1000um / row height).\n"
-        "- **Peak figures** are the best single cell of a 1mm x 1mm grid laid over each design, skipping grid "
-        "cells that overlap an SRAM macro. Grid cells at the top and right edges of a die are smaller than 1mm², "
-        "so peaks are lower bounds.\n"
+        + ("- **Peak figures** are the densest 1mm x 1mm square anywhere inside each die, found by sliding the "
+           "square in 100um steps over the die and skipping positions that touch an SRAM macro. Logic cells are "
+           "placed by their origin and transistors by the centre of their gate.\n"
+           if windowed(stats) else
+           "- **Peak figures** are the best single cell of a 1mm x 1mm grid laid over each design, skipping grid "
+           "cells that overlap an SRAM macro. Grid cells at the top and right edges of a die are smaller than "
+           "1mm², so peaks are lower bounds.\n") +
         "- **SRAM macros** are counted by cell name. The `sram_block_count` column of the summary CSV is kept "
         "for comparison with earlier results; it counts SramCore marker shapes, of which each GF180MCU macro "
         "has two.\n"
@@ -378,6 +387,11 @@ def build_report(stats) -> str:
         f"[{run.repo}]({run.github_url}). Analysis method: KLayout boolean geometry operations on GDS layers. "
         "Grid resolution: 1mm x 1mm. Density figures are rounded to the nearest 1k.*")
     return "\n".join(out) + "\n"
+
+
+def windowed(stats) -> bool:
+    """Whether the peaks come from the sliding window rather than the fixed 1 mm grid."""
+    return any(d.windows for d in stats.designs)
 
 
 def is_wafer_space(run) -> bool:
