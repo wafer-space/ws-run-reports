@@ -130,3 +130,70 @@ def test_classify_stdcell():
     assert analyze.classify_stdcell("6079_gf180mcu_osu_sc_gp9t3v3__inv_1", prefixes) == ("osu_sc_gp9t3v3", "inv_1", False)
     assert analyze.classify_stdcell("gf180mcu_as_sc_mcu7t3v3__inv_1", prefixes, qualified=False) == ("mcu7t3v3", "inv_1", False)
     assert analyze.classify_stdcell("gf180mcu_fd_io__bi_t", prefixes) is None
+
+
+@pytest.fixture
+def caravel(tmp_path):
+    """A die whose harness has standard cells placed directly next to the user's wrapper."""
+    layout = kdb.Layout()
+    layout.dbu = DBU
+    inv = make_stdcell(layout, "6079_gf180mcu_fd_sc_mcu7t5v0__inv_1", 2.24, 2)
+    nand = make_stdcell(layout, "6079_gf180mcu_fd_sc_mcu7t5v0__nand2_1", 2.80, 4)
+    pad = layout.create_cell("6079_gf180mcu_fd_io__bi_t")
+    pad.shapes(layout.layer(37, 0)).insert(kdb.Box(0, 0, um(60), um(60)))
+    pad.shapes(layout.layer(22, 0)).insert(kdb.Box(0, 0, um(10), um(10)))
+    pad.shapes(layout.layer(30, 0)).insert(kdb.Box(um(4), um(-1), um(5), um(11)))
+
+    wrapper = layout.create_cell("6079_user_project_wrapper")
+    wrapper.shapes(layout.layer(0, 0)).insert(kdb.Box(0, 0, um(1000), um(1500)))
+    wrapper.insert(kdb.CellInstArray(nand.cell_index(), kdb.Trans(um(100), um(100)),
+                                     kdb.Vector(um(2.8), 0), kdb.Vector(0, um(3.92)), 5, 2))
+    core = layout.create_cell("6079_caravel_core")
+    core.insert(kdb.CellInstArray(inv.cell_index(), kdb.Trans(um(1200), um(100)),
+                                  kdb.Vector(um(2.24), 0), kdb.Vector(0, um(3.92)), 7, 1))
+    core.insert(kdb.CellInstArray(wrapper.cell_index(), kdb.Trans(um(50), um(50))))
+
+    die = layout.create_cell("6079_caravel_0_0")
+    die.shapes(layout.layer(0, 0)).insert(kdb.Box(0, 0, um(2000), um(2500)))
+    die.insert(kdb.CellInstArray(core.cell_index(), kdb.Trans(um(300), um(300))))
+    die.insert(kdb.CellInstArray(pad.cell_index(), kdb.Trans(um(10), um(10)), kdb.Vector(um(100), 0), kdb.Vector(), 3, 1))
+    top = layout.create_cell("GFMPW0")
+    top.insert(kdb.CellInstArray(die.cell_index(), kdb.Trans()))
+    top.insert(kdb.CellInstArray(die.cell_index(), kdb.Trans(um(3930), 0)))
+    path = tmp_path / "caravel.oas"
+    layout.write(str(path))
+    return path
+
+
+def test_exclusion_keeps_only_the_user_area(caravel, tmp_path):
+    measure = {"exclude": ["pad_ring", "harness"], "groups": {"harness": ["caravel_core"]},
+               "keep": ["user_project_wrapper"], "core_cell": "user_project_wrapper"}
+    paths = analyze.analyze(caravel, tmp_path / "out" / "reticle_analysis.csv", jobs=1, measure=measure)
+
+    row = read(paths["summary"])[0]
+    assert row["slot_id"] == "6079"
+    assert row["stdcell_count"] == "10", "the harness inverters are excluded, the wrapper's NANDs are kept"
+    assert row["transistor_count"] == "40", "the pad transistors are excluded too"
+    assert row["pad_count"] == "3", "bond pads are always counted"
+    usage = {r["cell_type"]: int(r["instance_count"]) for r in read(paths["cells"]) if r["cell_name"] == row["cell_name"]}
+    assert usage == {"nand2_1": 10}
+    area = read(paths["slot_areas"])[0]
+    assert float(area["core_area_mm2"]) == pytest.approx(1.5)
+
+    import json
+    meta = json.loads(paths["meta"].read_text())
+    assert meta["exclude"] == {"pad_ring": ["gf180mcu_*_io__*"], "harness": ["caravel_core"]}
+    assert meta["keep"] == ["user_project_wrapper"]
+
+
+def test_without_exclusion_everything_counts(caravel, tmp_path):
+    paths = analyze.analyze(caravel, tmp_path / "out" / "reticle_analysis.csv", jobs=1)
+    row = read(paths["summary"])[0]
+    assert row["stdcell_count"] == "17"
+    assert row["transistor_count"] == str(7 * 2 + 10 * 4 + 3)
+    assert read(paths["slot_areas"])[0]["core_area_mm2"] == ""
+
+
+def test_unknown_group_is_an_error(caravel, tmp_path):
+    with pytest.raises(ValueError, match="unknown group"):
+        analyze.analyze(caravel, tmp_path / "out" / "reticle_analysis.csv", jobs=1, measure={"exclude": ["nope"]})

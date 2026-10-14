@@ -11,6 +11,7 @@ The three per-slot CSV files keep the exact format of the original
 """
 
 import csv
+import json
 import multiprocessing
 import os
 import re
@@ -19,6 +20,8 @@ from collections import Counter
 from pathlib import Path
 
 import klayout.db as kdb
+
+from .exclude import Selection, core_area_um2, selection_for
 
 # GDS layer definitions (from gf180mcu.lyp)
 LAYER_COMP = (22, 0)       # Diffusion/active area
@@ -66,7 +69,8 @@ LIBRARY_FIELDS = [
 ]
 MACRO_FIELDS = ["macro", "width_um", "height_um", "transistor_count", "instances"]
 SLOT_MACRO_FIELDS = ["slot_id", "cell_name", "macro", "instances"]
-SLOT_AREA_FIELDS = ["slot_id", "cell_name", "die_area_mm2", "sram_area_mm2", "pad_area_mm2"]
+# core_area_mm2 is empty unless the run names a core cell (see exclude.py).
+SLOT_AREA_FIELDS = ["slot_id", "cell_name", "die_area_mm2", "sram_area_mm2", "pad_area_mm2", "core_area_mm2"]
 
 
 def find_layer(layout, layer_num, datatype):
@@ -78,7 +82,7 @@ def find_layer(layout, layer_num, datatype):
     return idx
 
 
-def build_clipped_region(layout, cell, layer_idx, clip_box):
+def build_clipped_region(layout, cell, layer_idx, clip_box, selection=Selection()):
     """Build a Region from shapes on a layer, geometrically clipped to a box.
 
     RecursiveShapeIterator with clip_box only *selects* overlapping shapes —
@@ -88,32 +92,27 @@ def build_clipped_region(layout, cell, layer_idx, clip_box):
     region = kdb.Region()
     if layer_idx is None:
         return region
-    rsi = kdb.RecursiveShapeIterator(layout, cell, layer_idx, clip_box)
-    region.insert(rsi)
+    region.insert(selection.iterator(layout, cell, layer_idx, clip_box))
     region &= kdb.Region(clip_box)
     region.merge()
     return region
 
 
-def count_region(layout, cell, layer_idx):
+def count_region(layout, cell, layer_idx, selection=Selection()):
     """Count merged polygons on a layer within a cell hierarchy."""
     region = kdb.Region()
     if layer_idx is None:
         return 0, region
-    rsi = kdb.RecursiveShapeIterator(layout, cell, layer_idx)
-    region.insert(rsi)
+    region.insert(selection.iterator(layout, cell, layer_idx))
     region.merge()
     return region.count(), region
 
 
-def count_rsi(layout, cell, layer_idx, clip_box=None):
+def count_rsi(layout, cell, layer_idx, clip_box=None, selection=Selection()):
     """Count shapes via RecursiveShapeIterator (no merge, just instance count)."""
     if layer_idx is None:
         return 0
-    if clip_box is not None:
-        rsi = kdb.RecursiveShapeIterator(layout, cell, layer_idx, clip_box)
-    else:
-        rsi = kdb.RecursiveShapeIterator(layout, cell, layer_idx)
+    rsi = selection.iterator(layout, cell, layer_idx, clip_box)
     count = 0
     for _ in rsi.each():
         count += 1
@@ -203,43 +202,22 @@ def classify_all_stdcells(layout, prefixes, qualified=True):
     return cell_info
 
 
-def count_stdcell_usage(cell, cell_info):
+def count_stdcell_usage(cell, cell_info, selection=Selection()):
     """Count instances of each stdcell type within a design's hierarchy.
-
-    Uses a bottom-up traversal with caching: for each unique cell, compute
-    its stdcell content once, then scale by instance count at each level.
 
     Returns dict mapping (library, cell_type, is_fill) -> instance_count.
     """
-    cache = {}
-
-    def get_counts(c):
-        ci = c.cell_index()
-        if ci in cache:
-            return cache[ci]
-        counts = Counter()
-        if ci in cell_info:
-            counts[cell_info[ci]] = 1
-            cache[ci] = counts
-            return counts
-        for inst in c.each_inst():
-            n_copies = inst.cell_inst.size()
-            for key, cnt in get_counts(inst.cell).items():
-                counts[key] += cnt * n_copies
-        cache[ci] = counts
-        return counts
-
-    return dict(get_counts(cell))
+    return selection.flat_counts(cell, cell_info.get)
 
 
-def count_transistors(layout, cell, l_comp, l_poly2):
+def count_transistors(layout, cell, l_comp, l_poly2, selection=Selection()):
     """Count transistor regions (COMP AND Poly2) in a cell hierarchy."""
     if l_comp is None or l_poly2 is None:
         return 0
     comp = kdb.Region()
-    comp.insert(kdb.RecursiveShapeIterator(layout, cell, l_comp))
+    comp.insert(selection.iterator(layout, cell, l_comp))
     poly2 = kdb.Region()
-    poly2.insert(kdb.RecursiveShapeIterator(layout, cell, l_poly2))
+    poly2.insert(selection.iterator(layout, cell, l_poly2))
     transistors = comp & poly2
     transistors.merge()
     return transistors.count()
@@ -273,11 +251,15 @@ def extract_slot_id(cell_name):
     return parts[0] if parts else cell_name
 
 
-def analyze_slot(layout, cell, dbu, layers):
-    """Analyze a single design slot cell. Returns dict of metrics."""
+def analyze_slot(layout, cell, dbu, layers, selection=Selection()):
+    """Analyze a single design slot cell. Returns dict of metrics.
+
+    Bond pads and the die size are always measured on the whole design; the
+    selection only applies to what is inside it.
+    """
     bbox = cell.bbox()
     pad_count, pad_region = count_region(layout, cell, layers["pad"])
-    sram_count, sram_region = count_region(layout, cell, layers["sram"])
+    sram_count, sram_region = count_region(layout, cell, layers["sram"], selection)
     dbu2_per_mm2 = 1e6 / (dbu * dbu)
     return {
         "die_area_mm2": bbox.area() / dbu2_per_mm2,
@@ -287,13 +269,13 @@ def analyze_slot(layout, cell, dbu, layers):
         "height_mm": bbox.height() * dbu / 1000.0,
         "pad_count": pad_count,
         "sram_block_count": sram_count,
-        "stdcell_count": count_rsi(layout, cell, layers["marker"]),
-        "transistor_count": count_transistors(layout, cell, layers["comp"], layers["poly2"]),
+        "stdcell_count": count_rsi(layout, cell, layers["marker"], selection=selection),
+        "transistor_count": count_transistors(layout, cell, layers["comp"], layers["poly2"], selection),
         "sram_region": sram_region,
     }
 
 
-def analyze_slot_grid(layout, cell, dbu, layers, sram_region):
+def analyze_slot_grid(layout, cell, dbu, layers, sram_region, selection=Selection()):
     """Compute 1mm grid density map for a single slot cell.
 
     Grid cells that overlap an SRAM macro are skipped, so the grid describes
@@ -318,15 +300,15 @@ def analyze_slot_grid(layout, cell, dbu, layers, sram_region):
                 if not overlap.is_empty():
                     continue
 
-            comp_clipped = build_clipped_region(layout, cell, layers["comp"], clip_box)
-            poly2_clipped = build_clipped_region(layout, cell, layers["poly2"], clip_box)
+            comp_clipped = build_clipped_region(layout, cell, layers["comp"], clip_box, selection)
+            poly2_clipped = build_clipped_region(layout, cell, layers["poly2"], clip_box, selection)
             transistor_region = comp_clipped & poly2_clipped
             transistor_region.merge()
 
             x_mm = (x0 - x_start) * dbu / 1000.0
             y_mm = (y0 - y_start) * dbu / 1000.0
             rows.append((gx, gy, x_mm, y_mm, transistor_region.count(),
-                         count_rsi(layout, cell, layers["marker"], clip_box)))
+                         count_rsi(layout, cell, layers["marker"], clip_box, selection)))
     return rows
 
 
@@ -340,10 +322,13 @@ def _analyze_cell_index(cell_index):
     layers = _STATE["layers"]
     cell = layout.cell(cell_index)
     dbu = layout.dbu
-    metrics = analyze_slot(layout, cell, dbu, layers)
-    grid_rows = analyze_slot_grid(layout, cell, dbu, layers, metrics.pop("sram_region"))
-    usage = count_stdcell_usage(cell, _STATE["cell_info"])
-    metrics["macros"] = count_macro_usage(cell, _STATE["macro_cells"])
+    selection = _STATE["selection"]
+    metrics = analyze_slot(layout, cell, dbu, layers, selection)
+    grid_rows = analyze_slot_grid(layout, cell, dbu, layers, metrics.pop("sram_region"), selection)
+    usage = count_stdcell_usage(cell, _STATE["cell_info"], selection)
+    metrics["macros"] = count_macro_usage(cell, _STATE["macro_cells"], selection)
+    metrics["core_area_mm2"] = (core_area_um2(layout, cell, selection.core_cell) / 1e6
+                                if selection.core_cell else None)
     return cell_index, metrics, grid_rows, usage
 
 
@@ -400,25 +385,9 @@ def find_macro_cells(layout):
     return macro_cells
 
 
-def count_macro_usage(cell, macro_cells):
-    """Count flat placements of each SRAM macro below a cell with one bottom-up walk."""
-    cache = {}
-
-    def placements(c):
-        ci = c.cell_index()
-        if ci not in cache:
-            counts = Counter()
-            if ci in macro_cells:
-                counts[macro_cells[ci]] = 1
-            else:
-                for inst in c.each_inst():
-                    n = inst.cell_inst.size()
-                    for key, cnt in placements(inst.cell).items():
-                        counts[key] += cnt * n
-            cache[ci] = counts
-        return cache[ci]
-
-    return dict(placements(cell))
+def count_macro_usage(cell, macro_cells, selection=Selection()):
+    """Count flat placements of each SRAM macro below a cell."""
+    return selection.flat_counts(cell, macro_cells.get)
 
 
 def measure_macros(layout, layers, macro_cells):
@@ -456,12 +425,17 @@ def output_paths(output_path):
         "macros": sibling("_macros"),
         "slot_macros": sibling("_slot_macros"),
         "slot_areas": sibling("_slot_areas"),
+        "meta": output_path.parent / (output_path.stem + "_meta.json"),
     }
 
 
 def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, jobs=None,
-            qualified_libraries=True):
-    """Analyze a layout and write the summary, grid, cell usage, library and macro CSVs."""
+            qualified_libraries=True, measure=None):
+    """Analyze a layout and write the summary, grid, cell usage, library and macro CSVs.
+
+    ``measure`` is the run's ``[measure]`` table; its exclusions are recorded
+    in the ``_meta.json`` output so that reports can say what was left out.
+    """
     layout = kdb.Layout()
     print(f"Loading {input_path}...")
     layout.read(str(input_path))
@@ -471,7 +445,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     if not top_cells:
         print("Error: no cells found in layout", file=sys.stderr)
         sys.exit(1)
-    top_cell = top_cells[0]
+    top_cell = max(top_cells, key=lambda c: c.bbox().area())
     if len(top_cells) > 1:
         print(f"Warning: multiple top cells found, using '{top_cell.name}'")
 
@@ -500,6 +474,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     # never contribute to a cell's bounding box.
     print("Creating standard cell markers...")
     layers["marker"] = create_stdcell_marker_layer(layout, stdcell_prefixes)
+    selection = selection_for(layout, measure or {})
 
     # --- Detect reticle vs single design ---
     slots = enumerate_slots(top_cell)
@@ -518,7 +493,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     jobs = max(1, min(jobs or min(4, os.cpu_count() or 1), len(order)))
     print(f"Analysing {len(order)} unique designs with {jobs} worker(s)...")
 
-    _STATE.update(layout=layout, layers=layers, cell_info=cell_info, macro_cells=macro_cells)
+    _STATE.update(layout=layout, layers=layers, cell_info=cell_info, macro_cells=macro_cells, selection=selection)
     results = {}
     if jobs == 1:
         iterator = map(_analyze_cell_index, order)
@@ -572,6 +547,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
             "die_area_mm2": f"{metrics['die_area_mm2']:.4f}",
             "sram_area_mm2": f"{metrics['sram_area_mm2']:.4f}",
             "pad_area_mm2": f"{metrics['pad_area_mm2']:.4f}",
+            "core_area_mm2": "" if metrics["core_area_mm2"] is None else f"{metrics['core_area_mm2']:.4f}",
         })
 
     for row in macro_rows:
@@ -606,6 +582,14 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
             writer = csv.DictWriter(f, fieldnames=fields)
             writer.writeheader()
             writer.writerows(rows)
+
+    print(f"Writing {paths['meta']}...")
+    paths["meta"].write_text(json.dumps({
+        "top_cell": top_cell.name,
+        "stdcell_prefixes": list(stdcell_prefixes),
+        "library_names": "qualified" if qualified_libraries else "short",
+        **selection.describe(),
+    }, indent=1) + "\n")
 
     print(f"\nDone. {len(summary_rows)} slots, {len(all_grid_rows)} grid cells, "
           f"{len(all_cell_usage)} cell type entries.")
