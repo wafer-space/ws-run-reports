@@ -133,3 +133,4 @@
 .run-warn { color: #c0392b; }
 [data-theme="dark"] .run-warn { color: #ff8a80; }
 .run-description p { margin-bottom: 0.6rem; }
+.run-chip { display: inline-block; font-size: 0.7rem; padding: 0 0.4rem; margin: 0.1rem 0.15rem 0 0; border-radius: 0.6rem; background: var(--run-track); color: var(--run-ink); }

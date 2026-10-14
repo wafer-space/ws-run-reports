@@ -34,7 +34,10 @@
         {% if d.code in photos %}<span title="Die photograph available"><i class="jam jam-camera"></i> photo</span>{% endif %}
         {% if d.code in cob %}<span title="Chip-on-board bonding results available"><i class="jam jam-cpu"></i> bonded</span>{% endif %}
         {% if d.placements > 1 %}<span title="Placed {{ d.placements }} times on the reticle">× {{ d.placements }}</span>{% endif %}
+        {% if d.code in details and details[d.code].chip_on_board %}<span title="Chip-on-board packaging selected">CoB</span>{% endif %}
       </p>
+      {% if d.voltages %}<p class="mb-0 small text-muted run-card-features">{{ d.voltages | join(" · ") }}
+        {% for key in d.device_features %}<span class="run-chip">{{ feature_labels[key] }}</span>{% endfor %}</p>{% endif %}
     </div>
   </a>
 </div>
@@ -186,6 +189,73 @@
     </div>
   </div>
 </div>
+
+{% if stats.has_features or details %}
+<!-- Process features -->
+<div id="features" class="wrapper gray-wrapper">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">Which parts of the process were used</h2>
+    <p class="lead text-center mb-40">Transistor voltages and optional devices across the {{ stats.designs | length }} designs</p>
+    {% if stats.has_features %}
+    <div class="row gutter-50">
+      <div class="col-lg-5 mb-30">
+        <h3 class="mb-20">Transistor voltages</h3>
+        {% for volts in stats.voltage_levels %}
+        {% set users = stats.voltage_users(volts) %}
+        <div class="run-category">
+          <span class="run-category-name">{{ volts }}</span>
+          <span class="run-category-bar"><i style="width: {{ '%.1f' | format(users | length / stats.designs | length * 100) }}%; background: #5ca7db"></i></span>
+          <span class="run-category-count">{{ users | length }}</span>
+        </div>
+        {% endfor %}
+        <p class="small text-muted mt-10">A design counts for a voltage when its standard cells, SRAM or its own
+          transistors use it. 5 V and 6 V transistors share the thick gate oxide; the V5_XTOR marker tells them apart.</p>
+      </div>
+      <div class="col-lg-7 mb-30">
+        <h3 class="mb-20">Optional devices drawn by designers</h3>
+        <table class="table table-sm run-table bg-white">
+          <thead><tr><th>Device</th><th class="text-end">Designs</th><th>Which</th></tr></thead>
+          <tbody>
+            {% for key, label, users in stats.feature_popularity if users %}
+            <tr><td>{{ label }}</td><td class="text-end">{{ users | length }}</td>
+              <td>{% for u in users %}<a class="run-mono" href="projects/{{ u.code }}.html">{{ u.code }}</a>{{ " " if not loop.last }}{% endfor %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% set unused = stats.feature_popularity | selectattr(2, "equalto", []) | map(attribute=1) | list %}
+        {% if unused %}<p class="small text-muted mb-0">Not drawn by any design: {{ unused | join(", ") }}.</p>{% endif %}
+        <p class="small text-muted">Only devices outside standard cells, SRAM macros and I/O pads count, since every
+          die has those. A single test structure counts the same as a large block.</p>
+      </div>
+    </div>
+    {% endif %}
+    {% if details %}
+    <div class="row gutter-50">
+      <div class="col-lg-6 mb-30">
+        <h3 class="mb-20">Licences</h3>
+        <table class="table table-sm run-table bg-white mb-10">
+          <thead><tr><th>Declared licence</th><th class="text-end">Designs</th></tr></thead>
+          <tbody>
+            {% for licence, n in licence_counts %}<tr><td>{{ licence }}</td><td class="text-end">{{ n }}</td></tr>{% endfor %}
+          </tbody>
+        </table>
+        {% if licence_issues %}<p class="small text-muted mb-0">Repository licence differs from the declared one, or is
+          missing: {% for code, status in licence_issues %}<a class="run-mono" href="projects/{{ code }}.html">{{ code }}</a>
+          ({{ status }}){{ ", " if not loop.last }}{% endfor %}.</p>{% endif %}
+      </div>
+      <div class="col-lg-6 mb-30">
+        <h3 class="mb-20">Packaging and precheck</h3>
+        <ul class="run-method">
+          <li><strong>{{ cob_selected }}</strong> of {{ details | length }} designs selected chip-on-board packaging.</li>
+          <li><strong>{{ precheck_passed }}</strong> passed their latest platform precheck{% if precheck_missing %};
+            {{ precheck_missing | join(", ") }} {{ "has" if precheck_missing | length == 1 else "have" }} no finished precheck recorded{% endif %}.</li>
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
 
 <!-- Density guidance -->
 <div id="density" class="wrapper dark-wrapper inverse-text">

@@ -209,6 +209,12 @@ def build_context(run, out_dir: Path) -> dict:
         "pads": sum(d.pads for d in stats.designs),
         "design_by_code": {d.code: d for d in stats.designs},
         "details": details,
+        "licence_counts": Counter(e["licence"]["declared"] or "not declared" for e in details.values()).most_common(),
+        "licence_issues": sorted((code, e["licence"]["status"]) for code, e in details.items()
+                                 if e["licence"].get("status") in ("mismatch", "no licence file")),
+        "cob_selected": sum(1 for e in details.values() if e["chip_on_board"]),
+        "precheck_passed": sum(1 for e in details.values() if e["precheck"] and e["precheck"]["is_manufacturable"]),
+        "precheck_missing": sorted(code for code, e in details.items() if not e["precheck"]),
         "feature_labels": FEATURE_LABELS,
         "windowed": report.windowed(stats),
         "core_area_text": (f"Core area is the area of each die's {stats.meta['core_cell']} cell."
