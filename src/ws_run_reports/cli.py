@@ -41,6 +41,14 @@ def cmd_site(args, run):
     print(f"Wrote {path}")
 
 
+def cmd_import(args, run):
+    from . import projects
+    if not args.platform:
+        raise SystemExit("import needs --platform FILE (an export from platform.wafer.space)")
+    path = projects.import_files(run, out_dir(args, run), args.platform, args.audit)
+    print(f"Wrote {path}")
+
+
 def cmd_publish(args, run):
     from . import publish
     publish.publish(run, out_dir(args, run), args.target, push=args.push)
@@ -58,6 +66,7 @@ COMMANDS = {
     "render": (cmd_render, "render images of the reticle and of every design"),
     "site": (cmd_site, "build the web page for the run"),
     "all": (cmd_all, "analyze, report, render and site in one go"),
+    "import": (cmd_import, "import project details from a platform export and a repository licence audit"),
     "publish": (cmd_publish, "commit the results to a branch of the run repository"),
 }
 
@@ -72,6 +81,9 @@ def main(argv=None):
         p.add_argument("--out", type=Path, help="output directory (default: out/)")
         p.add_argument("--jobs", type=int, help="worker processes for the layout steps")
         p.add_argument("--only", nargs="+", metavar="CODE", help="render only these designs (for testing)")
+        if name == "import":
+            p.add_argument("--platform", type=Path, help="platform export: JSON list of public project records")
+            p.add_argument("--audit", type=Path, help="repository licence audit: JSON list with licence files per project")
         if name == "publish":
             p.add_argument("target", choices=["density-report", "gh-pages"])
             p.add_argument("--push", action="store_true", help="push the branch after committing")
