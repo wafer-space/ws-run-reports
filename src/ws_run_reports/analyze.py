@@ -500,10 +500,10 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
 
     # --- Detect reticle vs single design ---
     slots = enumerate_slots(top_cell)
-    if len(slots) <= 1:
+    if not slots:
+        # A layout of one design rather than a reticle.
         print("Single design detected")
-        target_cell = slots[0][1] if slots else top_cell
-        slots = [("top", target_cell, kdb.Trans())]
+        slots = [("top", top_cell, kdb.Trans())]
     print(f"Found {len(slots)} design slots")
 
     # A design placed several times on the reticle shares one cell, so analyse
