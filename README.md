@@ -110,7 +110,7 @@ in an iframe without any JavaScript:
 
 ```html
 <iframe src="https://wafer.space/ws-run1/embed.html" title="Run 1 designs"
-        style="width: 100%; height: 330px; border: 0" loading="lazy"></iframe>
+        style="width: 100%; height: 300px; border: 0" loading="lazy"></iframe>
 ```
 
 The first time a run's page is published, enable GitHub Pages for the run

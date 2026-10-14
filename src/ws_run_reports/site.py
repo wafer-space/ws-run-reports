@@ -223,10 +223,14 @@ def build_context(run, out_dir: Path) -> dict:
     }
 
 
-def _photo_credit(run) -> Markup:
+def _photo_credit(run, target=None) -> Markup:
     """Copyright line for the die photographs: "© 2026 Name, Licence", linked where the run gives URLs."""
     def linked(text, url):
-        return Markup('<a href="{}">{}</a>').format(url, text) if url else Markup.escape(text)
+        if not url:
+            return Markup.escape(text)
+        if target:
+            return Markup('<a href="{}" target="{}">{}</a>').format(url, target, text)
+        return Markup('<a href="{}">{}</a>').format(url, text)
 
     site = run.site
     credit = linked(site.get("photos_credit", ""), site.get("photos_credit_url"))
@@ -247,7 +251,7 @@ def build_site(run, out_dir: Path) -> Path:
                       autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
     env.filters.update(k=report.k, pct=report.pct, count=report.count, library_label=library_label,
                        describe_cell=describe_cell)
-    env.globals.update(area_bar=_area_bar, heatmap=_heatmap, photo_credit=lambda: _photo_credit(run))
+    env.globals.update(area_bar=_area_bar, heatmap=_heatmap, photo_credit=lambda target=None: _photo_credit(run, target))
 
     # The data behind the page, so every figure on it can be checked.
     data_dir = site_dir / "data"
