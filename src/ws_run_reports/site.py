@@ -260,6 +260,9 @@ def build_site(run, out_dir: Path) -> Path:
     context["data_files"] = sorted(p.name for p in data_dir.iterdir())
 
     (site_dir / "index.html").write_text(env.get_template("index.html").render(root="", **context))
+    # A JavaScript-free strip of the designs for other pages to embed; dies with photographs first.
+    embed_designs = sorted(stats.designs, key=lambda d: (d.code not in context["photos"], d.code))
+    (site_dir / "embed.html").write_text(env.get_template("embed.html").render(embed_designs=embed_designs, **context))
 
     projects_dir = site_dir / "projects"
     projects_dir.mkdir(exist_ok=True)

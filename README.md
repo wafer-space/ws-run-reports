@@ -64,6 +64,15 @@ The reticle is expected to follow the layout used so far: one top cell whose
 children are named `<CODE>_<top cell>_<column>_<row>`, plus `RETICLE_FILL` and
 `TEXT` cells that are ignored.
 
+Each run's page also has `embed.html`, a strip of the designs (die photograph
+and layout render side by side where both exist) that other pages can show
+in an iframe without any JavaScript:
+
+```html
+<iframe src="https://wafer.space/ws-run1/embed.html" title="Run 1 designs"
+        style="width: 100%; height: 330px; border: 0" loading="lazy"></iframe>
+```
+
 The first time a run's page is published, enable GitHub Pages for the run
 repository on the `gh-pages` branch:
 

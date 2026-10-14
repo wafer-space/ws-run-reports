@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ run.title }} designs</title>
+  <meta name="robots" content="noindex">
+  {#
+    A strip of the run's designs for embedding in another page with an iframe:
+
+      <iframe src="{{ run.pages_url }}embed.html" title="{{ run.title }} designs"
+              style="width: 100%; height: 330px; border: 0" loading="lazy"></iframe>
+
+    No JavaScript: the strip scrolls sideways and snaps to each card. Links
+    open in the embedding page's window. Sized for a fixed 330 px tall frame.
+  #}
+  <style>
+    :root { --bg: transparent; --card: #ffffff; --ink: #343f52; --muted: #6c757d; --line: #e6ebf0; --accent: #3f78e0; }
+    @media (prefers-color-scheme: dark) {
+      :root { --card: #262626; --ink: #e0e0e0; --muted: #a0a0a0; --line: #3a3a3a; --accent: #7aa7ff; }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--ink);
+      font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .strip { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 8px 16px 14px;
+      height: 330px; align-items: stretch; }
+    .card { flex: 0 0 auto; width: 300px; scroll-snap-align: start; background: var(--card); border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(30, 34, 40, 0.12); text-decoration: none; color: inherit; display: flex;
+      flex-direction: column; overflow: hidden; }
+    .card:hover, .card:focus { outline: 2px solid var(--accent); }
+    .images { display: flex; height: 200px; background: #0a0c14; }
+    .images figure { margin: 0; flex: 1 1 0; position: relative; display: flex; align-items: center;
+      justify-content: center; overflow: hidden; }
+    .images figure + figure { border-left: 1px solid #222; }
+    .images img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .images figcaption { position: absolute; bottom: 4px; left: 6px; font-size: 10px; color: #fff;
+      background: rgba(0, 0, 0, 0.55); padding: 0 4px; border-radius: 3px; }
+    .body { padding: 10px 12px; }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
+    .name { font-weight: 700; font-size: 14px; line-height: 1.25; margin: 2px 0 4px; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .meta { font-size: 12px; color: var(--muted); }
+    .more { flex: 0 0 auto; width: 180px; scroll-snap-align: start; display: flex; align-items: center;
+      justify-content: center; text-align: center; font-weight: 700; color: var(--accent); text-decoration: none;
+      border: 2px dashed var(--line); border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="strip">
+    {% for d in embed_designs %}
+    {% set photo = photos[d.code] if d.code in photos else none %}
+    {% set render = renders.designs[d.code] if renders and d.code in renders.designs else none %}
+    <a class="card" href="{{ run.pages_url }}projects/{{ d.code }}.html" target="_top">
+      <div class="images">
+        {% if photo %}<figure><img src="{{ photo.preview }}" alt="Die photograph of {{ d.name }}" loading="lazy"><figcaption>silicon</figcaption></figure>{% endif %}
+        {% if render %}<figure><img src="renders/{{ render.files.thumb }}" alt="Layout render of {{ d.name }}" loading="lazy">{% if photo %}<figcaption>layout</figcaption>{% endif %}</figure>{% endif %}
+      </div>
+      <div class="body">
+        <div class="code">{{ d.code }} · {{ d.category }}</div>
+        <div class="name">{{ d.name }}</div>
+        <div class="meta">{{ d.slot_label }} slot{% if d.logic_cells %} · {{ d.logic_cells | count }} logic cells{% endif %}{% if d.voltages %} · {{ d.voltages | join(", ") }}{% endif %}</div>
+      </div>
+    </a>
+    {% endfor %}
+    <a class="more" href="{{ run.pages_url }}" target="_top">All {{ stats.designs | length }} designs<br>on {{ run.title | replace('wafer.space ', '') }} →</a>
+  </div>
+</body>
+</html>
