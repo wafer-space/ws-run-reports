@@ -364,7 +364,7 @@ def build_report(stats) -> str:
         "- **Cell dimensions** are the width and height of each standard cell's placement boundary (GDS 0/0), "
         "measured from the cells present in this layout.\n"
         "- **Theoretical maximum** = (1000um / cell width) x (1000um / row height).\n"
-        + boundary_note(stats) +
+        + boundary_note(stats)
         + ("- **Peak figures** are the densest 1mm x 1mm square anywhere inside each die, found by sliding the "
            "square in 100um steps over the die and skipping positions that touch an SRAM macro. Logic cells are "
            "placed by their origin and transistors by the centre of their gate.\n"
