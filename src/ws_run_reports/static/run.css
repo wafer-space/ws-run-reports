@@ -106,8 +106,8 @@
 .run-heatmap rect { fill: var(--run-accent); stroke: var(--run-surface); stroke-width: 0.03; }
 .run-heatmap rect.sram { fill: var(--run-track); fill-opacity: 1; stroke-dasharray: 0.08 0.06; stroke: var(--run-muted); }
 .run-heatmap rect.sram-macro { fill: none; stroke: var(--run-ink); stroke-width: 0.025; stroke-dasharray: 0.06 0.04; }
-.run-heatmap rect.window { fill: none; stroke: #e2626b; stroke-width: 0.05; }
-.run-heatmap text { font-size: 0.22px; text-anchor: middle; dominant-baseline: central; fill: var(--run-ink); font-variant-numeric: tabular-nums; pointer-events: none; }
+.run-heatmap rect.window { fill: none; stroke: #e2626b; stroke-width: 0.04; stroke-opacity: 0.9; }
+.run-heatmap text { paint-order: stroke; font-size: 0.22px; text-anchor: middle; dominant-baseline: central; fill: var(--run-ink); font-variant-numeric: tabular-nums; pointer-events: none; }
 .run-heatmap text.light { fill: #fff; }
 
 /* Small pieces */

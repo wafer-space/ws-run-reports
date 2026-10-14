@@ -89,7 +89,7 @@
               {% elif lic.status == "no licence file" %}<br><span class="run-warn">The repository has no licence file</span>
               {% elif lic.status == "no repository" %}<br><span class="text-muted">No public repository</span>{% endif %}
               {% if lic.repo_commit %}<br><span class="small text-muted">Repository checked at <span class="run-mono">{{ lic.repo_commit[:12] }}</span></span>{% endif %}</td></tr>
-            <tr><th>Chip-on-board</th><td>{{ "Selected at submission" if info.chip_on_board else "Not selected" }}
+            <tr><th>Chip-on-board</th><td>{{ "Selected at submission" if info.chip_on_board else "Not selected at submission" }}
               {% if cob_url %}· <a href="#bonding">bonding results</a>{% endif %}</td></tr>
             {% if info.precheck %}
             <tr><th>Precheck</th><td>{{ "Passed" if info.precheck.is_manufacturable else "Did not pass" }}
@@ -200,7 +200,6 @@
           <rect x="{{ '%.3f' | format(c.x) }}" y="{{ '%.3f' | format(c.y) }}" width="{{ '%.3f' | format(c.w) }}" height="{{ '%.3f' | format(c.h) }}" class="sram"><title>SRAM</title></rect>
           {% else %}
           <rect x="{{ '%.3f' | format(c.x) }}" y="{{ '%.3f' | format(c.y) }}" width="{{ '%.3f' | format(c.w) }}" height="{{ '%.3f' | format(c.h) }}" style="fill-opacity: {{ '%.3f' | format(0.06 + 0.94 * c.level) }}"><title>{{ '{:,}'.format(c.cells) }} logic cells, {{ '{:,}'.format(c.transistors) }} transistors{% if c.sram_share %}, {{ c.sram_share | pct }} SRAM{% endif %}</title></rect>
-          {% if c.w > 0.6 and c.h > 0.6 %}<text x="{{ '%.3f' | format(c.x + c.w / 2) }}" y="{{ '%.3f' | format(c.y + c.h / 2) }}" class="{{ 'light' if c.level > 0.55 else '' }}">{{ c.cells | k }}</text>{% endif %}
           {% endif %}
           {% endfor %}
           {% for r in map.rects %}
@@ -209,6 +208,9 @@
           {% if map.window %}
           <rect class="window" x="{{ '%.3f' | format(map.window.x) }}" y="{{ '%.3f' | format(map.window.y) }}" width="1" height="1"><title>Densest SRAM-free mm²: {{ '{:,}'.format(map.window.cells) }} logic cells</title></rect>
           {% endif %}
+          {% for c in map.cells if c.sram is not sameas true and c.w > 0.6 and c.h > 0.6 %}
+          <text x="{{ '%.3f' | format(c.x + c.w / 2) }}" y="{{ '%.3f' | format(c.y + c.h / 2) }}" class="{{ 'light' if c.level > 0.55 else '' }}">{{ c.cells | k }}</text>
+          {% endfor %}
         </svg>
         {% if map.rects or map.window %}
         <p class="small text-muted mb-0">Logic cells in each square millimetre of the die. Hatched outlines are SRAM
