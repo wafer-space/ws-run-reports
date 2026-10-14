@@ -59,6 +59,46 @@ copy `runs/ws-run2.toml` and change:
 | `[site] photos_credit`, `photos_credit_url`, `photos_year`, `photos_licence`, `photos_licence_url` | Copyright line shown wherever a photograph appears: "© 2026 Name, Licence", with links |
 | `[site] photos_viewer_url` | The photographer's zoomable viewer for one die, with `{code}`, `{CODE}` and `{setup}` filled in. Listed first on each project page |
 | `[categories]` | Optional `CODE = "Category"` overrides for the classifier |
+| `[measure] exclude`, `keep`, `core_cell`, `[measure.groups]` | Leave groups of cells out of the measurements; see below |
+
+`slots` is the number of slots on the shuttle, whatever their arrangement; dies
+may sit anywhere on the reticle and positions may be empty. Slot sizes are
+taken from the manifest; sizes other than wafer.space's four are shown as
+written.
+
+### Excluding cells
+
+To measure only part of each die, name groups of cells to exclude. Patterns
+are shell globs on cell names (also tried without a leading `<CODE>_`). The
+groups `pad_ring` (all `gf180mcu_*_io__*` cells) and `wafer_space_artwork` are
+built in. `keep` names cells below an excluded one that are still measured, and
+`core_cell` names the cell whose area the densities are taken over (otherwise
+the die minus a 350 µm pad ring). For a Caravel die:
+
+```toml
+[measure]
+exclude = ["pad_ring", "harness"]
+keep = ["user_project_wrapper"]
+core_cell = "user_project_wrapper"
+
+[measure.groups]
+harness = ["caravel_core", "caravel_power_routing", "chip_io"]
+```
+
+Bond pads and die sizes are always measured on the whole die. The exclusions
+are recorded in `reticle_analysis_meta.json`, and the report and page say what
+was left out.
+
+### Project details from the platform
+
+`import` adds details that are not in the layout: the description, declared
+licence, chip-on-board option and latest precheck from a platform.wafer.space
+export, and the licences found in each project's repository from a licence
+audit. Only public fields are kept (no user data, UUIDs or storage paths):
+
+```bash
+uv run ws-run-reports import ws-run1 --platform ws-run1-projects.json --audit audit.json
+```
 
 The reticle is expected to follow the layout used so far: one top cell whose
 children are named `<CODE>_<top cell>_<column>_<row>`, plus `RETICLE_FILL` and
@@ -90,7 +130,13 @@ gh api repos/wafer-space/ws-run2/pages -X POST -f 'source[branch]=gh-pages' -f '
 | `reticle_analysis_library.csv` | Every standard cell: placement boundary, bounding box, transistors |
 | `reticle_analysis_macros.csv` | Every SRAM macro: size, transistors, placements |
 | `reticle_analysis_slot_macros.csv` | SRAM macros per slot |
-| `reticle_analysis_slot_areas.csv` | Die, SRAM marker and pad opening area per slot |
+| `reticle_analysis_slot_areas.csv` | Die, SRAM marker and pad opening area per slot, and the core cell's area when `core_cell` is set |
+| `reticle_analysis_map.csv` | Every 1 mm square of each design, including those with SRAM, with the share of the square that is SRAM |
+| `reticle_analysis_windows.csv` | The densest whole 1 x 1 mm window of each design, sliding in 100 µm steps, overall and avoiding SRAM |
+| `reticle_analysis_sram_rects.csv` | The outline of every SRAM macro in each design |
+| `reticle_analysis_features.csv` | Designer-drawn transistors by voltage and optional devices per design, and the I/O library used |
+| `reticle_analysis_meta.json` | What was measured: top cell, library prefixes, exclusions |
+| `projects.json` | Imported project details (see above) |
 
 * **Logic cells** are instances of cells whose name contains a standard cell
   library prefix (`gf180mcu_fd_sc_`, `gf180mcu_as_sc_`, `gf180mcu_as_ex_`),
@@ -102,6 +148,19 @@ gh api repos/wafer-space/ws-run2/pages -X POST -f 'source[branch]=gh-pages' -f '
 * **Theoretical maximum density** tiles one cell at its placement boundary
   (GDS 0/0). The cell bounding box is larger, because wells overhang into the
   neighbouring cells, and must not be used for this.
+* **Standard cell libraries** are the foundry's (`fd_sc`), Avalon
+  Semiconductors' (`as_sc`, `as_ex`) and Oklahoma State University's (`osu_sc`).
+  The foundry libraries are named by their last part (`mcu7t5v0`), the others
+  with their vendor prefix (`as_ex_mcu7t5v0`).
+* **Process features** count only what the designer drew: standard cell, SRAM,
+  I/O, fill and artwork cells are skipped. A gate is thick oxide inside
+  Dualgate (55/0), 5 V where V5_XTOR (112/1) also covers it and 6 V where it
+  does not, 3.3 V otherwise. MIM capacitors are FuseTop (75/0); poly resistors
+  are Poly2 under RES_MK (110/5), high resistance under Resistor (62/0). Other
+  devices are found by their marker layers from the open PDK's `gf180mcu.lyp`.
+* **Densest mm²** slides a 1 x 1 mm window over each die in 100 µm steps,
+  counting logic cells by their origin and transistors by their gate centre,
+  and skips windows that touch an SRAM macro.
 * **SRAM macros** are identified by name. The SramCore marker (108/5) appears
   twice per GF180MCU macro, so counting marker shapes doubles the count.
 
