@@ -32,7 +32,9 @@ GRID_SIZE_UM = 1000.0  # 1mm = 1000um
 # Cell names to skip when enumerating design slots in a reticle
 SKIP_CELL_PREFIXES = ("RETICLE_FILL", "TEXT")
 
-DEFAULT_STDCELL_PREFIXES = ("gf180mcu_fd_sc_", "gf180mcu_as_sc_", "gf180mcu_as_ex_")
+# Open standard cell libraries: the foundry libraries (fd_sc), Avalon
+# Semiconductors' (as_sc, as_ex) and Oklahoma State University's (osu_sc).
+DEFAULT_STDCELL_PREFIXES = ("gf180mcu_fd_sc_", "gf180mcu_as_sc_", "gf180mcu_as_ex_", "gf180mcu_osu_sc_")
 
 # Standard cell name suffixes (after '__') that are physical infrastructure,
 # not logic. These are inserted by automated tools for manufacturing rules.
@@ -118,7 +120,20 @@ def count_rsi(layout, cell, layer_idx, clip_box=None):
     return count
 
 
-def classify_stdcell(name, prefixes):
+def library_name(prefix, lib, qualified=True):
+    """The library column of the outputs: 'mcu7t5v0' for the foundry libraries,
+    'as_sc_mcu7t3v3', 'as_ex_mcu7t5v0', 'osu_sc_gp9t3v3' for the others.
+
+    With ``qualified=False`` every library is named by its last part only, as
+    the March 2026 analysis did, which merges e.g. fd_sc and as_ex 'mcu7t5v0'.
+    """
+    vendor = prefix[len("gf180mcu_"):].rstrip("_")
+    if not qualified or vendor == "fd_sc":
+        return lib
+    return f"{vendor}_{lib}"
+
+
+def classify_stdcell(name, prefixes, qualified=True):
     """Classify a standard cell by library, type, and fill status.
 
     The prefix may appear anywhere in the name, which handles Tiny Tapeout's
@@ -126,7 +141,7 @@ def classify_stdcell(name, prefixes):
     (e.g. ``OH_gf180mcu_fd_sc_...``).
 
     Returns (library, cell_type, is_fill) or None if not a stdcell.
-    Library examples: 'mcu7t5v0', 'mcu9t5v0', 'mcu7t3v3'.
+    Library examples: 'mcu7t5v0', 'mcu9t5v0', 'as_sc_mcu7t3v3' (see :func:`library_name`).
     Cell type examples: 'inv_1', 'dffq_2', 'fill_4'.
     """
     for prefix in prefixes:
@@ -139,7 +154,7 @@ def classify_stdcell(name, prefixes):
         lib, cell_type = rest.split("__", 1)
         cell_type = cell_type.split("$")[0]
         is_fill = any(cell_type.startswith(fp) for fp in FILL_CELL_PREFIXES)
-        return lib, cell_type, is_fill
+        return library_name(prefix, lib, qualified), cell_type, is_fill
     return None
 
 
@@ -175,14 +190,14 @@ def create_stdcell_marker_layer(layout, prefixes):
     return marker_layer
 
 
-def classify_all_stdcells(layout, prefixes):
+def classify_all_stdcells(layout, prefixes, qualified=True):
     """Map cell_index -> (library, cell_type, is_fill) for every stdcell definition."""
     cell_info = {}
     for cell_idx in range(layout.cells()):
         cell = layout.cell(cell_idx)
         if cell is None or not is_stdcell(cell.name, prefixes):
             continue
-        info = classify_stdcell(cell.name, prefixes)
+        info = classify_stdcell(cell.name, prefixes, qualified)
         if info is not None:
             cell_info[cell_idx] = info
     return cell_info
@@ -444,7 +459,8 @@ def output_paths(output_path):
     }
 
 
-def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, jobs=None):
+def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, jobs=None,
+            qualified_libraries=True):
     """Analyze a layout and write the summary, grid, cell usage, library and macro CSVs."""
     layout = kdb.Layout()
     print(f"Loading {input_path}...")
@@ -471,7 +487,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     }
 
     print("Classifying standard cells...")
-    cell_info = classify_all_stdcells(layout, stdcell_prefixes)
+    cell_info = classify_all_stdcells(layout, stdcell_prefixes, qualified_libraries)
     print(f"  Libraries found: {', '.join(sorted({lib for lib, _, _ in cell_info.values()}))}")
 
     print("Measuring standard cell library and SRAM macros...")

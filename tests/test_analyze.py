@@ -125,5 +125,8 @@ def test_classify_stdcell():
     prefixes = analyze.DEFAULT_STDCELL_PREFIXES
     assert analyze.classify_stdcell("gf180mcu_fd_sc_mcu7t5v0__dffq_1", prefixes) == ("mcu7t5v0", "dffq_1", False)
     assert analyze.classify_stdcell("OH_gf180mcu_fd_sc_mcu9t5v0__filltie$3", prefixes) == ("mcu9t5v0", "filltie", True)
-    assert analyze.classify_stdcell("gf180mcu_as_sc_mcu7t3v3__tieh_4", prefixes) == ("mcu7t3v3", "tieh_4", True)
+    assert analyze.classify_stdcell("gf180mcu_as_sc_mcu7t3v3__tieh_4", prefixes) == ("as_sc_mcu7t3v3", "tieh_4", True)
+    assert analyze.classify_stdcell("gf180mcu_as_ex_mcu7t5v0__dfxtp_2", prefixes) == ("as_ex_mcu7t5v0", "dfxtp_2", False)
+    assert analyze.classify_stdcell("6079_gf180mcu_osu_sc_gp9t3v3__inv_1", prefixes) == ("osu_sc_gp9t3v3", "inv_1", False)
+    assert analyze.classify_stdcell("gf180mcu_as_sc_mcu7t3v3__inv_1", prefixes, qualified=False) == ("mcu7t3v3", "inv_1", False)
     assert analyze.classify_stdcell("gf180mcu_fd_io__bi_t", prefixes) is None

@@ -48,6 +48,8 @@ class Run:
     manifest: dict
     images: dict = field(default_factory=dict)
     site: dict = field(default_factory=dict)
+    # How the layout is measured: library naming, excluded cells (see analyze.py).
+    measure: dict = field(default_factory=dict)
     # Project code -> category, for projects the keyword rules in classify.py get wrong.
     categories: dict = field(default_factory=dict)
 

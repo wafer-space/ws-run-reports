@@ -63,22 +63,32 @@ FLIP_FLOP_RE = re.compile(r"^s?d(ff|f[a-z]*t)")
 SRAM_SIZE_RE = re.compile(r"sram(\d+)x(\d+)")
 
 
+# Library name prefixes (see analyze.library_name) and how they are labelled.
+LIBRARY_VENDORS = {"": "", "as_sc_": "AS ", "as_ex_": "AS extra ", "osu_sc_": "OSU "}
+LIBRARY_RE = re.compile(r"(?P<vendor>(?:as_sc_|as_ex_|osu_sc_)?)(?:mcu|gp|hd)?(?P<tracks>\d+)t(?P<volts>\d)v(?P<tenths>\d)")
+
+
+def library_voltage(library: str) -> float:
+    """Supply voltage a library is characterised for: 'mcu7t5v0' -> 5.0, 'osu_sc_gp9t3v3' -> 3.3."""
+    m = LIBRARY_RE.fullmatch(library)
+    return int(m["volts"]) + int(m["tenths"]) / 10 if m else 0.0
+
+
 def library_label(library: str) -> str:
-    """'mcu7t5v0' -> '7t-5V', 'mcu7t3v3' -> '7t-3.3V'."""
-    m = re.fullmatch(r"mcu(\d+)t(\d)v(\d)", library)
+    """'mcu7t5v0' -> '7t-5V', 'as_sc_mcu7t3v3' -> 'AS 7t-3.3V', 'osu_sc_gp9t3v3' -> 'OSU 9t-3.3V'."""
+    m = LIBRARY_RE.fullmatch(library)
     if not m:
         return library
-    tracks, volts, tenths = m.groups()
-    return f"{tracks}t-{volts}V" if tenths == "0" else f"{tracks}t-{volts}.{tenths}V"
+    volts = m["volts"] if m["tenths"] == "0" else f"{m['volts']}.{m['tenths']}"
+    return f"{LIBRARY_VENDORS[m['vendor']]}{m['tracks']}t-{volts}V"
 
 
 def library_long_label(library: str) -> str:
-    m = re.fullmatch(r"mcu(\d+)t(\d)v(\d)", library)
+    m = LIBRARY_RE.fullmatch(library)
     if not m:
         return library
-    tracks, volts, tenths = m.groups()
-    voltage = f"{volts}V" if tenths == "0" else f"{volts}.{tenths}V"
-    return f"{library} ({tracks}-track, {voltage})"
+    volts = m["volts"] if m["tenths"] == "0" else f"{m['volts']}.{m['tenths']}"
+    return f"{library} ({LIBRARY_VENDORS[m['vendor']]}{m['tracks']}-track, {volts}V)"
 
 
 def describe_cell(cell_type: str) -> str:

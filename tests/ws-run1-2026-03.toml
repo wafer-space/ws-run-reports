@@ -22,3 +22,7 @@ readme = "README.md"
 
 [images]
 reticle = ["images/reticle_white.png", "images/reticle.svg"]
+
+[measure]
+# The March 2026 analysis named every library by its last part only.
+library_names = "short"

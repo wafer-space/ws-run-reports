@@ -19,7 +19,8 @@ def cmd_assemble(args, run):
 def cmd_analyze(args, run):
     from . import analyze
     layout = run.assemble_layout()
-    analyze.analyze(layout, out_dir(args, run) / f"{OUTPUT_STEM}.csv", jobs=args.jobs)
+    analyze.analyze(layout, out_dir(args, run) / f"{OUTPUT_STEM}.csv", jobs=args.jobs,
+                    qualified_libraries=run.measure.get("library_names", "qualified") != "short")
 
 
 def cmd_report(args, run):
