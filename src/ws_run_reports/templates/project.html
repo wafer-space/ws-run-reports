@@ -4,8 +4,9 @@
 {% set photo = photos[design.code] if design.code in photos else none %}
 {% set cob_url = cob[design.code] if design.code in cob else none %}
 {% set map = heatmap(design) %}
+{% set info = details[design.code] if design.code in details else none %}
 {% block title %}{{ design.code }} {{ design.name }} — {{ short_title }}{% endblock %}
-{% block description %}{{ design.project.details or design.name }}{% endblock %}
+{% block description %}{{ (info.description if info and info.description else design.project.details) or design.name }}{% endblock %}
 
 {% block content %}
 <div class="wrapper image-wrapper bg-image page-title-wrapper inverse-text"
@@ -45,7 +46,9 @@
       </div>
 
       <div class="col-lg-5">
-        {% if design.project.details %}<p class="lead">{{ design.project.details }}</p>{% endif %}
+        {% if info and info.description %}
+        <div class="run-description">{% for para in info.description.split('\n') if para.strip() %}<p{% if loop.first %} class="lead"{% endif %}>{{ para }}</p>{% endfor %}</div>
+        {% elif design.project.details %}<p class="lead">{{ design.project.details }}</p>{% endif %}
         <p>
           {% if design.project.repository %}
           <a class="btn btn-default btn-sm mb-10" href="{{ design.project.repository }}">Source repository</a>
@@ -73,6 +76,51 @@
               {{ '{:,}'.format(design.sram_bits) }} bits{% endif %}</td></tr>
           </tbody>
         </table>
+
+        {% if info %}
+        <h4 class="mb-10">Submission</h4>
+        <table class="table table-sm run-table">
+          <tbody>
+            {% set lic = info.licence %}
+            <tr><th>Licence</th><td>{{ lic.declared or "not declared" }} <span class="text-muted">declared</span>
+              {% if lic.status == "match" %}<br><span class="text-muted">Repository: {{ (lic.repo_files or lic.repo_headers) | join(", ") }}
+                {% if not lic.repo_files %}(in source file headers){% endif %} — agrees</span>
+              {% elif lic.status == "mismatch" %}<br><span class="run-warn">Repository: {{ (lic.repo_files or lic.repo_headers) | join(", ") }} — differs from the declared licence</span>
+              {% elif lic.status == "no licence file" %}<br><span class="run-warn">The repository has no licence file</span>
+              {% elif lic.status == "no repository" %}<br><span class="text-muted">No public repository</span>{% endif %}
+              {% if lic.repo_commit %}<br><span class="small text-muted">Repository checked at <span class="run-mono">{{ lic.repo_commit[:12] }}</span></span>{% endif %}</td></tr>
+            <tr><th>Chip-on-board</th><td>{{ "Selected at submission" if info.chip_on_board else "Not selected" }}
+              {% if cob_url %}· <a href="#bonding">bonding results</a>{% endif %}</td></tr>
+            {% if info.precheck %}
+            <tr><th>Precheck</th><td>{{ "Passed" if info.precheck.is_manufacturable else "Did not pass" }}
+              <span class="text-muted">on {{ info.precheck.created_at[:10] }}{% if info.precheck.precheck_version %},
+                gf180mcu-precheck {{ info.precheck.precheck_version }}{% endif %}</span>
+              {% if precheck_steps and design.code in precheck_steps %}<br><a href="#precheck">step results</a>{% endif %}</td></tr>
+            {% else %}
+            <tr><th>Precheck</th><td class="text-muted">No finished precheck recorded</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+        {% endif %}
+
+        {% if design.features or design.voltages %}
+        <h4 class="mb-10">Process features</h4>
+        <table class="table table-sm run-table">
+          <tbody>
+            {% for volts, sources in design.voltages.items() %}
+            <tr><th>{{ volts }}</th><td>{{ sources | join(", ") }}</td></tr>
+            {% endfor %}
+            {% for key in design.device_features %}
+            <tr><th>{{ feature_labels[key] }}</th><td>{{ '{:,}'.format(design.features[key][0]) }}
+              <span class="text-muted">({{ '{:,.0f}'.format(design.features[key][1]) }} µm²{% if key == "mim" and design.mim_levels %}, on {{ design.mim_levels | join(", ") }}{% endif %})</span></td></tr>
+            {% endfor %}
+            {% if design.io_libraries %}
+            <tr><th>I/O library</th><td>{% for lib, n in design.io_libraries.items() %}<span class="run-mono">{{ lib }}</span> <span class="text-muted">({{ n }} cells)</span>{{ ", " if not loop.last }}{% endfor %}</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+        <p class="small text-muted">Devices the designer drew, outside standard cells, SRAM macros and pads.</p>
+        {% endif %}
 
         {% if design.logic_cells %}
         <h4 class="mb-10">Logic density</h4>

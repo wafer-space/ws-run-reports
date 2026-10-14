@@ -130,3 +130,6 @@
 @media (prefers-reduced-motion: reduce) {
   .run-card, .run-photo img, .run-reticle-slot span { transition: none; }
 }
+.run-warn { color: #c0392b; }
+[data-theme="dark"] .run-warn { color: #ff8a80; }
+.run-description p { margin-bottom: 0.6rem; }

@@ -16,11 +16,12 @@ from pathlib import Path
 from jinja2 import Environment, PackageLoader, select_autoescape
 from markupsafe import Markup
 
-from . import external, report
+from . import external, projects, report
 from . import stats as stats_module
 from .analyze import GRID_SIZE_UM
 from .classify import CATEGORY_ORDER
 from .config import SLOT_FRACTIONS
+from .features import FEATURE_LABELS
 from .stats import REFERENCE_CELLS, describe_cell, library_label
 
 WEBSITE = "https://wafer.space"
@@ -137,6 +138,7 @@ def build_context(run, out_dir: Path) -> dict:
     timeline = external.timeline(run)
     cob = external.cob_pages(run)
     photos = external.die_photos(run, site_dir)
+    details = projects.load(out_dir)
 
     today = date.today().isoformat()
     for item in timeline:
@@ -206,6 +208,8 @@ def build_context(run, out_dir: Path) -> dict:
         "open_source": sum(1 for d in stats.designs if d.project.repository),
         "pads": sum(d.pads for d in stats.designs),
         "design_by_code": {d.code: d for d in stats.designs},
+        "details": details,
+        "feature_labels": FEATURE_LABELS,
         "windowed": report.windowed(stats),
         "core_area_text": (f"Core area is the area of each die's {stats.meta['core_cell']} cell."
                            if stats.meta.get("core_cell") else
