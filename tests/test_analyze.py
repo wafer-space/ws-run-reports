@@ -322,3 +322,26 @@ def test_features_in_stats_and_report(analog, tmp_path):
     text = report.build_report(run_stats)
     assert "## Process Features and Voltages" in text
     assert "| MIM capacitors | 1 of 1 | `ANLG` |" in text
+
+
+def test_missing_boundaries_come_from_the_reference(tmp_path):
+    """Layouts whose placement boundaries were stripped still get the real cell sizes."""
+    layout = kdb.Layout()
+    layout.dbu = DBU
+    inv = layout.create_cell("6079_gf180mcu_fd_sc_mcu7t5v0__inv_1")
+    inv.shapes(layout.layer(21, 0)).insert(kdb.Box(um(-0.43), um(1.76), um(2.24 + 0.43), um(4.35)))
+    odd = layout.create_cell("gf180mcu_fd_sc_mcu7t5v0__notarealcell_1")
+    odd.shapes(layout.layer(22, 0)).insert(kdb.Box(0, 0, um(5), um(4)))
+    design = layout.create_cell("6079_caravel_0_0")
+    design.insert(kdb.CellInstArray(inv.cell_index(), kdb.Trans()))
+    design.insert(kdb.CellInstArray(odd.cell_index(), kdb.Trans(um(100), 0)))
+    top = layout.create_cell("GFMPW0")
+    top.insert(kdb.CellInstArray(design.cell_index(), kdb.Trans()))
+    path = tmp_path / "stripped.oas"
+    layout.write(str(path))
+
+    paths = analyze.analyze(path, tmp_path / "out" / "reticle_analysis.csv", jobs=1)
+    library = {r["cell_type"]: r for r in read(paths["library"])}
+    assert (library["inv_1"]["width_um"], library["inv_1"]["height_um"], library["inv_1"]["boundary_source"]) == \
+        ("2.240", "3.920", "reference")
+    assert (library["notarealcell_1"]["width_um"], library["notarealcell_1"]["boundary_source"]) == ("5.000", "bbox")

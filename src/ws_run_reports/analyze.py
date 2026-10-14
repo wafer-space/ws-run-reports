@@ -64,10 +64,23 @@ GRID_FIELDS = [
     "x_mm", "y_mm", "transistor_count", "stdcell_count",
 ]
 CELLS_FIELDS = ["slot_id", "cell_name", "library", "cell_type", "is_fill", "instance_count"]
+# boundary_source: 'layout' (the cell's own 0/0 shape), 'reference' (a layout
+# without placement boundaries; see REFERENCE_BOUNDARIES) or 'bbox' (neither).
 LIBRARY_FIELDS = [
     "library", "cell_type", "is_fill", "width_um", "height_um",
-    "bbox_width_um", "bbox_height_um", "transistor_count", "definitions",
+    "bbox_width_um", "bbox_height_um", "transistor_count", "definitions", "boundary_source",
 ]
+
+# Placement boundaries of the open standard cells, measured from the wafer.space
+# run 1 and run 2 layouts. Used for layouts whose boundaries were stripped
+# before tapeout, as on Efabless' GFMPW shuttles.
+REFERENCE_BOUNDARIES = Path(__file__).parent / "data" / "stdcell_boundaries.csv"
+
+
+def reference_boundaries():
+    """(library, cell_type) -> (width_um, height_um)."""
+    with open(REFERENCE_BOUNDARIES, newline="") as f:
+        return {(r["library"], r["cell_type"]): (float(r["width_um"]), float(r["height_um"])) for r in csv.DictReader(f)}
 MACRO_FIELDS = ["macro", "width_um", "height_um", "transistor_count", "instances"]
 SLOT_MACRO_FIELDS = ["slot_id", "cell_name", "macro", "instances"]
 # core_area_mm2 is empty unless the run names a core cell (see exclude.py).
@@ -366,6 +379,7 @@ def measure_library(layout, prefixes, cell_info, layers):
     """
     dbu = layout.dbu
     rows = {}
+    reference = reference_boundaries()
     for cell_idx, (lib, cell_type, is_fill) in cell_info.items():
         cell = layout.cell(cell_idx)
         key = (lib, cell_type)
@@ -374,18 +388,23 @@ def measure_library(layout, prefixes, cell_info, layers):
             continue
         bbox = cell.bbox()
         boundary = layer_bbox(cell, layers["boundary"]) if layers["boundary"] is not None else kdb.Box()
-        if boundary.empty():
-            boundary = bbox
+        if not boundary.empty():
+            size, source = (boundary.width() * dbu, boundary.height() * dbu), "layout"
+        elif key in reference:
+            size, source = reference[key], "reference"
+        else:
+            size, source = (bbox.width() * dbu, bbox.height() * dbu), "bbox"
         rows[key] = {
             "library": lib,
             "cell_type": cell_type,
             "is_fill": is_fill,
-            "width_um": f"{boundary.width() * dbu:.3f}",
-            "height_um": f"{boundary.height() * dbu:.3f}",
+            "width_um": f"{size[0]:.3f}",
+            "height_um": f"{size[1]:.3f}",
             "bbox_width_um": f"{bbox.width() * dbu:.3f}",
             "bbox_height_um": f"{bbox.height() * dbu:.3f}",
             "transistor_count": count_transistors(layout, cell, layers["comp"], layers["poly2"]),
             "definitions": 1,
+            "boundary_source": source,
         }
     return [rows[key] for key in sorted(rows)]
 

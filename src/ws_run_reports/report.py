@@ -364,6 +364,7 @@ def build_report(stats) -> str:
         "- **Cell dimensions** are the width and height of each standard cell's placement boundary (GDS 0/0), "
         "measured from the cells present in this layout.\n"
         "- **Theoretical maximum** = (1000um / cell width) x (1000um / row height).\n"
+        + boundary_note(stats) +
         + ("- **Peak figures** are the densest 1mm x 1mm square anywhere inside each die, found by sliding the "
            "square in 100um steps over the die and skipping positions that touch an SRAM macro. Logic cells are "
            "placed by their origin and transistors by the centre of their gate.\n"
@@ -424,6 +425,21 @@ def features_section(stats) -> str:
                "(110/5), high resistance under the Resistor layer (62/0) and otherwise unsalicided under SAB "
                "(49/0) or salicided. Other devices are found by their marker layers.\n")
     return "\n".join(out)
+
+
+def boundary_note(stats) -> str:
+    """Say where cell sizes came from when the layout lacks placement boundaries."""
+    reference, bbox = stats.boundary_sources.get("reference", 0), stats.boundary_sources.get("bbox", 0)
+    if not reference and not bbox:
+        return ""
+    text = (f"- **Missing placement boundaries:** {reference + bbox} standard cells in this layout have no "
+            "placement boundary (GDS 0/0).")
+    if reference:
+        text += (f" For {reference} of them the boundary measured from the wafer.space Run 1 and Run 2 layouts "
+                 "of the same cell is used.")
+    if bbox:
+        text += f" For {bbox} no reference exists and the cell's bounding box is used, which overstates its size."
+    return text + "\n"
 
 
 def windowed(stats) -> bool:

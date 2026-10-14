@@ -349,6 +349,7 @@ class RunStats:
     macros: dict         # name -> Macro
     placements: int
     meta: dict = field(default_factory=dict)   # reticle_analysis_meta.json: what was measured and excluded
+    boundary_sources: Counter = field(default_factory=Counter)  # where cell sizes came from: layout, reference, bbox
 
     @property
     def exclusions(self) -> dict:
@@ -477,11 +478,12 @@ def load(run: Run, out_dir: Path) -> RunStats:
     if not summary:
         raise FileNotFoundError(f"{stem}.csv not found; run 'ws-run-reports analyze {run.name}' first")
 
+    library_rows = _read(Path(f"{stem}_library.csv"))
     library = {
         (r["library"], r["cell_type"]): LibCell(
             r["library"], r["cell_type"], r["is_fill"] == "True", float(r["width_um"]), float(r["height_um"]),
             float(r["bbox_width_um"]), float(r["bbox_height_um"]), int(r["transistor_count"]))
-        for r in _read(Path(f"{stem}_library.csv"))
+        for r in library_rows
     }
     macros = {
         r["macro"]: Macro(r["macro"], float(r["width_um"]), float(r["height_um"]),
@@ -585,7 +587,8 @@ def load(run: Run, out_dir: Path) -> RunStats:
     meta_path = Path(f"{stem}_meta.json")
     stats = RunStats(run=run, designs=sorted(designs.values(), key=lambda d: d.code),
                      library=library, macros=macros, placements=len(summary),
-                     meta=json.loads(meta_path.read_text()) if meta_path.exists() else {})
+                     meta=json.loads(meta_path.read_text()) if meta_path.exists() else {},
+                     boundary_sources=Counter(r.get("boundary_source") or "layout" for r in library_rows))
     for d in stats.designs:
         d.buffer_max_per_mm2 = stats.buffer_max(d.primary_library) if d.libraries else 0.0
         d.category = classify(d, run.categories)
