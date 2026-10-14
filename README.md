@@ -34,6 +34,15 @@ before any worker starts (`--jobs`, default 4). A 31 GB desktop ran out of
 memory with 3 workers; on a large machine with 20 workers each step took about
 10 minutes. `report` and `site` only read the CSV files and take seconds.
 
+On a shared machine, run the layout steps inside a memory-limited systemd scope
+with `scripts/kl-run`, so that a runaway job is killed instead of exhausting the
+machine:
+
+```bash
+scripts/kl-run uv run ws-run-reports analyze ws-run2 --jobs 20
+KL_MEM=96G scripts/kl-run uv run ws-run-reports render ws-run2 --jobs 20
+```
+
 ## Adding a run
 
 Everything that differs between runs is in `runs/<name>.toml`. For a new run,

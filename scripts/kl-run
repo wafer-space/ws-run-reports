@@ -1,0 +1,14 @@
+#!/bin/bash
+# Run a command inside a memory-limited systemd scope, so that a runaway
+# layout operation is killed instead of exhausting a shared machine.
+#
+#   scripts/kl-run uv run ws-run-reports analyze ws-run2 --jobs 20
+#   KL_MEM=96G scripts/kl-run uv run ws-run-reports render ws-run1 --jobs 20
+#
+# The scope is limited to $KL_MEM (default 64G, no swap) and lives in
+# ws-layout.slice, which is capped at $KL_TOTAL_MEM (default 128G) across all
+# layout jobs on the machine. A process over its limit is killed (exit 137).
+set -e
+systemctl --user set-property --runtime ws-layout.slice "MemoryMax=${KL_TOTAL_MEM:-128G}" MemorySwapMax=0
+exec systemd-run --user --scope --quiet --collect --slice=ws-layout.slice \
+    -p "MemoryMax=${KL_MEM:-64G}" -p MemorySwapMax=0 -- "$@"
