@@ -456,6 +456,13 @@ class RunStats:
         return statistics.median(values) if values else 0.0
 
 
+def data_files(out_dir: Path) -> list:
+    """The measurement files published with a run: the CSVs, what was measured, imported project details."""
+    from .projects import PROJECTS_NAME
+    files = sorted(out_dir.glob(f"{OUTPUT_STEM}*.csv")) + sorted(out_dir.glob(f"{OUTPUT_STEM}*.json"))
+    return files + [path for path in [out_dir / PROJECTS_NAME] if path.exists()]
+
+
 def _read(path: Path) -> list:
     if not path.exists():
         return []

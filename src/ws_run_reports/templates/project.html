@@ -93,7 +93,7 @@
               {% if cob_url %}· <a href="#bonding">bonding results</a>{% endif %}</td></tr>
             {% if info.precheck %}
             <tr><th>Precheck</th><td>{{ "Passed" if info.precheck.is_manufacturable else "Did not pass" }}
-              <span class="text-muted">on {{ info.precheck.created_at[:10] }}{% if info.precheck.precheck_version %},
+              <span class="text-muted">latest platform check, {{ info.precheck.created_at[:10] }}{% if info.precheck.precheck_version %},
                 gf180mcu-precheck {{ info.precheck.precheck_version }}{% endif %}</span>
               {% if precheck_steps and design.code in precheck_steps %}<br><a href="#precheck">step results</a>{% endif %}</td></tr>
             {% else %}

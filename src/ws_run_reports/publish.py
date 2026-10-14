@@ -86,7 +86,7 @@ def publish_density_report(run, out_dir: Path, clone: Path, url: str):
     else:
         git("checkout", "-q", "-b", branch, "origin/HEAD", cwd=clone)
 
-    files = sorted(out_dir.glob(f"{stats_module.OUTPUT_STEM}*.csv")) + [out_dir / report.REPORT_NAME]
+    files = stats_module.data_files(out_dir) + [out_dir / report.REPORT_NAME]
     for path in files:
         shutil.copy(path, clone / path.name)
     return branch, (

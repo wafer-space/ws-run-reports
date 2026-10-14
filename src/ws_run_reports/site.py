@@ -256,7 +256,7 @@ def build_site(run, out_dir: Path) -> Path:
     # The data behind the page, so every figure on it can be checked.
     data_dir = site_dir / "data"
     data_dir.mkdir(exist_ok=True)
-    for path in sorted(out_dir.glob(f"{stats_module.OUTPUT_STEM}*.csv")):
+    for path in stats_module.data_files(out_dir):
         shutil.copy(path, data_dir / path.name)
     report_path = out_dir / report.REPORT_NAME
     if report_path.exists():
