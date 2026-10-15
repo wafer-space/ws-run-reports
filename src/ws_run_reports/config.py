@@ -79,21 +79,23 @@ class Run:
         return f"https://wafer.space/{self.name}/"
 
     def assemble_layout(self) -> Path:
-        """Join the split layout parts and check the result against the configured md5."""
+        """Join the split layout parts and check the result against the configured md5.
+
+        An assembled file left over from an earlier layout is rebuilt from the
+        parts rather than trusted.
+        """
         target = self.layout_file
-        if not target.exists():
-            parts = sorted(self.repo_dir.glob(self.layout["parts"]))
-            if not parts:
-                raise FileNotFoundError(f"no layout parts match {self.layout['parts']} in {self.repo_dir}")
-            with open(target, "wb") as out:
-                for part in parts:
-                    out.write(part.read_bytes())
-        digest = hashlib.md5()
-        with open(target, "rb") as f:
-            for chunk in iter(lambda: f.read(1 << 24), b""):
-                digest.update(chunk)
-        if digest.hexdigest() != self.layout["md5"]:
-            raise ValueError(f"{target}: md5 {digest.hexdigest()} does not match expected {self.layout['md5']}")
+        if target.exists() and _md5(target) == self.layout["md5"]:
+            return target
+        parts = sorted(self.repo_dir.glob(self.layout["parts"]))
+        if not parts:
+            raise FileNotFoundError(f"no layout parts match {self.layout['parts']} in {self.repo_dir}")
+        with open(target, "wb") as out:
+            for part in parts:
+                out.write(part.read_bytes())
+        digest = _md5(target)
+        if digest != self.layout["md5"]:
+            raise ValueError(f"{target}: md5 {digest} of the joined parts does not match expected {self.layout['md5']}")
         return target
 
     def projects(self) -> dict[str, Project]:
@@ -123,6 +125,14 @@ def load_run(name: str, repo_dir: Path | None = None) -> Run:
     if repo_dir is None:
         repo_dir = RUNS_DIR.parent.parent / data["name"]
     return Run(repo_dir=Path(repo_dir).resolve(), **data)
+
+
+def _md5(path: Path) -> str:
+    digest = hashlib.md5()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 24), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def available_runs() -> list[str]:

@@ -69,3 +69,18 @@ def test_every_run_config_loads():
     for name in config.available_runs():
         run = config.load_run(name)
         assert run.name == name
+
+
+def test_stale_assembled_layout_is_rebuilt(tmp_path):
+    import hashlib
+
+    from ws_run_reports import config
+
+    (tmp_path / "layout").mkdir()
+    (tmp_path / "layout" / "EX01-part-aa").write_bytes(b"new ")
+    (tmp_path / "layout" / "EX01-part-ab").write_bytes(b"layout")
+    (tmp_path / "layout" / "EX01.oas").write_bytes(b"old layout")
+    path = tmp_path / "ex.toml"
+    path.write_text(f'title = "Ex"\nshuttle = "EX01"\nslots = 1\n[layout]\nmd5 = "{hashlib.md5(b"new layout").hexdigest()}"\n')
+    run = config.load_run(str(path), repo_dir=tmp_path)
+    assert run.assemble_layout().read_bytes() == b"new layout"
