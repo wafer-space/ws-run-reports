@@ -55,6 +55,7 @@ copy `runs/ws-run2.toml` and change:
 | `[manifest] csv` | The project list (`data/manifest.csv`) |
 | `[site] heading` | Optional lines of the page title, the first at full size and the rest smaller; otherwise the title without "wafer.space" |
 | `[site] runs_yml_key` | The run's key in the website's `_data/runs.yml`, for the shuttle timeline |
+| `[site] runs_yml_path`, `timeline_source`, `timeline_source_url` | For shuttles not on the wafer.space schedule: a file in the same format in the run repository, and the source the page credits for it |
 | `[site] cob_repo`, `cob_url` | Chip-on-board bonding results, once they exist |
 | `[site] photos_url`, `photos_prefix` | Die photographs, once they exist |
 | `[site] photos_credit`, `photos_credit_url`, `photos_year`, `photos_licence`, `photos_licence_url` | Copyright line shown wherever a photograph appears: "© 2026 Name, Licence", with links |

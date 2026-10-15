@@ -32,14 +32,22 @@ def _try(label, function, default):
 
 
 def timeline(run) -> list:
-    """Milestones for this run from the wafer.space website's ``_data/runs.yml``."""
+    """Milestones for this run from the wafer.space website's ``_data/runs.yml``.
+
+    ``runs_yml_path`` reads a file in the same format from the run repository
+    instead, for shuttles that are not on the wafer.space schedule.
+    """
     key = run.site.get("runs_yml_key")
     if not key:
         return []
 
     def load():
         import yaml
-        data = yaml.safe_load(fetch(run.site.get("runs_yml_url", RUNS_YML_URL)))
+        if run.site.get("runs_yml_path"):
+            text = (run.repo_dir / run.site["runs_yml_path"]).read_bytes()
+        else:
+            text = fetch(run.site.get("runs_yml_url", RUNS_YML_URL))
+        data = yaml.safe_load(text)
         entry = data["runs"][key]
         return [
             {"title": item["title"], "date": str(item["date"]), "display_date": item.get("display_date", ""),

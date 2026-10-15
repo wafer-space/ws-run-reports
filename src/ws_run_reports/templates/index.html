@@ -106,7 +106,11 @@
           </li>
           {% endfor %}
         </ul>
+        {% if run.site.timeline_source %}
+        <p class="small text-muted mb-0">From {% if run.site.timeline_source_url %}<a href="{{ run.site.timeline_source_url }}">{{ run.site.timeline_source }}</a>{% else %}{{ run.site.timeline_source }}{% endif %}.</p>
+        {% else %}
         <p class="small text-muted mb-0">From the <a href="{{ website }}/">wafer.space</a> run schedule.</p>
+        {% endif %}
         {% else %}
         <p class="text-muted">No schedule is published for this run.</p>
         {% endif %}

@@ -25,6 +25,11 @@ reticle = ["images/gfmpw-0.png", "images/GFMPW0.svg"]
 [site]
 # Lines of the page title; the first at full size, the rest smaller.
 heading = ["GFMPW-0", "Google & Efabless", "GF180MCU Open MPW Shuttle"]
+# Shuttle timeline from the run repository, in the format of the website's _data/runs.yml.
+runs_yml_key = "gfmpw_0"
+runs_yml_path = "data/schedule.yml"
+timeline_source = "the Efabless GFMPW-0 shuttle page (archived) and the shuttle repositories"
+timeline_source_url = "https://web.archive.org/web/20241213090115/https://platform.efabless.com/shuttles/GFMPW-0"
 
 [measure]
 # Caravel: count only the user's design, not the padframe or the management SoC/harness.
