@@ -7,12 +7,12 @@ sit directly in ``caravel_core``, next to the user's ``user_project_wrapper``,
 so the run excludes ``caravel_core`` and keeps ``user_project_wrapper``::
 
     [measure]
-    exclude = ["pad_ring", "harness"]
+    exclude = ["pad_ring", "caravel_harness"]
     keep = ["user_project_wrapper"]
     core_cell = "user_project_wrapper"
 
-    [measure.groups]
-    harness = ["caravel_core", "caravel_power_routing", "chip_io"]
+``caravel_harness`` is built in; a run can define its own groups under
+``[measure.groups]``.
 
 Patterns are shell globs on the cell name without KLayout's ``$<n>`` suffix.
 They are also tried with a leading ``<CODE>_`` removed, so that the same
@@ -29,6 +29,9 @@ import klayout.db as kdb
 BUILTIN_GROUPS = {
     "pad_ring": ["gf180mcu_*_io__*"],
     "wafer_space_artwork": ["gf180mcu_ws_ip__*"],
+    # Everything on an Efabless Caravel die except the user's user_project_wrapper (keep that).
+    "caravel_harness": ["caravel_core", "caravel_power_routing", "chip_io", "caravel_logo", "caravel_motto",
+                        "copyright_block", "open_source", "user_id_textblock"],
 }
 
 CODE_PREFIX_RE = re.compile(r"^[A-Za-z0-9]{4}_")
