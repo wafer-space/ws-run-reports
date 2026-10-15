@@ -74,12 +74,23 @@ def slot_grid(placements, reticle_width_mm, reticle_height_mm, origin="top-left"
 
     slots = [{"col": c, "row": r, "col_label": col_label(c), "row_label": row_label(r), "label": name(c, r)}
              for c, r in zip(cols, rows)]
-    columns = [{"label": col_label(c), "left": (x0 + c * pitch_x) / reticle_width_mm,
-                "width": min(pitch_x, reticle_width_mm - x0 - c * pitch_x) / reticle_width_mm}
-               for c in range(ncols)]
-    top_of_grid = y0 + nrows * pitch_y
-    rows_out = [{"label": row_label(r),
-                 "top": max(0.0, reticle_height_mm - top_of_grid + r * pitch_y) / reticle_height_mm,
-                 "height": pitch_y / reticle_height_mm}
-                for r in range(nrows)]
+    # Each label spans the dies in its column or row, which can be narrower
+    # than the pitch where a reticle edge holds only half slots.
+    def extent(index, starts, sizes, indices, pitch, origin_mm):
+        members = [(s, s + size) for s, size, i in zip(starts, sizes, indices) if i == index]
+        if members:
+            return min(lo for lo, _ in members), max(hi for _, hi in members)
+        return origin_mm + index * pitch, origin_mm + (index + 1) * pitch
+
+    xs, widths = [p["x_mm"] for p in placements], [p["width_mm"] for p in placements]
+    ys, heights = [p["y_mm"] for p in placements], [p["height_mm"] for p in placements]
+    columns = []
+    for c in range(ncols):
+        lo, hi = extent(c, xs, widths, cols, pitch_x, x0)
+        columns.append({"label": col_label(c), "left": lo / reticle_width_mm, "width": (hi - lo) / reticle_width_mm})
+    rows_out = []
+    for r in range(nrows):
+        lo, hi = extent(nrows - 1 - r, ys, heights, rows_from_bottom, pitch_y, y0)
+        rows_out.append({"label": row_label(r), "top": (reticle_height_mm - hi) / reticle_height_mm,
+                         "height": (hi - lo) / reticle_height_mm})
     return slots, columns, rows_out

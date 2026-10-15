@@ -57,3 +57,13 @@ def test_gfmpw0_labels_match_the_efabless_manifest():
     slots, _, _ = reticle.slot_grid(placements, 31.82, 25.80, origin="top-right", letters="rows")
     assert dict(zip(dies, (s["label"] for s in slots))) == {
         "6079": "A1", "5F3A": "A8", "0AFF": "E1", "8BB5": "E8", "56C6": "C2"}
+
+
+def test_labels_span_the_dies_in_their_row_and_column():
+    """Run 1's top row and right column hold only half slots, so their labels are half size."""
+    _, columns, rows = labels()
+    assert rows[0]["height"] == pytest.approx(2.53 / 25.95), "row 1 is the half-height top row"
+    assert rows[0]["top"] == pytest.approx((25.95 - 23.32) / 25.95)
+    assert rows[3]["height"] == pytest.approx(5.12 / 25.95), "row 4 holds full slots"
+    assert rows[1]["height"] == pytest.approx(5.18 / 25.95), "an empty row falls back to the pitch"
+    assert columns[7]["width"] == pytest.approx(1.94 / 31.92), "column H holds half-width slots"
