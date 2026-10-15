@@ -106,25 +106,19 @@
           it sits on the {{ '%.0f' | format(renders.reticle.width_mm) }} × {{ '%.1f' | format(renders.reticle.height_mm) }} mm
           reticle.{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}
           Select a die for its details.</p>
-        {% if slot_types %}
-        <table class="table table-sm run-table bg-white mt-20 mb-0">
-          <thead><tr><th>Slot type</th><th class="text-end">Dies on the reticle</th><th class="text-end">Public designs</th><th class="text-end">Full slots used</th></tr></thead>
-          <tbody>
-            {% for row in slot_types %}
-            <tr><td>{{ row.label }}</td><td class="text-end">{{ row.dies }}</td><td class="text-end">{{ row.designs }}</td>
-              <td class="text-end">{{ ('%g' | format(row.full_slots)) if row.full_slots is not none else '—' }}</td></tr>
-            {% endfor %}
-            <tr><th>Total</th><th class="text-end">{{ slot_types | sum(attribute='dies') }}</th><th class="text-end">{{ slot_types | sum(attribute='designs') }}</th>
-              <th class="text-end">{{ '%g' | format(slot_types | selectattr('full_slots') | sum(attribute='full_slots')) }}{% if run.slots %} <span class="text-muted">of {{ run.slots }}</span>{% endif %}</th></tr>
-          </tbody>
-        </table>
-        <p class="small text-muted mt-10 mb-0">Private designs are not in the public layout, so they are not counted here.</p>
-        {% endif %}
         {% else %}
         <p class="text-muted">Renders have not been generated for this run yet.</p>
         {% endif %}
       </div>
       <div class="col-lg-4">
+        {% if slot_types %}
+        <h2 class="section-title mb-20">Slots</h2>
+        <table class="table table-sm run-table bg-white mb-30">
+          <tbody>
+            {% for row in slot_types %}<tr><td>{{ row.label }}</td><td class="text-end">{{ row.dies }}</td></tr>{% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
         <h2 class="section-title mb-20">Shuttle status</h2>
         {% if timeline %}
         <ul class="run-timeline">
