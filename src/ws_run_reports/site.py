@@ -6,6 +6,7 @@ They load the main website's stylesheets from ``https://wafer.space/assets``
 so that they follow its theme without copying it.
 """
 
+import hashlib
 import json
 import shutil
 import statistics
@@ -251,6 +252,10 @@ def build_site(run, out_dir: Path) -> Path:
                       autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
     env.filters.update(k=report.k, pct=report.pct, count=report.count, library_label=library_label,
                        describe_cell=describe_cell)
+    # A content hash on the stylesheet and script links, so browsers fetch them again after a change.
+    static = Path(__file__).parent / "static"
+    digest = hashlib.sha256(b"".join(path.read_bytes() for path in sorted(static.iterdir())))
+    env.globals.update(static_version=digest.hexdigest()[:10])
     env.globals.update(area_bar=_area_bar, heatmap=_heatmap, photo_credit=lambda target=None: _photo_credit(run, target))
 
     # The data behind the page, so every figure on it can be checked.

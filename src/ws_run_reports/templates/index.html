@@ -48,7 +48,7 @@
      data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
   <div class="container inner text-center">
     <div class="space90"></div>
-    <h1 class="page-title">{{ run.heading[0] }}{% for line in run.heading[1:] %}<br><span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
+    <h1 class="page-title">{{ run.heading[0] }}{% for line in run.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
     <p class="lead">Shuttle {{ run.shuttle }} · {{ stats.designs | length }} public designs on one reticle</p>
   </div>
 </div>
