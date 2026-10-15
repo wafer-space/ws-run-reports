@@ -1,41 +1,21 @@
-# Google / Efabless GF180MCU Open MPW shuttle GFMPW-0 (Caravel dies on a synthetic reticle)
-name = "google-gf180mcu-mpw0"
+# Google / Efabless GF180MCU Open MPW shuttle GFMPW-0: Caravel dies on a synthetic reticle
 title = "Google / Efabless GF180MCU Open MPW shuttle GFMPW-0"
-number = 0
 shuttle = "GFMPW0"
-process = "GF180MCU"
-repo = "wafer-space/google-gf180mcu-mpw0"
 slots = 40
 
 [layout]
-# Paths are relative to a checkout of the run repository.
-parts = "layout/GFMPW0-part-*"
-file = "layout/GFMPW0.oas"
 md5 = "da0dca9af1a3e2a4eff536bdb9ff4409"
-layer_properties = "lyp/gf180mcu.lyp"
-
-[manifest]
-csv = "data/manifest.csv"
-
-[images]
-reticle = ["images/gfmpw-0.png", "images/GFMPW0.svg"]
-
-# No [site] runs_yml_key, campaign_url, CoB or photos: not a wafer.space shuttle.
 
 [site]
-# Lines of the page title; the first at full size, the rest smaller.
 heading = ["GFMPW-0", "Google & Efabless", "GF180MCU Open MPW Shuttle"]
-# Shuttle timeline from the run repository, in the format of the website's _data/runs.yml.
+# The shuttle timeline, in the format of the website's _data/runs.yml.
 runs_yml_key = "gfmpw_0"
 runs_yml_path = "data/schedule.yml"
 timeline_source = "the Efabless GFMPW-0 shuttle page (archived) and the shuttle repositories"
 timeline_source_url = "https://web.archive.org/web/20241213090115/https://platform.efabless.com/shuttles/GFMPW-0"
 
 [measure]
-# Caravel: count only the user's design, not the padframe or the management SoC/harness.
-exclude = ["pad_ring", "harness"]
+# Count only each user_project_wrapper, not the pad frame or the Caravel harness.
+exclude = ["pad_ring", "caravel_harness"]
 keep = ["user_project_wrapper"]
 core_cell = "user_project_wrapper"
-
-[measure.groups]
-harness = ["caravel_core", "caravel_power_routing", "chip_io", "caravel_logo", "caravel_motto", "copyright_block", "open_source", "user_id_textblock"]

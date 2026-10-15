@@ -1,33 +1,16 @@
-# Google / Efabless GF180MCU micro-shuttle MPW-18H1 (4 Caravel dies as a 2x2 synthetic reticle)
-name = "google-gf180mcu-mpw18h1"
+# Google / Efabless GF180MCU micro-shuttle MPW-18H1: Caravel dies on a synthetic reticle
 title = "Google / Efabless GF180MCU micro-shuttle MPW-18H1"
-number = 0
 shuttle = "GFMPW18H1"
-process = "GF180MCU"
-repo = "wafer-space/google-gf180mcu-mpw18h1"
 slots = 4
 
 [layout]
-parts = "layout/GFMPW18H1-part-*"
-file = "layout/GFMPW18H1.oas"
 md5 = "9656625041036d94d27bf52af8eb2a8d"
-layer_properties = "lyp/gf180mcu.lyp"
-
-[manifest]
-csv = "data/manifest.csv"
-
-[images]
-reticle = ["images/GFMPW18H1.svg"]
 
 [site]
-# Lines of the page title; the first at full size, the rest smaller.
 heading = ["MPW-18H1", "Google & Efabless", "GF180MCU Micro-Shuttle"]
 
 [measure]
-# Caravel: count only the user's design, not the padframe or the management SoC/harness.
-exclude = ["pad_ring", "harness"]
+# Count only each user_project_wrapper, not the pad frame or the Caravel harness.
+exclude = ["pad_ring", "caravel_harness"]
 keep = ["user_project_wrapper"]
 core_cell = "user_project_wrapper"
-
-[measure.groups]
-harness = ["caravel_core", "caravel_power_routing", "chip_io", "caravel_logo", "caravel_motto", "copyright_block", "open_source", "user_id_textblock"]

@@ -46,3 +46,26 @@ def test_missing_check_and_audit():
     built = projects.build([record("BBBB", check=None)], None, "ws-run1")
     assert built["BBBB"]["precheck"] is None
     assert "status" not in built["BBBB"]["licence"]
+
+
+def test_minimal_run_config(tmp_path):
+    """A run needs only a title, shuttle, slot count and layout checksum; the rest has defaults."""
+    from ws_run_reports import config
+
+    path = tmp_path / "example-run.toml"
+    path.write_text('title = "Example"\nshuttle = "EX01"\nslots = 4\n[layout]\nmd5 = "0" \n')
+    run = config.load_run(str(path), repo_dir=tmp_path)
+    assert run.name == "example-run"
+    assert run.repo == "wafer-space/example-run"
+    assert run.layout == {"md5": "0", "parts": "layout/EX01-part-*", "file": "layout/EX01.oas"}
+    assert run.manifest == {"csv": "data/manifest.csv"}
+    assert run.process == "GF180MCU"
+    assert run.heading == ["Example"] and run.short_title == "Example"
+
+
+def test_every_run_config_loads():
+    from ws_run_reports import config
+
+    for name in config.available_runs():
+        run = config.load_run(name)
+        assert run.name == name

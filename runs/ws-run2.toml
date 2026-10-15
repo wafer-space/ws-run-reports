@@ -1,28 +1,13 @@
 # wafer.space GF180MCU Run 2
-name = "ws-run2"
 title = "wafer.space GF180MCU Run 2"
-number = 2
 shuttle = "G802"
-process = "GF180MCU"
-repo = "wafer-space/ws-run2"
 slots = 54
 
 [layout]
-# Paths are relative to a checkout of the run repository.
-parts = "layout/G802-part-*"
-file = "layout/G802.oas"
 md5 = "57fa57f52eac82835a051f2a353e5a30"
-layer_properties = "lyp/gf180mcu.lyp"
-
-[manifest]
-csv = "data/manifest.csv"
-
-[images]
-reticle = ["images/G802.png", "images/G802.svg"]
 
 [site]
-# Key of this run in the website's _data/runs.yml, for the shuttle timeline.
+heading = ["GF180MCU Run 2"]
+# The shuttle timeline: this run's key in the wafer.space website's _data/runs.yml.
 runs_yml_key = "gf180mcu_run_2"
 campaign_url = "https://www.crowdsupply.com/wafer-space/gf180mcu-run-2"
-# Add cob_repo / cob_url and photos_url / photos_prefix / photos_credit here
-# once bonding results and die photographs exist for this run (see ws-run1.toml).

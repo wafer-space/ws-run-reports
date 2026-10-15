@@ -45,23 +45,37 @@ KL_MEM=96G scripts/kl-run uv run ws-run-reports render ws-run2 --jobs 20
 
 ## Adding a run
 
-Everything that differs between runs is in `runs/<name>.toml`. For a new run,
-copy `runs/ws-run2.toml` and change:
+Every run, wafer.space's or another shuttle's, goes through the same code.
+What differs lives in `runs/<name>.toml`, and only four keys are required:
 
-| Key | Meaning |
-|---|---|
-| `name`, `title`, `number`, `shuttle`, `repo`, `slots` | Identity of the run |
-| `[layout] parts`, `file`, `md5` | The split layout in the run repository, as in its `layout/create-reticle-oas.sh` |
-| `[manifest] csv` | The project list (`data/manifest.csv`) |
-| `[site] heading` | Optional lines of the page title, the first at full size and the rest smaller; otherwise the title without "wafer.space" |
-| `[site] runs_yml_key` | The run's key in the website's `_data/runs.yml`, for the shuttle timeline |
-| `[site] runs_yml_path`, `timeline_source`, `timeline_source_url` | For shuttles not on the wafer.space schedule: a file in the same format in the run repository, and the source the page credits for it |
-| `[site] cob_repo`, `cob_url` | Chip-on-board bonding results, once they exist |
-| `[site] photos_url`, `photos_prefix` | Die photographs, once they exist |
-| `[site] photos_credit`, `photos_credit_url`, `photos_year`, `photos_licence`, `photos_licence_url` | Copyright line shown wherever a photograph appears: "© 2026 Name, Licence", with links |
-| `[site] photos_viewer_url` | The photographer's zoomable viewer for one die, with `{code}`, `{CODE}` and `{setup}` filled in. Listed first on each project page |
-| `[categories]` | Optional `CODE = "Category"` overrides for the classifier |
-| `[measure] exclude`, `keep`, `core_cell`, `[measure.groups]` | Leave groups of cells out of the measurements; see below |
+```toml
+title = "wafer.space GF180MCU Run 3"
+shuttle = "G803"       # the layout is layout/G803.oas, split into layout/G803-part-*
+slots = 40             # slots on the shuttle, including private and empty ones
+
+[layout]
+md5 = "..."            # of the assembled layout, as in the run repository's create-reticle-oas.sh
+```
+
+Everything else is optional:
+
+| Key | Meaning | Default |
+|---|---|---|
+| `name`, `repo` | Run name and GitHub repository | The file name; `wafer-space/<name>` |
+| `process` | Process name used in the text | `GF180MCU` |
+| `[layout] parts`, `file` | The split layout in the run repository | `layout/<shuttle>-part-*`, `layout/<shuttle>.oas` |
+| `[manifest] csv` | The project list | `data/manifest.csv` |
+| `[site] heading` | Lines of the page title, the first at full size and the rest smaller | The title |
+| `[site] runs_yml_key` | The run's key in the website's `_data/runs.yml`, for the shuttle timeline | No timeline |
+| `[site] runs_yml_path`, `timeline_source`, `timeline_source_url` | A timeline file in the same format in the run repository, and the source the page credits for it | The website's file, credited to wafer.space |
+| `[site] campaign_url` | Crowd Supply or similar campaign page | None |
+| `[site] cob_repo`, `cob_url` | Chip-on-board bonding results | None |
+| `[site] photos_url`, `photos_prefix` | Die photographs | None |
+| `[site] photos_credit`, `photos_credit_url`, `photos_year`, `photos_licence`, `photos_licence_url` | Copyright line shown wherever a photograph appears: "© 2026 Name, Licence", with links | |
+| `[site] photos_viewer_url` | The photographer's zoomable viewer for one die, with `{code}`, `{CODE}` and `{setup}` filled in. Listed first on each project page | |
+| `[measure] exclude`, `keep`, `core_cell`, `[measure.groups]` | Leave groups of cells out of the measurements; see below | Measure whole dies |
+| `[report.notes]` | Extra Markdown sections for the density report, `"Heading" = """text"""` | None |
+| `[categories]` | `CODE = "Category"` overrides for the classifier | |
 
 `slots` is the number of slots on the shuttle, whatever their arrangement; dies
 may sit anywhere on the reticle and positions may be empty. Slot sizes are
@@ -72,20 +86,20 @@ written.
 
 To measure only part of each die, name groups of cells to exclude. Patterns
 are shell globs on cell names (also tried without a leading `<CODE>_`). The
-groups `pad_ring` (all `gf180mcu_*_io__*` cells) and `wafer_space_artwork` are
-built in. `keep` names cells below an excluded one that are still measured, and
+groups `pad_ring` (all `gf180mcu_*_io__*` cells), `caravel_harness` (an
+Efabless Caravel die apart from its `user_project_wrapper`) and
+`wafer_space_artwork` are built in. `keep` names cells below an excluded one that are still measured, and
 `core_cell` names the cell whose area the densities are taken over (otherwise
 the die minus a 350 µm pad ring). For a Caravel die:
 
 ```toml
 [measure]
-exclude = ["pad_ring", "harness"]
+exclude = ["pad_ring", "caravel_harness"]
 keep = ["user_project_wrapper"]
 core_cell = "user_project_wrapper"
-
-[measure.groups]
-harness = ["caravel_core", "caravel_power_routing", "chip_io"]
 ```
+
+A run can define its own groups as `[measure.groups] name = ["pattern", ...]`.
 
 Bond pads and die sizes are always measured on the whole die. The exclusions
 are recorded in `reticle_analysis_meta.json`, and the report and page say what

@@ -1,8 +1,10 @@
 """Run configuration and project manifests.
 
-A *run* is one wafer.space shuttle (ws-run1, ws-run2, ...). Everything that
-differs between runs lives in ``runs/<name>.toml``; everything that differs
-between projects comes from the run repository's own manifest.
+A *run* is one shuttle (ws-run1, ws-run2, google-gf180mcu-mpw0, ...). Every
+run goes through the same code; everything that differs between runs lives in
+``runs/<name>.toml`` and everything that differs between projects comes from
+the run repository's own manifest. Only ``title``, ``shuttle``, ``slots`` and
+``[layout] md5`` are required; see :func:`load_run` for the defaults.
 """
 
 import csv
@@ -38,16 +40,16 @@ class Project:
 class Run:
     name: str
     title: str
-    number: int
     shuttle: str
-    process: str
-    repo: str
     slots: int
     repo_dir: Path
     layout: dict
-    manifest: dict
-    images: dict = field(default_factory=dict)
+    repo: str = ""
+    process: str = "GF180MCU"
+    manifest: dict = field(default_factory=lambda: {"csv": "data/manifest.csv"})
     site: dict = field(default_factory=dict)
+    # Markdown sections appended to the density report, e.g. notes on earlier versions of it.
+    report: dict = field(default_factory=dict)
     # How the layout is measured: library naming, excluded cells (see analyze.py).
     measure: dict = field(default_factory=dict)
     # Project code -> category, for projects the keyword rules in classify.py get wrong.
@@ -63,8 +65,8 @@ class Run:
 
     @property
     def heading(self) -> list:
-        """Lines of the run page's title: ``[site] heading`` or the title without 'wafer.space '."""
-        return list(self.site.get("heading") or [self.title.replace("wafer.space ", "")])
+        """Lines of the run page's title: ``[site] heading``, or the title."""
+        return list(self.site.get("heading") or [self.title])
 
     @property
     def short_title(self) -> str:
@@ -104,10 +106,20 @@ class Run:
 
 
 def load_run(name: str, repo_dir: Path | None = None) -> Run:
-    """Load ``runs/<name>.toml``. ``repo_dir`` defaults to a sibling checkout of the run repository."""
+    """Load ``runs/<name>.toml``. ``repo_dir`` defaults to a sibling checkout of the run repository.
+
+    Defaults: ``name`` is the file name, ``repo`` is ``wafer-space/<name>``, the
+    layout is ``layout/<shuttle>.oas`` split into ``layout/<shuttle>-part-*``,
+    and the manifest is ``data/manifest.csv``.
+    """
     path = Path(name) if name.endswith(".toml") else RUNS_DIR / f"{name}.toml"
     with open(path, "rb") as f:
         data = tomllib.load(f)
+    data.setdefault("name", path.stem)
+    data.setdefault("repo", f"wafer-space/{data['name']}")
+    layout = data.setdefault("layout", {})
+    layout.setdefault("parts", f"layout/{data['shuttle']}-part-*")
+    layout.setdefault("file", f"layout/{data['shuttle']}.oas")
     if repo_dir is None:
         repo_dir = RUNS_DIR.parent.parent / data["name"]
     return Run(repo_dir=Path(repo_dir).resolve(), **data)

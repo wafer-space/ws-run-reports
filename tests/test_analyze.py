@@ -209,7 +209,7 @@ def test_report_says_what_was_excluded(caravel, tmp_path):
     (tmp_path / "manifest.csv").write_text(
         "CODE,PROJECT,SLOT_SIZE,TOP,SHA256,LAYOUT,VISIBILITY,PROJECT_DETAILS,REPOSITORY\n"
         "6079,Example,1x1,caravel,,,Public,An example,https://example.com/x\n")
-    run = config.Run(name="test", title="Test Shuttle", number=0, shuttle="T1", process="GF180MCU", repo="x/y",
+    run = config.Run(name="test", title="Test Shuttle", shuttle="T1", repo="x/y",
                      slots=2, repo_dir=tmp_path, layout={"file": "caravel.oas", "md5": ""},
                      manifest={"csv": "manifest.csv"}, measure=measure)
     run_stats = stats.load(run, out)
@@ -308,7 +308,7 @@ def test_features_in_stats_and_report(analog, tmp_path):
     (tmp_path / "manifest.csv").write_text(
         "CODE,PROJECT,SLOT_SIZE,TOP,SHA256,LAYOUT,VISIBILITY,PROJECT_DETAILS,REPOSITORY\n"
         "ANLG,Analog,1x1,chip_top,,,Public,Test devices,\n")
-    run = config.Run(name="test", title="Test Shuttle", number=0, shuttle="T1", process="GF180MCU", repo="x/y",
+    run = config.Run(name="test", title="Test Shuttle", shuttle="T1", repo="x/y",
                      slots=1, repo_dir=tmp_path, layout={"file": "analog.oas", "md5": ""},
                      manifest={"csv": "manifest.csv"})
     run_stats = stats.load(run, out)

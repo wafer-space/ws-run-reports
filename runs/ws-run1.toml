@@ -1,27 +1,14 @@
 # wafer.space GF180MCU Run 1
-name = "ws-run1"
 title = "wafer.space GF180MCU Run 1"
-number = 1
 shuttle = "G801"
-process = "GF180MCU"
-repo = "wafer-space/ws-run1"
 slots = 40
 
 [layout]
-# Paths are relative to a checkout of the run repository.
-parts = "layout/G801-part-*"
-file = "layout/G801.oas"
 md5 = "3ae7349e205f60d9f997cf7d3a688500"
-layer_properties = "lyp/gf180mcu.lyp"
-
-[manifest]
-csv = "data/manifest.csv"
-
-[images]
-reticle = ["images/G801.png", "images/G801.svg"]
 
 [site]
-# Key of this run in the website's _data/runs.yml, for the shuttle timeline.
+heading = ["GF180MCU Run 1"]
+# The shuttle timeline: this run's key in the wafer.space website's _data/runs.yml.
 runs_yml_key = "gf180mcu_run_1"
 campaign_url = "https://www.crowdsupply.com/wafer-space/gf180mcu-run-1"
 # Chip-on-board bonding results, one directory per project code.
@@ -39,3 +26,14 @@ photos_licence = "CC BY-SA 4.0"
 photos_licence_url = "https://creativecommons.org/licenses/by-sa/4.0/"
 # The photographer's zoomable viewer of one die; the first link on a project page.
 photos_viewer_url = "http://infosecdj.net/map/wafer-space/gf180mcu-ws1-{code}/infosecdj_{setup}/"
+
+[report.notes]
+"Difference from the March 2026 Run 1 report" = """
+The first version of the Run 1 report measured cell width and row height from each cell's overall
+bounding box. That box includes n-well and implant shapes which deliberately overhang the cell and
+overlap its neighbours, so it is larger than the area a placed cell occupies: 4.22 x 4.78um instead of
+3.36 x 3.92um for a 7-track buffer. Theoretical maximum densities in that version were therefore about
+35% too low, and every "% of max" figure correspondingly too high. This report uses the placement
+boundary. It also reported SRAM "blocks" by counting SramCore marker shapes, which gave twice the
+number of macros. Logic cell counts, transistor counts and achieved densities are unchanged.
+"""
