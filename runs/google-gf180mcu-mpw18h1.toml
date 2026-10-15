@@ -19,6 +19,10 @@ csv = "data/manifest.csv"
 [images]
 reticle = ["images/GFMPW18H1.svg"]
 
+[site]
+# Lines of the page title; the first at full size, the rest smaller.
+heading = ["MPW-18H1", "Google & Efabless", "GF180MCU Micro-Shuttle"]
+
 [measure]
 # Caravel: count only the user's design, not the padframe or the management SoC/harness.
 exclude = ["pad_ring", "harness"]

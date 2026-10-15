@@ -22,6 +22,10 @@ reticle = ["images/gfmpw-0.png", "images/GFMPW0.svg"]
 
 # No [site] runs_yml_key, campaign_url, CoB or photos: not a wafer.space shuttle.
 
+[site]
+# Lines of the page title; the first at full size, the rest smaller.
+heading = ["GFMPW-0", "Google & Efabless", "GF180MCU Open MPW Shuttle"]
+
 [measure]
 # Caravel: count only the user's design, not the padframe or the management SoC/harness.
 exclude = ["pad_ring", "harness"]

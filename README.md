@@ -53,6 +53,7 @@ copy `runs/ws-run2.toml` and change:
 | `name`, `title`, `number`, `shuttle`, `repo`, `slots` | Identity of the run |
 | `[layout] parts`, `file`, `md5` | The split layout in the run repository, as in its `layout/create-reticle-oas.sh` |
 | `[manifest] csv` | The project list (`data/manifest.csv`) |
+| `[site] heading` | Optional lines of the page title, the first at full size and the rest smaller; otherwise the title without "wafer.space" |
 | `[site] runs_yml_key` | The run's key in the website's `_data/runs.yml`, for the shuttle timeline |
 | `[site] cob_repo`, `cob_url` | Chip-on-board bonding results, once they exist |
 | `[site] photos_url`, `photos_prefix` | Die photographs, once they exist |

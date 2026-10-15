@@ -62,6 +62,17 @@ class Run:
         return f"https://github.com/{self.repo}"
 
     @property
+    def heading(self) -> list:
+        """Lines of the run page's title: ``[site] heading`` or the title without 'wafer.space '."""
+        return list(self.site.get("heading") or [self.title.replace("wafer.space ", "")])
+
+    @property
+    def short_title(self) -> str:
+        """The heading on one line, e.g. 'GFMPW-0 · Google & Efabless GF180MCU Open MPW Shuttle'."""
+        first, *rest = self.heading
+        return f"{first} · {' '.join(rest)}" if rest else first
+
+    @property
     def pages_url(self) -> str:
         return f"https://wafer.space/{self.name}/"
 

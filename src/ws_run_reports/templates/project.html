@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% set short_title = run.title | replace('wafer.space ', '') %}
+{% set short_title = run.short_title %}
 {% set render = renders.designs[design.code] if renders and design.code in renders.designs else none %}
 {% set photo = photos[design.code] if design.code in photos else none %}
 {% set cob_url = cob[design.code] if design.code in cob else none %}

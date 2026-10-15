@@ -64,7 +64,7 @@
       </div>
     </a>
     {% endfor %}
-    <div class="more"><a href="{{ run.pages_url }}" target="_top" style="color: inherit; text-decoration: none">All {{ stats.designs | length }} designs<br>on {{ run.title | replace('wafer.space ', '') }} →</a>
+    <div class="more"><a href="{{ run.pages_url }}" target="_top" style="color: inherit; text-decoration: none">All {{ stats.designs | length }} designs<br>on {{ run.short_title }} →</a>
       {% if photos %}<span class="credit">Die photographs {{ photo_credit("_top") }}</span>{% endif %}</div>
   </div>
 </body>
