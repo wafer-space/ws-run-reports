@@ -1,0 +1,32 @@
+# Google / Efabless GF180MCU Open MPW shuttle GFMPW-0 (Caravel dies on a synthetic reticle)
+name = "google-gf180mcu-mpw0"
+title = "Google / Efabless GF180MCU Open MPW shuttle GFMPW-0"
+number = 0
+shuttle = "GFMPW0"
+process = "GF180MCU"
+repo = "wafer-space/google-gf180mcu-mpw0"
+slots = 40
+
+[layout]
+# Paths are relative to a checkout of the run repository.
+parts = "layout/GFMPW0-part-*"
+file = "layout/GFMPW0.oas"
+md5 = "da0dca9af1a3e2a4eff536bdb9ff4409"
+layer_properties = "lyp/gf180mcu.lyp"
+
+[manifest]
+csv = "data/manifest.csv"
+
+[images]
+reticle = ["images/gfmpw-0.png", "images/GFMPW0.svg"]
+
+# No [site] runs_yml_key, campaign_url, CoB or photos: not a wafer.space shuttle.
+
+[measure]
+# Caravel: count only the user's design, not the padframe or the management SoC/harness.
+exclude = ["pad_ring", "harness"]
+keep = ["user_project_wrapper"]
+core_cell = "user_project_wrapper"
+
+[measure.groups]
+harness = ["caravel_core", "caravel_power_routing", "chip_io", "caravel_logo", "caravel_motto", "copyright_block", "open_source", "user_id_textblock"]
