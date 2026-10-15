@@ -8,6 +8,8 @@ md5 = "9656625041036d94d27bf52af8eb2a8d"
 
 [site]
 heading = ["MPW-18H1", "Google & Efabless", "GF180MCU Micro-Shuttle"]
+# The 2 x 2 arrangement is synthetic, so the slots get no row and column labels.
+slot_labels = false
 
 [measure]
 # Count only each user_project_wrapper, not the pad frame or the Caravel harness.

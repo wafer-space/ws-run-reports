@@ -8,6 +8,9 @@ md5 = "7525ae37d7dd64486a25baca24a9b771"
 
 [site]
 heading = ["GFMPW-0", "Google & Efabless", "GF180MCU Open MPW Shuttle"]
+# Slots as in Efabless's manifest: rows lettered from the top, columns numbered from the right.
+slot_origin = "top-right"
+slot_letters = "rows"
 # The shuttle timeline, in the format of the website's _data/runs.yml.
 runs_yml_key = "gfmpw_0"
 runs_yml_path = "data/schedule.yml"
