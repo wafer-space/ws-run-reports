@@ -66,6 +66,7 @@ Everything else is optional:
 | `[layout] parts`, `file` | The split layout in the run repository | `layout/<shuttle>-part-*`, `layout/<shuttle>.oas` |
 | `[manifest] csv` | The project list | `data/manifest.csv` |
 | `[site] heading` | Lines of the page title, the first at full size and the rest smaller | The title |
+| `[site] slot_origin`, `slot_letters`, `slot_labels` | Slot labels around the reticle: the corner of A1 (`top-left`, `top-right`, `bottom-left`, `bottom-right`), whether letters name the `columns` or the `rows`, or `slot_labels = false` for none | As platform.wafer.space: A1 top left, letters for columns |
 | `[site] runs_yml_key` | The run's key in the website's `_data/runs.yml`, for the shuttle timeline | No timeline |
 | `[site] runs_yml_path`, `timeline_source`, `timeline_source_url` | A timeline file in the same format in the run repository, and the source the page credits for it | The website's file, credited to wafer.space |
 | `[site] campaign_url` | Crowd Supply or similar campaign page | None |

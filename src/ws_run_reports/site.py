@@ -17,7 +17,7 @@ from pathlib import Path
 from jinja2 import Environment, PackageLoader, select_autoescape
 from markupsafe import Markup
 
-from . import external, projects, report
+from . import external, projects, report, reticle
 from . import stats as stats_module
 from .analyze import GRID_SIZE_UM
 from .classify import CATEGORY_ORDER
@@ -121,6 +121,23 @@ def _full_heatmap(design):
             "rects": rects, "window": window}
 
 
+def _slot_types(stats, renders):
+    """Dies on the reticle and public designs per slot size, with the full slots they take up."""
+    size_of = {d.code: d.project.slot_size for d in stats.designs}
+    placed = Counter(size_of.get(p["code"], "") for p in (renders or {}).get("placements", []))
+    if not placed:
+        placed = Counter(d.project.slot_size for d in stats.designs for _ in range(d.placements))
+    designs = Counter(size_of.values())
+    order = [s for s in SLOT_FRACTIONS if s in placed] + sorted(s for s in placed if s not in SLOT_FRACTIONS)
+    rows = []
+    for size in order:
+        fraction = SLOT_FRACTIONS.get(size)
+        label = next((d.slot_label for d in stats.designs if d.project.slot_size == size), size or "unknown")
+        rows.append({"label": label, "dies": placed[size], "designs": designs[size],
+                     "full_slots": placed[size] * fraction[0] * fraction[1] if fraction else None})
+    return rows
+
+
 def _area_bar(breakdown):
     total = sum(breakdown.values()) or 1
     return [{"label": label, "mm2": breakdown[label], "share": breakdown[label] / total,
@@ -170,16 +187,23 @@ def build_context(run, out_dir: Path) -> dict:
     best_peak = max(digital, key=lambda d: d.peak_cells, default=None)
     utilisations = [d.utilisation for d in digital]
 
-    placements = []
+    placements, slot_columns, slot_rows = [], [], []
     if renders:
-        reticle = renders["reticle"]
-        for p in renders["placements"]:
+        reticle_info = renders["reticle"]
+        width, height = reticle_info["width_mm"], reticle_info["height_mm"]
+        slots = [{}] * len(renders["placements"])
+        if run.site.get("slot_labels", True):
+            slots, slot_columns, slot_rows = reticle.slot_grid(
+                renders["placements"], width, height,
+                origin=run.site.get("slot_origin", "top-left"), letters=run.site.get("slot_letters", "columns"))
+        for p, slot in zip(renders["placements"], slots):
             placements.append({
                 "code": p["code"],
-                "left": p["x_mm"] / reticle["width_mm"],
-                "top": 1 - (p["y_mm"] + p["height_mm"]) / reticle["height_mm"],
-                "width": p["width_mm"] / reticle["width_mm"],
-                "height": p["height_mm"] / reticle["height_mm"],
+                "left": p["x_mm"] / width,
+                "top": 1 - (p["y_mm"] + p["height_mm"]) / height,
+                "width": p["width_mm"] / width,
+                "height": p["height_mm"] / height,
+                **slot,
             })
 
     return {
@@ -189,6 +213,9 @@ def build_context(run, out_dir: Path) -> dict:
         "generated": today,
         "renders": renders,
         "placements": placements,
+        "slot_columns": slot_columns,
+        "slot_rows": slot_rows,
+        "slot_types": _slot_types(stats, renders),
         "timeline": timeline,
         "cob": cob,
         "photos": photos,
@@ -205,7 +232,6 @@ def build_context(run, out_dir: Path) -> dict:
         "best_peak": best_peak,
         "median_utilisation": statistics.median(utilisations) if utilisations else 0,
         "best_utilisation": max(digital, key=lambda d: d.utilisation, default=None),
-        "slot_mix": Counter(d.slot_label for d in stats.designs).most_common(),
         "open_source": sum(1 for d in stats.designs if d.project.repository),
         "pads": sum(d.pads for d in stats.designs),
         "design_by_code": {d.code: d for d in stats.designs},

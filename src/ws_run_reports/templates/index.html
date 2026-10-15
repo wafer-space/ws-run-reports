@@ -77,19 +77,49 @@
       <div class="col-lg-8 mb-30">
         <h2 class="section-title mb-20">The reticle</h2>
         {% if renders %}
-        <div class="run-reticle shadow">
-          <img src="renders/{{ renders.reticle.file }}" alt="Render of the {{ run.shuttle }} reticle"
-               width="{{ renders.reticle.width_px }}" height="{{ renders.reticle.height_px }}">
-          {% for p in placements %}
-          {% set d = design_by_code[p.code] %}
-          <a class="run-reticle-slot" href="projects/{{ p.code }}.html" title="{{ p.code }} — {{ d.name }}"
-             style="left: {{ '%.3f' | format(p.left * 100) }}%; top: {{ '%.3f' | format(p.top * 100) }}%; width: {{ '%.3f' | format(p.width * 100) }}%; height: {{ '%.3f' | format(p.height * 100) }}%;"><span>{{ p.code }}</span></a>
-          {% endfor %}
+        <div class="run-reticle-frame{{ ' with-labels' if slot_columns else '' }}">
+          {% if slot_columns %}
+          <style>
+            {% for c in slot_columns %}.run-reticle-frame:has(.run-reticle-slot[data-col="{{ loop.index0 }}"]:is(:hover, :focus-visible)) .run-reticle-cols [data-col="{{ loop.index0 }}"]{{ ',' if not loop.last }}
+            {% endfor %}{% for r in slot_rows %}, .run-reticle-frame:has(.run-reticle-slot[data-row="{{ loop.index0 }}"]:is(:hover, :focus-visible)) .run-reticle-rows [data-row="{{ loop.index0 }}"]
+            {% endfor %}{ background: var(--run-accent); color: #fff; }
+          </style>
+          <div class="run-reticle-cols" aria-hidden="true">
+            {% for c in slot_columns %}<span data-col="{{ loop.index0 }}" style="left: {{ '%.3f' | format(c.left * 100) }}%; width: {{ '%.3f' | format(c.width * 100) }}%">{{ c.label }}</span>{% endfor %}
+          </div>
+          <div class="run-reticle-rows" aria-hidden="true">
+            {% for r in slot_rows %}<span data-row="{{ loop.index0 }}" style="top: {{ '%.3f' | format(r.top * 100) }}%; height: {{ '%.3f' | format(r.height * 100) }}%">{{ r.label }}</span>{% endfor %}
+          </div>
+          {% endif %}
+          <div class="run-reticle shadow">
+            <img src="renders/{{ renders.reticle.file }}" alt="Render of the {{ run.shuttle }} reticle"
+                 width="{{ renders.reticle.width_px }}" height="{{ renders.reticle.height_px }}">
+            {% for p in placements %}
+            {% set d = design_by_code[p.code] %}
+            <a class="run-reticle-slot" href="projects/{{ p.code }}.html" title="{{ p.label ~ ' — ' if p.label else '' }}{{ p.code }} — {{ d.name }}"
+               {% if p.label %}data-col="{{ p.col }}" data-row="{{ p.row }}"{% endif %}
+               style="left: {{ '%.3f' | format(p.left * 100) }}%; top: {{ '%.3f' | format(p.top * 100) }}%; width: {{ '%.3f' | format(p.width * 100) }}%; height: {{ '%.3f' | format(p.height * 100) }}%;"><span>{% if p.label %}{{ p.label }} · {% endif %}{{ p.code }}</span></a>
+            {% endfor %}
+          </div>
         </div>
         <p class="small text-muted mt-10 mb-0">Every design rendered from the layout at the same scale and placed where
           it sits on the {{ '%.0f' | format(renders.reticle.width_mm) }} × {{ '%.1f' | format(renders.reticle.height_mm) }} mm
           reticle.{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}
           Select a die for its details.</p>
+        {% if slot_types %}
+        <table class="table table-sm run-table bg-white mt-20 mb-0">
+          <thead><tr><th>Slot type</th><th class="text-end">Dies on the reticle</th><th class="text-end">Public designs</th><th class="text-end">Full slots used</th></tr></thead>
+          <tbody>
+            {% for row in slot_types %}
+            <tr><td>{{ row.label }}</td><td class="text-end">{{ row.dies }}</td><td class="text-end">{{ row.designs }}</td>
+              <td class="text-end">{{ ('%g' | format(row.full_slots)) if row.full_slots is not none else '—' }}</td></tr>
+            {% endfor %}
+            <tr><th>Total</th><th class="text-end">{{ slot_types | sum(attribute='dies') }}</th><th class="text-end">{{ slot_types | sum(attribute='designs') }}</th>
+              <th class="text-end">{{ '%g' | format(slot_types | selectattr('full_slots') | sum(attribute='full_slots')) }}{% if run.slots %} <span class="text-muted">of {{ run.slots }}</span>{% endif %}</th></tr>
+          </tbody>
+        </table>
+        <p class="small text-muted mt-10 mb-0">Private designs are not in the public layout, so they are not counted here.</p>
+        {% endif %}
         {% else %}
         <p class="text-muted">Renders have not been generated for this run yet.</p>
         {% endif %}
@@ -156,13 +186,7 @@
         {% endfor %}
       </div>
       <div class="col-lg-6 mb-30">
-        <h3 class="mb-20">Slot sizes and libraries</h3>
-        <table class="table table-sm run-table">
-          <thead><tr><th>Slot size</th><th class="text-end">Public designs</th></tr></thead>
-          <tbody>
-            {% for label, n in slot_mix %}<tr><td>{{ label }}</td><td class="text-end">{{ n }}</td></tr>{% endfor %}
-          </tbody>
-        </table>
+        <h3 class="mb-20">Standard cell libraries</h3>
         <table class="table table-sm run-table mb-0">
           <thead><tr><th>Standard cell library</th><th class="text-end">Logic cells</th><th class="text-end">Share</th></tr></thead>
           <tbody>
