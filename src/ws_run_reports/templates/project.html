@@ -89,13 +89,24 @@
               {% elif lic.status == "no licence file" %}<br><span class="run-warn">The repository has no licence file</span>
               {% elif lic.status == "no repository" %}<br><span class="text-muted">No public repository</span>{% endif %}
               {% if lic.repo_commit %}<br><span class="small text-muted">Repository checked at <span class="run-mono">{{ lic.repo_commit[:12] }}</span></span>{% endif %}</td></tr>
+            {% set checks = info.checks or {} %}
             <tr><th>Chip-on-board</th><td>{{ "Selected at submission" if info.chip_on_board else "Not selected at submission" }}
-              {% if cob_url %}· <a href="#bonding">bonding results</a>{% endif %}</td></tr>
-            {% if info.precheck %}
+              {% if cob_url %}· <a href="#bonding">bonding results</a>{% endif %}
+              {% if not info.chip_on_board and checks.accepted and checks.accepted.pad_mask_check == "passed" %}<br><span class="text-muted">The
+                check it was accepted on ran with chip-on-board selected; it was switched off afterwards.</span>{% endif %}</td></tr>
+            {% if checks.latest %}
+            {% set acc, lat = checks.accepted, checks.latest %}
+            <tr><th>Precheck</th><td>{% if acc %}{{ "Passed" if acc.is_manufacturable else "Did not pass" }}
+              <span class="text-muted">the check it was accepted on, {{ acc.created_at[:10] }}</span>
+              {% if not acc.same_as_latest %}<br>{{ "Passed" if lat.is_manufacturable else "Did not pass" }}
+              <span class="text-muted">latest re-run, {{ lat.created_at[:10] }}{% if lat.precheck_version %}, gf180mcu-precheck {{ lat.precheck_version }}{% endif %}</span>{% endif %}
+              {% else %}{{ "Passed" if lat.is_manufacturable else "Did not pass" }}
+              <span class="text-muted">latest platform check, {{ lat.created_at[:10] }}</span>{% endif %}
+              <br><a href="#precheck">step results and logs</a></td></tr>
+            {% elif info.precheck %}
             <tr><th>Precheck</th><td>{{ "Passed" if info.precheck.is_manufacturable else "Did not pass" }}
               <span class="text-muted">latest platform check, {{ info.precheck.created_at[:10] }}{% if info.precheck.precheck_version %},
-                gf180mcu-precheck {{ info.precheck.precheck_version }}{% endif %}</span>
-              {% if precheck_steps and design.code in precheck_steps %}<br><a href="#precheck">step results</a>{% endif %}</td></tr>
+                gf180mcu-precheck {{ info.precheck.precheck_version }}{% endif %}</span></td></tr>
             {% else %}
             <tr><th>Precheck</th><td class="text-muted">No finished precheck recorded</td></tr>
             {% endif %}
@@ -260,6 +271,44 @@
   </div>
 </div>
 {% endif %}
+
+{% set table = precheck_table(info.checks) if info and info.checks else none %}
+{% if table %}
+{# Alternate the section backgrounds: the last one before this is gray unless it was the photo or a bonding section after no photo. #}
+{% set previous_gray = (cob_url and photo) or (not cob_url and not photo) %}
+<div id="precheck" class="wrapper {{ 'light-wrapper' if previous_gray else 'gray-wrapper' }}">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">Precheck</h2>
+    <p class="lead text-center mb-30">The platform precheck {{ design.code }} was accepted on{% if table.columns | length > 1 %}, and its latest re-run{% endif %}</p>
+    <div class="row">
+      <div class="col-lg-10 offset-lg-1">
+        <div class="table-responsive">
+        <table class="table table-sm run-table run-precheck bg-white">
+          <thead><tr><th>Step</th>{% for label, check in table.columns %}<th>{{ label }}<br>
+            <span class="small text-muted fw-normal">check {{ check.id }}, {{ check.created_at[:10] }}, <span class="run-mono">{{ check.trigger }}</span>{% if check.precheck_version %},
+              gf180mcu-precheck {{ check.precheck_version }}{% endif %}</span></th>{% endfor %}</tr></thead>
+          <tbody>
+            {% for step, results in table.rows %}
+            <tr><td class="run-mono">{{ step }}</td>{% for result in results %}<td>{% if result == "passed" %}passed{% elif result == "warning" and step == "Checker.MagicDRC" %}<span class="text-muted">advisory warning</span>{% elif result == "warning" %}<span class="run-warn">warning</span>{% elif result %}<span class="run-warn">{{ result }}</span>{% elif result is none %}<span class="text-muted">not in this flow</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>{% endfor %}</tr>
+            {% endfor %}
+            <tr><th>KLayout DRC errors</th>{% for _, check in table.columns %}<td>{{ check.klayout_drc_errors if check.details else "" }}</td>{% endfor %}</tr>
+            <tr><th>Magic DRC errors <span class="text-muted fw-normal">(advisory)</span></th>{% for _, check in table.columns %}<td>{{ '{:,}'.format(check.magic_drc_errors) if check.details else "" }}</td>{% endfor %}</tr>
+            <tr><th>Files</th>{% for _, check in table.columns %}<td>{% if check.details %}<a href="{{ root }}data/{{ check.steps_file }}">steps</a>
+              · <a href="{{ root }}data/{{ check.log_file }}">log</a> <span class="small text-muted">(gzip)</span>{% else %}<span class="text-muted">The platform no
+              longer stores this check's results.</span>{% endif %}</td>{% endfor %}</tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="small text-muted">The steps of the gf180mcu-precheck LibreLane flow, as run by platform.wafer.space. The
+          design was accepted on the newest finished check before it was submitted; later re-runs check the same file with
+          updated rules. KLayout DRC is the sign-off check. Magic DRC is advisory: its count does not stop a design. In the
+          logs, Magic's "Error while reading cell" lines about fill cells are messages from its reader, not check failures.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 
 <div class="wrapper dark-wrapper inverse-text">
   <div class="container inner run-pager">

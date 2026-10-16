@@ -144,6 +144,63 @@ def _area_bar(breakdown):
              "colour": AREA_COLOURS[label]} for label in AREA_ORDER if label in breakdown]
 
 
+def _precheck_table(checks: dict):
+    """The columns and step rows of a project's precheck table, or None without step results.
+
+    A column per check: the one the design was accepted on and its latest
+    re-run, or one column when they are the same check. The steps are the
+    union of both, in flow order; a step a check's flow did not have is None.
+    """
+    accepted, latest = checks.get("accepted"), checks.get("latest")
+    if not latest:
+        return None
+    if accepted and accepted.get("same_as_latest"):
+        columns = [("Accepted on, and latest", latest)]
+    else:
+        columns = [(label, check) for label, check in (("Accepted on", accepted), ("Latest re-run", latest)) if check]
+    order = []
+    for _, check in columns:
+        previous = None
+        for step, _ in check.get("steps", []):
+            if step not in order:
+                order.insert(order.index(previous) + 1 if previous in order else len(order), step)
+            previous = step
+    rows = [(step, [dict(check.get("steps", [])).get(step) if check.get("details") else "" for _, check in columns])
+            for step in order]
+    return {"columns": columns, "rows": rows}
+
+
+def _precheck_summary(details: dict) -> dict:
+    """Run-wide precheck figures for the main page."""
+    checks = {code: e.get("checks") or {} for code, e in details.items()}
+    accepted = {code: c["accepted"] for code, c in checks.items() if c.get("accepted")}
+    latest = {code: c["latest"] for code, c in checks.items() if c.get("latest")}
+    ran = [c for check in (*accepted.values(), *latest.values()) for c in [check] if c.get("pad_mask_check") == "passed"]
+    pad_mask_codes = sorted({code for code, c in (*accepted.items(), *latest.items()) if c.get("pad_mask_check") == "passed"})
+    failed_pad_mask = sorted({code for code, c in (*accepted.items(), *latest.items())
+                              if c.get("pad_mask_check") not in (None, "passed", "not in flow")})
+    magic = sorted(code for code in checks if any((c or {}).get("magic_drc_errors")
+                                                  for c in (accepted.get(code), latest.get(code))))
+    return {
+        "imported": bool(latest),
+        "accepted_passed": sum(1 for c in accepted.values() if c["is_manufacturable"]),
+        "accepted": len(accepted),
+        "accepted_dates": (min(c["created_at"] for c in accepted.values())[:10],
+                           max(c["created_at"] for c in accepted.values())[:10]) if accepted else None,
+        "accepted_without_details": sorted(code for code, c in accepted.items() if not c.get("details")),
+        "latest_passed": sum(1 for c in latest.values() if c["is_manufacturable"]),
+        "latest": len(latest),
+        "klayout_drc_clear": all(c.get("klayout_drc_errors") == 0 for c in (*accepted.values(), *latest.values())
+                                 if c.get("details")),
+        "pad_mask_codes": pad_mask_codes,
+        "pad_mask_failed": failed_pad_mask,
+        "pad_mask_runs": len(ran),
+        "pad_mask_not_cob": sorted(code for code in pad_mask_codes if not details[code]["chip_on_board"]),
+        "magic_codes": magic,
+        "missing": sorted(code for code, c in checks.items() if not c.get("latest")),
+    }
+
+
 def build_context(run, out_dir: Path) -> dict:
     stats = stats_module.load(run, out_dir)
     site_dir = out_dir / "site"
@@ -242,6 +299,8 @@ def build_context(run, out_dir: Path) -> dict:
         "cob_selected": sum(1 for e in details.values() if e["chip_on_board"]),
         "precheck_passed": sum(1 for e in details.values() if e["precheck"] and e["precheck"]["is_manufacturable"]),
         "precheck_missing": sorted(code for code, e in details.items() if not e["precheck"]),
+        "precheck": _precheck_summary(details),
+        "precheck_table": _precheck_table,
         "feature_labels": FEATURE_LABELS,
         "windowed": report.windowed(stats),
         "core_area_text": (f"Core area is the area of each die's {stats.meta['core_cell']} cell."
@@ -292,7 +351,13 @@ def build_site(run, out_dir: Path) -> Path:
     report_path = out_dir / report.REPORT_NAME
     if report_path.exists():
         shutil.copy(report_path, data_dir / report_path.name)
-    context["data_files"] = sorted(p.name for p in data_dir.iterdir())
+    context["data_files"] = sorted(p.name for p in data_dir.iterdir() if p.is_file())
+    # The platform's precheck step results and logs, linked from the project pages.
+    precheck_dir = out_dir / projects.PRECHECK_DIR
+    if (data_dir / projects.PRECHECK_DIR).exists():
+        shutil.rmtree(data_dir / projects.PRECHECK_DIR)
+    if precheck_dir.exists():
+        shutil.copytree(precheck_dir, data_dir / projects.PRECHECK_DIR)
 
     (site_dir / "index.html").write_text(env.get_template("index.html").render(root="", **context))
     # A JavaScript-free strip of the designs for other pages to embed; dies with photographs first.

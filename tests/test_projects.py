@@ -129,3 +129,21 @@ def test_import_precheck(tmp_path):
     first = (out / latest["log_file"]).read_bytes()
     projects.import_precheck(export, "ws-run1", out)
     assert (out / latest["log_file"]).read_bytes() == first
+
+
+def test_precheck_table_merges_the_two_flows():
+    from ws_run_reports.site import _precheck_table
+
+    accepted = {"id": "3", "details": True, "steps": [["A", "passed"], ["C", "warning"], ["D", "passed"]]}
+    latest = {"id": "9", "details": True, "steps": [["A", "passed"], ["B", "passed"], ["C", "passed"]]}
+    table = _precheck_table({"accepted": accepted, "latest": latest})
+    assert [label for label, _ in table["columns"]] == ["Accepted on", "Latest re-run"]
+    assert table["rows"] == [("A", ["passed", "passed"]), ("B", [None, "passed"]),
+                             ("C", ["warning", "passed"]), ("D", ["passed", None])]
+
+    # The same check: one column. No stored results: empty cells, not "not in this flow".
+    same = _precheck_table({"accepted": dict(latest, same_as_latest=True), "latest": latest})
+    assert [label for label, _ in same["columns"]] == ["Accepted on, and latest"]
+    gone = _precheck_table({"accepted": {"id": "3", "details": False}, "latest": latest})
+    assert gone["rows"][1] == ("B", ["", "passed"])
+    assert _precheck_table({}) is None

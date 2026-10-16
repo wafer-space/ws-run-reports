@@ -269,8 +269,25 @@
         <h3 class="mb-20">Packaging and precheck</h3>
         <ul class="run-method">
           <li><strong>{{ cob_selected }}</strong> of {{ details | length }} designs selected chip-on-board packaging.</li>
+          {% if precheck.imported %}
+          {% set pc = precheck %}
+          <li><strong>{{ pc.accepted_passed }}</strong> of {{ details | length }} designs passed the platform precheck they were
+            accepted on ({{ pc.accepted_dates[0] }} to {{ pc.accepted_dates[1] }}), and <strong>{{ pc.latest_passed }}</strong>
+            pass their latest re-run{% if pc.missing %}; {{ pc.missing | join(", ") }} {{ "has" if pc.missing | length == 1 else "have" }}
+            no finished precheck recorded{% endif %}.</li>
+          {% if pc.klayout_drc_clear %}<li>The KLayout DRC, the sign-off check, is clear in every one of these checks.</li>{% endif %}
+          {% if pc.pad_mask_codes %}<li>The chip-on-board pad mask check passed for all <strong>{{ pc.pad_mask_codes | length }}</strong>
+            designs that ran it{% if pc.pad_mask_failed %}, apart from {{ pc.pad_mask_failed | join(", ") }}{% endif %}{% if pc.pad_mask_not_cob %}
+            ({% for code in pc.pad_mask_not_cob %}<a class="run-mono" href="projects/{{ code }}.html">{{ code }}</a>{{ ", " if not loop.last }}{% endfor %}
+            switched chip-on-board off after the check {{ "it was" if pc.pad_mask_not_cob | length == 1 else "they were" }} accepted on){% endif %}.</li>{% endif %}
+          {% if pc.magic_codes %}<li>The advisory Magic DRC reported errors for {% for code in pc.magic_codes %}<a class="run-mono"
+            href="projects/{{ code }}.html#precheck">{{ code }}</a>{{ ", " if not loop.last }}{% endfor %}.</li>{% endif %}
+          {% if pc.accepted_without_details %}<li class="small text-muted">The platform no longer stores the step results of the
+            checks {{ pc.accepted_without_details | join(", ") }} were accepted on; their pages show the latest re-run.</li>{% endif %}
+          {% else %}
           <li><strong>{{ precheck_passed }}</strong> passed their latest platform precheck{% if precheck_missing %};
             {{ precheck_missing | join(", ") }} {{ "has" if precheck_missing | length == 1 else "have" }} no finished precheck recorded{% endif %}.</li>
+          {% endif %}
         </ul>
       </div>
     </div>
