@@ -362,3 +362,44 @@ def test_seal_ring_is_not_a_bond_pad():
 
     assert analyze.count_region(layout, die, pad, pad_selection(layout, {}))[0] == 1
     assert analyze.count_region(layout, die, pad, pad_selection(layout, {"count_seal_ring_pads": True}))[0] == 2
+
+
+def test_dummy_fill_is_not_a_transistor():
+    from ws_run_reports.exclude import gate_selection, selection_for
+
+    layout = kdb.Layout()
+    layout.dbu = DBU
+    comp, poly = layout.layer(22, 0), layout.layer(30, 0)
+
+    def gate_cell(name, x):
+        cell = layout.create_cell(name)
+        cell.shapes(comp).insert(kdb.Box(um(x), 0, um(x + 2), um(2)))
+        cell.shapes(poly).insert(kdb.Box(um(x + 0.5), um(-1), um(x + 1), um(3)))
+        return cell
+
+    # PDK fill: a COMP square and a Poly2 square that overlap, in separate cells.
+    comp_fill, poly_fill = layout.create_cell("COMP_fill_cell"), layout.create_cell("Poly2_fill_cell$2")
+    comp_fill.shapes(comp).insert(kdb.Box(0, 0, um(2), um(2)))
+    poly_fill.shapes(poly).insert(kdb.Box(um(1), um(1), um(3), um(3)))
+    fill = layout.create_cell("COMP_FILL$1")
+    for f in (comp_fill, poly_fill):
+        fill.insert(kdb.CellInstArray(f.cell_index(), kdb.Trans()))
+
+    wrapper = gate_cell("user_project_wrapper$3", 0)
+    wrapper.insert(kdb.CellInstArray(fill.cell_index(), kdb.Trans(um(10), 0)))   # fill inside the user area
+    harness = gate_cell("caravel_core$3", 50)
+    die = layout.create_cell("AB12_caravel_0_0")
+    for child, x in ((wrapper, 0), (harness, 0), (fill, 100)):                  # and fill outside it
+        die.insert(kdb.CellInstArray(child.cell_index(), kdb.Trans(um(x), 0)))
+
+    def gates(selection):
+        return analyze.transistor_region(layout, die, comp, poly, selection).count()
+
+    whole = selection_for(layout, {})
+    assert gates(whole) == 4
+    assert gates(gate_selection(layout, whole, {})) == 2
+    assert gates(gate_selection(layout, whole, {"count_fill_transistors": True})) == 4
+    measure = {"exclude": ["caravel_harness"], "keep": ["user_project_wrapper"]}
+    user = selection_for(layout, measure)
+    assert gates(user) == 3            # the wrapper, its fill and the fill beside it
+    assert gates(gate_selection(layout, user, measure)) == 1

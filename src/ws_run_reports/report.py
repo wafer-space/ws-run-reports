@@ -354,7 +354,8 @@ def build_report(stats) -> str:
         "whose name contains a standard cell library prefix, excluding types starting with "
         + ", ".join(f"`{p}`" for p in FILL_CELL_PREFIXES) + ".\n"
         "- **Transistor counts** are the number of merged polygons in the boolean AND of the diffusion (22/0) and "
-        "gate polysilicon (30/0) layers.\n"
+        "gate polysilicon (30/0) layers, leaving out dummy fill cells, whose diffusion and polysilicon squares "
+        "overlap without forming transistors.\n"
         + (f"- **Core area** is the area of each design's `{stats.meta['core_cell']}` cell.\n"
            if stats.meta.get("core_cell") else
            f"- **Core area** is (die width − {2 * stats_module.PAD_RING_MM:.2f}mm) x (die height − "

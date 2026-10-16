@@ -22,7 +22,7 @@ from pathlib import Path
 import klayout.db as kdb
 
 from . import density, features
-from .exclude import Selection, core_area_um2, pad_selection, selection_for
+from .exclude import Selection, core_area_um2, gate_selection, pad_selection, selection_for
 
 # GDS layer definitions (from gf180mcu.lyp)
 LAYER_COMP = (22, 0)       # Diffusion/active area
@@ -270,18 +270,19 @@ def extract_slot_id(cell_name):
     return parts[0] if parts else cell_name
 
 
-def analyze_slot(layout, cell, dbu, layers, selection=Selection(), pads=Selection()):
+def analyze_slot(layout, cell, dbu, layers, selection=Selection(), pads=Selection(), gates=None):
     """Analyze a single design slot cell. Returns dict of metrics.
 
     The die size is measured on the whole design, and bond pads on the whole
     design apart from ``pads``' exclusions (its seal ring); the selection only
-    applies to what is inside it.
+    applies to what is inside it. Transistors are counted on ``gates``, the
+    selection without dummy fill.
     """
     bbox = cell.bbox()
     pad_count, pad_region = count_region(layout, cell, layers["pad"], pads)
     sram_count, sram_region = count_region(layout, cell, layers["sram"], selection)
     dbu2_per_mm2 = 1e6 / (dbu * dbu)
-    gates = transistor_region(layout, cell, layers["comp"], layers["poly2"], selection)
+    gates = transistor_region(layout, cell, layers["comp"], layers["poly2"], gates or selection)
     return {
         "die_area_mm2": bbox.area() / dbu2_per_mm2,
         "sram_area_mm2": sram_region.area() / dbu2_per_mm2,
@@ -297,7 +298,7 @@ def analyze_slot(layout, cell, dbu, layers, selection=Selection(), pads=Selectio
     }
 
 
-def analyze_slot_grid(layout, cell, dbu, layers, sram_region, selection=Selection()):
+def analyze_slot_grid(layout, cell, dbu, layers, sram_region, selection=Selection(), gates=None):
     """Compute 1mm grid density map for a single slot cell.
 
     Grid cells that overlap an SRAM macro are skipped, so the grid describes
@@ -322,8 +323,8 @@ def analyze_slot_grid(layout, cell, dbu, layers, sram_region, selection=Selectio
                 if not overlap.is_empty():
                     continue
 
-            comp_clipped = build_clipped_region(layout, cell, layers["comp"], clip_box, selection)
-            poly2_clipped = build_clipped_region(layout, cell, layers["poly2"], clip_box, selection)
+            comp_clipped = build_clipped_region(layout, cell, layers["comp"], clip_box, gates or selection)
+            poly2_clipped = build_clipped_region(layout, cell, layers["poly2"], clip_box, gates or selection)
             transistor_region = comp_clipped & poly2_clipped
             transistor_region.merge()
 
@@ -345,8 +346,8 @@ def _analyze_cell_index(cell_index):
     cell = layout.cell(cell_index)
     dbu = layout.dbu
     selection = _STATE["selection"]
-    metrics = analyze_slot(layout, cell, dbu, layers, selection, _STATE["pads"])
-    grid_rows = analyze_slot_grid(layout, cell, dbu, layers, metrics.pop("sram_region"), selection)
+    metrics = analyze_slot(layout, cell, dbu, layers, selection, _STATE["pads"], _STATE["gates"])
+    grid_rows = analyze_slot_grid(layout, cell, dbu, layers, metrics.pop("sram_region"), selection, _STATE["gates"])
     bins, rects = density.measure(layout, cell, layers["marker"], metrics.pop("transistor_region"),
                                   _STATE["macro_cells"], selection)
     origin = cell.bbox().p1
@@ -536,7 +537,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     print(f"Analysing {len(order)} unique designs with {jobs} worker(s)...")
 
     _STATE.update(layout=layout, layers=layers, cell_info=cell_info, macro_cells=macro_cells, selection=selection,
-                  pads=pad_selection(layout, measure or {}),
+                  pads=pad_selection(layout, measure or {}), gates=gate_selection(layout, selection, measure or {}),
                   designer=features.designer_selection(selection, features.library_cells(layout)),
                   io_cells=features.io_cells(layout))
     results = {}

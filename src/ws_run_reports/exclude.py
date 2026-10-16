@@ -31,6 +31,8 @@ BUILTIN_GROUPS = {
     "wafer_space_artwork": ["gf180mcu_ws_ip__*"],
     # The seal ring reticle-stitcher puts around each die.
     "seal_ring": ["sealring"],
+    # Dummy fill from the PDK's fill_all.rb, as LibreLane and the wafer.space flow run it.
+    "dummy_fill": ["COMP_FILL", "POLY2_FILL", "METAL?_FILL", "*_fill_cell"],
     # Everything on an Efabless Caravel die except the user's user_project_wrapper (keep that).
     "caravel_harness": ["caravel_core", "caravel_power_routing", "chip_io", "caravel_logo", "caravel_motto",
                         "copyright_block", "open_source", "user_id_textblock"],
@@ -140,6 +142,20 @@ def pad_selection(layout, measure: dict) -> Selection:
     patterns = BUILTIN_GROUPS["seal_ring"]
     return Selection(groups={"seal_ring": patterns},
                      excluded=[c.cell_index() for c in layout.each_cell() if matches(c.name, patterns)])
+
+
+def gate_selection(layout, selection: Selection, measure: dict) -> Selection:
+    """What transistors are counted on: the selection, without dummy fill.
+
+    Dummy COMP and Poly2 fill overlap, which looks like a gate. Runs analysed
+    before this was noticed set ``count_fill_transistors = true``.
+    """
+    if measure.get("count_fill_transistors"):
+        return selection
+    patterns = BUILTIN_GROUPS["dummy_fill"]
+    fill = [c.cell_index() for c in layout.each_cell() if matches(c.name, patterns)]
+    return Selection(groups={**selection.groups, "dummy_fill": patterns}, keep=selection.keep,
+                     core_cell=selection.core_cell, excluded=selection.excluded + fill, kept=selection.kept)
 
 
 def core_area_um2(layout, cell, pattern: str) -> float:

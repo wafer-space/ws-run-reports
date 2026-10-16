@@ -448,7 +448,7 @@
       <div class="col-lg-6 mb-30">
         <ul class="run-method">
           <li><strong>Logic cells</strong> are standard cell instances, excluding fillers, taps, antenna diodes and tie cells.</li>
-          <li><strong>Transistors</strong> are places where gate polysilicon crosses diffusion.</li>
+          <li><strong>Transistors</strong> are places where gate polysilicon crosses diffusion, not counting dummy fill.</li>
           <li><strong>Core area:</strong> {{ core_area_text }}</li>
           {% if stats.exclusions %}<li><strong>Excluded from the measurements:</strong>
             {% for name, patterns in stats.exclusions.items() %}{{ name | replace('_', ' ') }}

@@ -24,3 +24,5 @@ readme = "README.md"
 library_names = "short"
 # and counted the pad-layer ring of each die's seal ring as a bond pad.
 count_seal_ring_pads = true
+# It also counted overlapping dummy COMP and Poly2 fill as transistors.
+count_fill_transistors = true

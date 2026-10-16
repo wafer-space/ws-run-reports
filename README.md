@@ -104,7 +104,9 @@ core_cell = "user_project_wrapper"
 A run can define its own groups as `[measure.groups] name = ["pattern", ...]`.
 
 Die sizes are always measured on the whole die, and bond pads on the whole die
-apart from its seal ring, whose ring on the pad layer is not a pad. The exclusions
+apart from its seal ring, whose ring on the pad layer is not a pad. Transistors are
+never counted in dummy fill cells (`dummy_fill`), whose COMP and Poly2 squares
+overlap. The exclusions
 are recorded in `reticle_analysis_meta.json`, and the report and page say what
 was left out.
 
