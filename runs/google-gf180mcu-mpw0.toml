@@ -4,7 +4,7 @@ shuttle = "GFMPW0"
 slots = 40
 
 [layout]
-md5 = "7525ae37d7dd64486a25baca24a9b771"
+md5 = "820dd74663ba7f04f568dc8d16960428"
 
 [site]
 heading = ["GFMPW-0", "Google & Efabless", "GF180MCU Open MPW Shuttle"]
@@ -18,7 +18,8 @@ timeline_source = "the Efabless GFMPW-0 shuttle page (archived) and the shuttle 
 timeline_source_url = "https://web.archive.org/web/20241213090115/https://platform.efabless.com/shuttles/GFMPW-0"
 
 [measure]
-# Count only each user_project_wrapper, not the pad frame or the Caravel harness.
-exclude = ["pad_ring", "caravel_harness"]
+# Count only each user_project_wrapper, not the pad frame, the Caravel harness
+# or the seal ring that reticle-stitcher puts around each die.
+exclude = ["pad_ring", "caravel_harness", "seal_ring"]
 keep = ["user_project_wrapper"]
 core_cell = "user_project_wrapper"
