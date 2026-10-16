@@ -1,23 +1,32 @@
 """Project details from outside the layout: the submission platform and the project repositories.
 
-``ws-run-reports import <run> --platform FILE [--audit FILE]`` reads
+``ws-run-reports import <run> --platform FILE [--audit FILE] [--precheck DIR]`` reads
 
 * an export from platform.wafer.space (one record per public project: name,
   description, declared licence, chip-on-board option and the latest
-  finished precheck), and
+  finished precheck),
 * optionally a licence audit of the projects' repositories (the licence
-  files and SPDX headers found at a given commit),
+  files and SPDX headers found at a given commit), and
+* optionally the platform's precheck results: ``acceptance-checks.json``
+  (the check each design was accepted on, and its latest re-run), the steps
+  of each of those checks parsed from its LibreLane run directory
+  (``steps/<run>/<CODE>[.acceptance].json``) and its precheck log
+  (``logs/<run>/<CODE>[.acceptance].precheck.log``),
 
-and writes ``projects.json`` to the run's output directory. Only fields that
-are meant to be public are kept: no platform user data, no internal UUIDs
-or storage paths.
+and writes ``projects.json`` to the run's output directory, with the step
+files and gzipped logs in ``precheck/`` beside it. Only fields that are
+meant to be public are kept: no platform user data, no internal UUIDs or
+storage paths.
 """
 
+import gzip
 import json
 import re
+import shutil
 from pathlib import Path
 
 PROJECTS_NAME = "projects.json"
+PRECHECK_DIR = "precheck"
 
 CHECK_FIELDS = ["id", "created_at", "status", "is_manufacturable", "docker_exit_code", "precheck_version",
                 "docker_image", "docker_image_digest", "tool_versions", "trigger"]
@@ -52,6 +61,68 @@ def _check(record: dict) -> dict | None:
     return kept
 
 
+def _check_summary(row: dict, steps: dict | None, files: dict) -> dict:
+    """One precheck run as the pages show it: when, why, the result, and each step's outcome.
+
+    ``row`` is the check from ``acceptance-checks.json``; ``steps`` its parsed
+    run directory, or None when the platform no longer has it.
+    """
+    summary = {"id": row["check_id"], "created_at": row["created_at"], "trigger": row["trigger"],
+               "is_manufacturable": row["is_manufacturable"], "precheck_version": row["precheck_version"],
+               "details": steps is not None, **files}
+    if steps is not None:
+        metrics = steps.get("final_metrics") or {}
+        summary.update(
+            flow_complete=steps["flow_complete"],
+            pad_mask_check=steps["pad_mask_check"],
+            klayout_drc_errors=metrics.get("klayout__drc_error__count"),
+            magic_drc_errors=metrics.get("magic__drc_error__count"),
+            steps=[[step["id"], step["result"]] for step in steps["steps"]],
+        )
+    return summary
+
+
+def _write_log(source: Path, target: Path):
+    """Gzip a precheck log, without a timestamp so that an unchanged log gives an unchanged file."""
+    with open(source, "rb") as f, open(target, "wb") as raw, gzip.GzipFile(fileobj=raw, mode="wb", mtime=0) as gz:
+        shutil.copyfileobj(f, gz)
+
+
+def import_precheck(export: Path, run_name: str, out_dir: Path) -> dict:
+    """Code -> {"accepted": ..., "latest": ...} from the platform's precheck export.
+
+    Copies each check's step file and gzipped log into ``out_dir/precheck``.
+    """
+    export = Path(export)
+    target = out_dir / PRECHECK_DIR
+    if target.exists():
+        shutil.rmtree(target)
+    target.mkdir(parents=True)
+    checks = {}
+    for row in json.loads((export / "acceptance-checks.json").read_text()):
+        if row["run"] != run_name or not row["latest"]:
+            continue
+        code, entry = row["code"], {}
+        for role, suffix in (("latest", ""), ("accepted", ".acceptance")):
+            check = row["latest" if role == "latest" else "acceptance"]
+            if check is None:
+                continue
+            if role == "accepted" and check["same_as_latest"]:
+                entry["accepted"] = dict(entry["latest"], same_as_latest=True)
+                continue
+            files, steps = {}, None
+            if check["steps_file"]:
+                steps = json.loads((export / check["steps_file"]).read_text())
+                files["steps_file"] = f"{PRECHECK_DIR}/{code}{suffix}.json"
+                shutil.copy(export / check["steps_file"], out_dir / files["steps_file"])
+            if check["log_file"]:
+                files["log_file"] = f"{PRECHECK_DIR}/{code}{suffix}.precheck.log.gz"
+                _write_log(export / check["log_file"], out_dir / files["log_file"])
+            entry[role] = _check_summary(check, steps, files)
+        checks[code] = entry
+    return checks
+
+
 def build(platform: list, audit: list | None, run_name: str) -> dict:
     """Code -> public project details for one run."""
     audit_by_code = {a["code"]: a for a in (audit or []) if a.get("run") == run_name}
@@ -82,10 +153,19 @@ def build(platform: list, audit: list | None, run_name: str) -> dict:
     return projects
 
 
-def import_files(run, out_dir: Path, platform_file: Path, audit_file: Path | None = None) -> Path:
+def import_files(run, out_dir: Path, platform_file: Path, audit_file: Path | None = None,
+                 precheck_dir: Path | None = None) -> Path:
     platform = json.loads(Path(platform_file).read_text())
     audit = json.loads(Path(audit_file).read_text()) if audit_file else None
     projects = build(platform, audit, run.name)
+    if precheck_dir:
+        checks = import_precheck(precheck_dir, run.name, out_dir)
+        for code, entry in projects.items():
+            entry["checks"] = checks.get(code, {})
+            latest = entry["checks"].get("latest")
+            if latest and entry["precheck"] and latest["id"] != str(entry["precheck"]["id"]):
+                print(f"  warning: {code}: the platform export's latest check is {entry['precheck']['id']}, "
+                      f"the precheck export's is {latest['id']}")
     missing = sorted(set(run.projects()) - set(projects))
     if missing:
         print(f"  warning: no platform record for {', '.join(missing)}")

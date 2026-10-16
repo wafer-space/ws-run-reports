@@ -84,3 +84,48 @@ def test_stale_assembled_layout_is_rebuilt(tmp_path):
     path.write_text(f'title = "Ex"\nshuttle = "EX01"\nslots = 1\n[layout]\nmd5 = "{hashlib.md5(b"new layout").hexdigest()}"\n')
     run = config.load_run(str(path), repo_dir=tmp_path)
     assert run.assemble_layout().read_bytes() == b"new layout"
+
+
+def test_import_precheck(tmp_path):
+    import gzip
+    import json
+
+    export = tmp_path / "export"
+    (export / "steps" / "ws-run1").mkdir(parents=True)
+    (export / "logs" / "ws-run1").mkdir(parents=True)
+
+    def check(cid, role, same=None, present=True):
+        suffix = ".acceptance" if role == "acceptance" else ""
+        return {"check_id": cid, "created_at": "2025-12-10T18:16:37+00:00", "trigger": "initial",
+                "is_manufacturable": True, "precheck_version": "", "same_as_latest": same,
+                "steps_file": f"steps/ws-run1/AB12{suffix}.json" if present else None,
+                "log_file": f"logs/ws-run1/AB12{suffix}.precheck.log" if present else None}
+
+    steps = {"flow_complete": True, "pad_mask_check": "passed",
+             "final_metrics": {"klayout__drc_error__count": 0, "magic__drc_error__count": 14},
+             "steps": [{"id": "KLayout.CheckPadMask", "result": "passed", "messages": []},
+                       {"id": "Checker.MagicDRC", "result": "warning", "messages": ["14 Magic DRC errors found."]}]}
+    (export / "steps" / "ws-run1" / "AB12.json").write_text(json.dumps(steps))
+    (export / "logs" / "ws-run1" / "AB12.precheck.log").write_text("log text\n")
+    rows = [
+        {"run": "ws-run1", "code": "AB12", "latest": check("9", "latest"), "acceptance": check("3", "acceptance",
+                                                                                                 False, present=False)},
+        {"run": "ws-run1", "code": "CD34", "latest": None, "acceptance": None},
+        {"run": "ws-run2", "code": "EF56", "latest": check("5", "latest"), "acceptance": None},
+    ]
+    (export / "acceptance-checks.json").write_text(json.dumps(rows))
+
+    out = tmp_path / "out"
+    checks = projects.import_precheck(export, "ws-run1", out)
+    assert set(checks) == {"AB12"}
+    latest, accepted = checks["AB12"]["latest"], checks["AB12"]["accepted"]
+    assert latest["steps"] == [["KLayout.CheckPadMask", "passed"], ["Checker.MagicDRC", "warning"]]
+    assert (latest["magic_drc_errors"], latest["klayout_drc_errors"], latest["pad_mask_check"]) == (14, 0, "passed")
+    assert gzip.decompress((out / latest["log_file"]).read_bytes()) == b"log text\n"
+    assert (out / latest["steps_file"]).exists()
+    # The platform no longer has the acceptance check's run: its date and trigger only.
+    assert accepted["id"] == "3" and accepted["details"] is False and "steps" not in accepted
+    # Writing the log again gives the same bytes, so republishing changes nothing.
+    first = (out / latest["log_file"]).read_bytes()
+    projects.import_precheck(export, "ws-run1", out)
+    assert (out / latest["log_file"]).read_bytes() == first

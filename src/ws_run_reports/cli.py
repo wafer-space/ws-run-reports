@@ -45,7 +45,7 @@ def cmd_import(args, run):
     from . import projects
     if not args.platform:
         raise SystemExit("import needs --platform FILE (an export from platform.wafer.space)")
-    path = projects.import_files(run, out_dir(args, run), args.platform, args.audit)
+    path = projects.import_files(run, out_dir(args, run), args.platform, args.audit, args.precheck)
     print(f"Wrote {path}")
 
 
@@ -84,6 +84,8 @@ def main(argv=None):
         if name == "import":
             p.add_argument("--platform", type=Path, help="platform export: JSON list of public project records")
             p.add_argument("--audit", type=Path, help="repository licence audit: JSON list with licence files per project")
+            p.add_argument("--precheck", type=Path, help="platform precheck export: a directory with "
+                           "acceptance-checks.json, steps/ and logs/")
         if name == "publish":
             p.add_argument("target", choices=["density-report", "gh-pages"])
             p.add_argument("--push", action="store_true", help="push the branch after committing")
