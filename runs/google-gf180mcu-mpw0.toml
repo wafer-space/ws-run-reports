@@ -4,7 +4,7 @@ shuttle = "GFMPW0"
 slots = 40
 
 [layout]
-md5 = "820dd74663ba7f04f568dc8d16960428"
+md5 = "366739415ab37e49a4330761db15c940"
 
 [site]
 heading = ["GFMPW-0", "Google & Efabless", "GF180MCU Open MPW Shuttle"]
