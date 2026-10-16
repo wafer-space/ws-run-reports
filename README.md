@@ -118,8 +118,17 @@ export, and the licences found in each project's repository from a licence
 audit. Only public fields are kept (no user data, UUIDs or storage paths):
 
 ```bash
-uv run ws-run-reports import ws-run1 --platform ws-run1-projects.json --audit audit.json
+uv run ws-run-reports import ws-run1 --platform ws-run1-projects.json --audit audit.json \
+    --precheck platform-export/
 ```
+
+`--precheck` reads the platform's precheck export: `acceptance-checks.json`
+(the check each design was accepted on, the newest finished check on the
+submitted file at or before submission, and its latest re-run), the steps of
+each check parsed from its LibreLane run directory (`steps/<run>/<CODE>.json`,
+`<CODE>.acceptance.json`) and its log (`logs/<run>/<CODE>[.acceptance].precheck.log`).
+The step files and gzipped logs are kept in `precheck/` and published with the
+data on both branches; the project pages show every step of both checks.
 
 The reticle is expected to follow the layout used so far: one top cell whose
 children are named `<CODE>_<top cell>_<column>_<row>`, plus `RETICLE_FILL` and

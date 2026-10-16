@@ -17,7 +17,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from . import report
+from . import projects, report
 from . import stats as stats_module
 
 GENERATOR_URL = "https://github.com/wafer-space/ws-run-reports"
@@ -89,6 +89,12 @@ def publish_density_report(run, out_dir: Path, clone: Path, url: str):
     files = stats_module.data_files(out_dir) + [out_dir / report.REPORT_NAME]
     for path in files:
         shutil.copy(path, clone / path.name)
+    # The platform's precheck step results and logs, when they have been imported.
+    precheck = out_dir / projects.PRECHECK_DIR
+    if precheck.exists():
+        if (clone / precheck.name).exists():
+            shutil.rmtree(clone / precheck.name)
+        shutil.copytree(precheck, clone / precheck.name)
     return branch, (
         "Update standard cell and SRAM density report\n\n"
         f"Regenerated from {Path(run.layout['file']).name} (md5 {run.layout['md5']})\n"
