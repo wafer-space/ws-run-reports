@@ -29,6 +29,8 @@ import klayout.db as kdb
 BUILTIN_GROUPS = {
     "pad_ring": ["gf180mcu_*_io__*"],
     "wafer_space_artwork": ["gf180mcu_ws_ip__*"],
+    # The seal ring reticle-stitcher puts around each die.
+    "seal_ring": ["sealring"],
     # Everything on an Efabless Caravel die except the user's user_project_wrapper (keep that).
     "caravel_harness": ["caravel_core", "caravel_power_routing", "chip_io", "caravel_logo", "caravel_motto",
                         "copyright_block", "open_source", "user_id_textblock"],
@@ -125,6 +127,19 @@ def selection_for(layout, measure: dict) -> Selection:
         print(f"  Excluding {len(selection.excluded)} cell definitions ({', '.join(applied)}), "
               f"keeping {len(selection.kept)} below them")
     return selection
+
+
+def pad_selection(layout, measure: dict) -> Selection:
+    """What bond pads are counted on: everything except seal rings.
+
+    A seal ring has a ring on the pad layer, which is not a bond pad. Runs
+    analysed before this was noticed set ``count_seal_ring_pads = true``.
+    """
+    if measure.get("count_seal_ring_pads"):
+        return Selection()
+    patterns = BUILTIN_GROUPS["seal_ring"]
+    return Selection(groups={"seal_ring": patterns},
+                     excluded=[c.cell_index() for c in layout.each_cell() if matches(c.name, patterns)])
 
 
 def core_area_um2(layout, cell, pattern: str) -> float:

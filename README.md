@@ -88,8 +88,9 @@ written.
 To measure only part of each die, name groups of cells to exclude. Patterns
 are shell globs on cell names (also tried without a leading `<CODE>_`). The
 groups `pad_ring` (all `gf180mcu_*_io__*` cells), `caravel_harness` (an
-Efabless Caravel die apart from its `user_project_wrapper`) and
-`wafer_space_artwork` are built in. `keep` names cells below an excluded one that are still measured, and
+Efabless Caravel die apart from its `user_project_wrapper`),
+`wafer_space_artwork` and `seal_ring` (the `sealring` cell reticle-stitcher
+puts around each die) are built in. `keep` names cells below an excluded one that are still measured, and
 `core_cell` names the cell whose area the densities are taken over (otherwise
 the die minus a 350 µm pad ring). For a Caravel die:
 
@@ -102,7 +103,8 @@ core_cell = "user_project_wrapper"
 
 A run can define its own groups as `[measure.groups] name = ["pattern", ...]`.
 
-Bond pads and die sizes are always measured on the whole die. The exclusions
+Die sizes are always measured on the whole die, and bond pads on the whole die
+apart from its seal ring, whose ring on the pad layer is not a pad. The exclusions
 are recorded in `reticle_analysis_meta.json`, and the report and page say what
 was left out.
 

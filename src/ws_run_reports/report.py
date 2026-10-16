@@ -452,7 +452,7 @@ def exclusion_note(stats) -> str:
             if keep else "")
     return ("- **Excluded from the measurements:** " + groups + "." + kept + " Logic cell, transistor and "
             "SRAM figures therefore cover only part of each die and are not directly comparable with reports "
-            "that measure whole dies. Bond pads and die sizes are measured on the whole die.\n")
+            "that measure whole dies. Die sizes are measured on the whole die, and bond pads on the whole die apart from its seal ring.\n")
 
 
 def write_report(run, out_dir: Path) -> Path:

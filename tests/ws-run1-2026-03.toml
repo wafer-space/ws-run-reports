@@ -22,3 +22,5 @@ readme = "README.md"
 [measure]
 # The March 2026 analysis named every library by its last part only.
 library_names = "short"
+# and counted the pad-layer ring of each die's seal ring as a bond pad.
+count_seal_ring_pads = true

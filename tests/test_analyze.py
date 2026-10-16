@@ -345,3 +345,20 @@ def test_missing_boundaries_come_from_the_reference(tmp_path):
     assert (library["inv_1"]["width_um"], library["inv_1"]["height_um"], library["inv_1"]["boundary_source"]) == \
         ("2.240", "3.920", "reference")
     assert (library["notarealcell_1"]["width_um"], library["notarealcell_1"]["boundary_source"]) == ("5.000", "bbox")
+
+
+def test_seal_ring_is_not_a_bond_pad():
+    from ws_run_reports.exclude import pad_selection
+
+    layout = kdb.Layout()
+    layout.dbu = DBU
+    pad = layout.layer(37, 0)
+    seal = layout.create_cell("sealring$3")
+    ring = kdb.Region(kdb.Box(0, 0, um(100), um(100))) - kdb.Region(kdb.Box(um(5), um(5), um(95), um(95)))
+    seal.shapes(pad).insert(ring)
+    die = layout.create_cell("AB12_caravel_0_0")
+    die.shapes(pad).insert(kdb.Box(um(20), um(20), um(30), um(30)))
+    die.insert(kdb.CellInstArray(seal.cell_index(), kdb.Trans()))
+
+    assert analyze.count_region(layout, die, pad, pad_selection(layout, {}))[0] == 1
+    assert analyze.count_region(layout, die, pad, pad_selection(layout, {"count_seal_ring_pads": True}))[0] == 2

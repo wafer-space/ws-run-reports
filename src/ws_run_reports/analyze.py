@@ -22,7 +22,7 @@ from pathlib import Path
 import klayout.db as kdb
 
 from . import density, features
-from .exclude import Selection, core_area_um2, selection_for
+from .exclude import Selection, core_area_um2, pad_selection, selection_for
 
 # GDS layer definitions (from gf180mcu.lyp)
 LAYER_COMP = (22, 0)       # Diffusion/active area
@@ -270,14 +270,15 @@ def extract_slot_id(cell_name):
     return parts[0] if parts else cell_name
 
 
-def analyze_slot(layout, cell, dbu, layers, selection=Selection()):
+def analyze_slot(layout, cell, dbu, layers, selection=Selection(), pads=Selection()):
     """Analyze a single design slot cell. Returns dict of metrics.
 
-    Bond pads and the die size are always measured on the whole design; the
-    selection only applies to what is inside it.
+    The die size is measured on the whole design, and bond pads on the whole
+    design apart from ``pads``' exclusions (its seal ring); the selection only
+    applies to what is inside it.
     """
     bbox = cell.bbox()
-    pad_count, pad_region = count_region(layout, cell, layers["pad"])
+    pad_count, pad_region = count_region(layout, cell, layers["pad"], pads)
     sram_count, sram_region = count_region(layout, cell, layers["sram"], selection)
     dbu2_per_mm2 = 1e6 / (dbu * dbu)
     gates = transistor_region(layout, cell, layers["comp"], layers["poly2"], selection)
@@ -344,7 +345,7 @@ def _analyze_cell_index(cell_index):
     cell = layout.cell(cell_index)
     dbu = layout.dbu
     selection = _STATE["selection"]
-    metrics = analyze_slot(layout, cell, dbu, layers, selection)
+    metrics = analyze_slot(layout, cell, dbu, layers, selection, _STATE["pads"])
     grid_rows = analyze_slot_grid(layout, cell, dbu, layers, metrics.pop("sram_region"), selection)
     bins, rects = density.measure(layout, cell, layers["marker"], metrics.pop("transistor_region"),
                                   _STATE["macro_cells"], selection)
@@ -535,6 +536,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     print(f"Analysing {len(order)} unique designs with {jobs} worker(s)...")
 
     _STATE.update(layout=layout, layers=layers, cell_info=cell_info, macro_cells=macro_cells, selection=selection,
+                  pads=pad_selection(layout, measure or {}),
                   designer=features.designer_selection(selection, features.library_cells(layout)),
                   io_cells=features.io_cells(layout))
     results = {}
