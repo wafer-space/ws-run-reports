@@ -22,8 +22,6 @@ report that was never published.
 
 ## How it was generated
 
-* **Machine:** `big-storage.welland.mithis.com`
-* **Directory:** `~/github/mithro/wafer-space/design-analysis`
 * **Script:** `analyze_layout.py`, first published as
   [`mithro/wafer-space-design-analysis`](https://github.com/mithro/wafer-space-design-analysis)
   (commit `e055f0e`, 19 March 2026). That commit is the first commit of this
@@ -35,7 +33,7 @@ report that was never published.
 * **Command:**
 
   ```bash
-  uv run python analyze_layout.py ~/github/wafer-space/ws-run1/layout/reticle.oas -o reticle_analysis.csv
+  uv run python analyze_layout.py <ws-run1 checkout>/layout/reticle.oas -o reticle_analysis.csv
   ```
 
 ## What the script did and did not produce
