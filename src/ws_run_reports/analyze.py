@@ -23,7 +23,7 @@ import klayout.db as kdb
 
 from . import density, features
 from . import usage as device_usage
-from .exclude import Selection, base_name, core_area_um2, gate_selection, pad_selection, selection_for
+from .exclude import Selection, base_name, core_area_um2, gate_selection, matches, pad_selection, selection_for
 
 # GDS layer definitions (from gf180mcu.lyp)
 LAYER_COMP = (22, 0)       # Diffusion/active area
@@ -59,6 +59,8 @@ SUMMARY_FIELDS = [
     "slot_id", "cell_name", "width_mm", "height_mm",
     "pos_x_mm", "pos_y_mm", "pad_count", "sram_block_count",
     "stdcell_count", "transistor_count",
+    # pad_count split by kind (classify_pads); pad_count is bond + probe pads.
+    "bond_pad_count", "probe_pad_count", "pad_label_count", "pad_artwork_count",
 ]
 GRID_FIELDS = [
     "slot_id", "cell_name", "grid_x", "grid_y",
@@ -114,7 +116,65 @@ def build_clipped_region(layout, cell, layer_idx, clip_box, selection=Selection(
 
 
 # The smallest pad opening (shorter side) that counts as a bond or probe pad.
+# Smaller openings are text drawn on the pad layer: MPW-18H1's LibreSilicon tile
+# labels its probe pads with 10 um letters cut through the passivation.
 MIN_PAD_UM = 20.0
+# Bond pads sit in the pad ring, within this distance of the die edge.
+PAD_EDGE_UM = 400.0
+# Openings longer than this, or far from rectangular, are artwork (logos, windows).
+MAX_PAD_UM = 300.0
+MIN_PAD_FILL = 0.8
+# Pads on the perimeter of their bounding box, within this distance of it, form an inner ring.
+PAD_RING_TOLERANCE_UM = 100.0
+
+
+def _inner_ring(boxes, tolerance):
+    """Indices of ``boxes`` that form a ring of pads inside the pad ring, or an empty set.
+
+    A second ring of wire-bond pads (for chip-on-board bonding, as on MPW-18H1's
+    OpenFASoC die and ws-run1's AutoMOS) lies on the perimeter of its own bounding
+    box: on at least three of its sides, with almost no pads inside it. Probe pads
+    sit next to the blocks they test, all over the core.
+    """
+    if len(boxes) < 12:
+        return set()
+    bound = kdb.Box()
+    for b in boxes:
+        bound += b
+    sides = [lambda b: b.left - bound.left <= tolerance, lambda b: bound.right - b.right <= tolerance,
+             lambda b: b.bottom - bound.bottom <= tolerance, lambda b: bound.top - b.top <= tolerance]
+    on = {i for i, b in enumerate(boxes) if any(side(b) for side in sides)}
+    used = sum(1 for side in sides if sum(1 for b in boxes if side(b)) >= 3)
+    return on if used >= 3 and len(on) >= 0.9 * len(boxes) else set()
+
+
+def classify_pads(region, die, dbu, all_bond=False):
+    """Count a design's merged pad-layer openings by kind.
+
+    - **label**: shorter side under ``MIN_PAD_UM`` (text on the pad layer);
+    - **artwork**: longer than ``MAX_PAD_UM`` or under ``MIN_PAD_FILL`` of its
+      bounding box (logos and windows);
+    - **bond**: within ``PAD_EDGE_UM`` of the die edge (the pad ring), or in an
+      inner ring of pads (see ``_inner_ring``), or every pad when ``all_bond``
+      (a flip-chip pad test);
+    - **probe**: the other pads, inside the core.
+    """
+    counts = {"bond": 0, "probe": 0, "label": 0, "artwork": 0}
+    edge, core = round(PAD_EDGE_UM / dbu), []
+    for polygon in region.each():
+        b = polygon.bbox()
+        if min(b.width(), b.height()) * dbu < MIN_PAD_UM:
+            counts["label"] += 1
+        elif max(b.width(), b.height()) * dbu > MAX_PAD_UM or polygon.area() < MIN_PAD_FILL * b.area():
+            counts["artwork"] += 1
+        elif all_bond or min(b.left - die.left, die.right - b.right, b.bottom - die.bottom, die.top - b.top) < edge:
+            counts["bond"] += 1
+        else:
+            core.append(b)
+    ring = _inner_ring(core, round(PAD_RING_TOLERANCE_UM / dbu))
+    counts["bond"] += len(ring)
+    counts["probe"] += len(core) - len(ring)
+    return counts
 
 
 def count_region(layout, cell, layer_idx, selection=Selection()):
@@ -303,21 +363,23 @@ def extract_slot_id(cell_name):
     return parts[0] if parts else cell_name
 
 
-def analyze_slot(layout, cell, dbu, layers, selection=Selection(), pads=Selection(), gates=None):
+def analyze_slot(layout, cell, dbu, layers, selection=Selection(), pads=Selection(), gates=None, all_bond_pads=False):
     """Analyze a single design slot cell. Returns dict of metrics.
 
     The die size is measured on the whole design, and bond pads on the whole
     design apart from ``pads``' exclusions (its seal ring); the selection only
     applies to what is inside it. Transistors are counted on ``gates``, the
-    selection without dummy fill.
+    selection without dummy fill. Pad openings are counted by kind
+    (``classify_pads``; ``all_bond_pads`` makes every pad a bond pad).
     """
     bbox = cell.bbox()
     _, pad_region = count_region(layout, cell, layers["pad"], pads)
-    # Only openings big enough to bond or probe are pads: test structures can have
-    # thousands of micron-sized passivation openings (MPW-18H1's LibreSilicon tile).
+    pad_kinds = classify_pads(pad_region, bbox, dbu, all_bond_pads)
+    # Only openings big enough to bond or probe are pads: a test tile can label its
+    # probe pads with thousands of micron-sized letters (MPW-18H1's LibreSilicon tile).
     min_pad = round(MIN_PAD_UM / dbu)
     pad_region = pad_region.with_bbox_min(min_pad, None, False)
-    pad_count = pad_region.count()
+    pad_count = pad_kinds["bond"] + pad_kinds["probe"]
     sram_count, sram_region = count_region(layout, cell, layers["sram"], selection)
     dbu2_per_mm2 = 1e6 / (dbu * dbu)
     gates = transistor_region(layout, cell, layers["comp"], layers["poly2"], gates or selection)
@@ -328,6 +390,7 @@ def analyze_slot(layout, cell, dbu, layers, selection=Selection(), pads=Selectio
         "width_mm": bbox.width() * dbu / 1000.0,
         "height_mm": bbox.height() * dbu / 1000.0,
         "pad_count": pad_count,
+        "pad_kinds": pad_kinds,
         "sram_block_count": sram_count,
         "stdcell_count": count_rsi(layout, cell, layers["marker"], selection=selection),
         "transistor_count": gates.count(),
@@ -400,7 +463,8 @@ def _analyze_cell_index(cell_index):
     cell = layout.cell(cell_index)
     dbu = layout.dbu
     selection = _STATE["selection"]
-    metrics = analyze_slot(layout, cell, dbu, layers, selection, _STATE["pads"], _STATE["gates"])
+    metrics = analyze_slot(layout, cell, dbu, layers, selection, _STATE["pads"], _STATE["gates"],
+                           matches(cell.name, _STATE["all_bond_pads"]))
     sizes = _STATE["sizes"]
     grid_rows = analyze_slot_grid(layout, cell, dbu, layers, metrics.pop("sram_region"), selection, _STATE["gates"],
                                   sizes["grid_um"])
@@ -599,7 +663,8 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     print(f"Analysing {len(order)} unique designs with {jobs} worker(s)...")
 
     _STATE.update(layout=layout, layers=layers, cell_info=cell_info, macro_cells=macro_cells, selection=selection,
-                  pads=pad_selection(layout, measure or {}), gates=gate_selection(layout, selection, measure or {}),
+                  pads=pad_selection(layout, measure or {}), all_bond_pads=(measure or {}).get("all_bond_pads", []),
+                  gates=gate_selection(layout, selection, measure or {}),
                   sizes=grid_sizes(measure or {}),
                   designer=features.designer_selection(selection, features.library_cells(layout)),
                   io_cells=features.io_cells(layout),
@@ -652,6 +717,10 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
             "sram_block_count": metrics["sram_block_count"],
             "stdcell_count": metrics["stdcell_count"],
             "transistor_count": metrics["transistor_count"],
+            "bond_pad_count": metrics["pad_kinds"]["bond"],
+            "probe_pad_count": metrics["pad_kinds"]["probe"],
+            "pad_label_count": metrics["pad_kinds"]["label"],
+            "pad_artwork_count": metrics["pad_kinds"]["artwork"],
         })
         for row in grid_rows:
             all_grid_rows.append((slot_id, cell_name) + row)

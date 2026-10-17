@@ -441,3 +441,28 @@ def test_small_density_windows():
     rows = density.map_rows(bins, window_um=100)
     assert len(rows) == 4 * 2 and rows[0][6] == 5
     assert abs(rows[-1][4] - 0.05) < 1e-9              # the last column is 50 um wide
+
+
+def test_pad_kinds():
+    """Pad-ring and inner-ring openings are bond pads, core ones probe pads; letters and logos are neither."""
+    die = kdb.Box(0, 0, um(4000), um(5000))
+    region = kdb.Region()
+    for i in range(10):
+        region.insert(kdb.Box(um(500 + 300 * i), um(50), um(560 + 300 * i), um(110)))     # pad ring
+    for x, y in [(1500, 2500), (1600, 2500), (2500, 3000)]:
+        region.insert(kdb.Box(um(x), um(y), um(x + 40), um(y + 40)))                     # probe pads
+    region.insert(kdb.Box(um(1500), um(2600), um(1504), um(2610)))                        # a letter
+    region.insert(kdb.Region(kdb.Box(um(2000), um(4000), um(2400), um(4100))) -          # a logo
+                  kdb.Region(kdb.Box(um(2050), um(4020), um(2350), um(4080))))
+    region.merge()
+    assert analyze.classify_pads(region, die, DBU) == {"bond": 10, "probe": 3, "label": 1, "artwork": 1}
+    assert analyze.classify_pads(region, die, DBU, all_bond=True)["bond"] == 13
+
+    # A second ring of pads well inside the pad ring, for chip-on-board bonding.
+    ring = kdb.Region()
+    for i in range(6):
+        for x, y in [(1000 + 300 * i, 1000), (1000 + 300 * i, 3000), (1000, 1000 + 400 * i), (2500, 1000 + 400 * i)]:
+            ring.insert(kdb.Box(um(x), um(y), um(x + 60), um(y + 60)))
+    ring.merge()
+    kinds = analyze.classify_pads(ring, die, DBU)
+    assert kinds["probe"] == 0 and kinds["bond"] == ring.count()

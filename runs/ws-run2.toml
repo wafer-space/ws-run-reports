@@ -11,3 +11,8 @@ heading = ["GF180MCU Run 2"]
 # The shuttle timeline: this run's key in the wafer.space website's _data/runs.yml.
 runs_yml_key = "gf180mcu_run_2"
 campaign_url = "https://www.crowdsupply.com/wafer-space/gf180mcu-run-2"
+
+[measure]
+# FC01 is "test pads for flip chip bonding trials": all its pads are for bonding,
+# including the four in the middle of the die.
+all_bond_pads = ["FC01_*"]
