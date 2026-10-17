@@ -17,6 +17,16 @@ runs_yml_path = "data/schedule.yml"
 timeline_source = "the Efabless GFMPW-0 shuttle page (archived) and the shuttle repositories"
 timeline_source_url = "https://web.archive.org/web/20241213090115/https://platform.efabless.com/shuttles/GFMPW-0"
 
+# Die photographs by John McMaster (Silicon Prawn), mirrored on data.wafer.space.
+photos_url = "https://data.wafer.space/big-storage/siliconprawn.org/efabless/"
+photos_prefix = "efabless_gf180mcu-mpw0-1800"
+photos_viewer_url = "https://siliconprawn.org/map/efabless/gf180mcu-mpw0-1800{code}/{setup}/"
+photos_credit = "John McMaster"
+photos_credit_url = "https://siliconprawn.org/"
+photos_year = 2025
+photos_licence = "CC BY 4.0"
+photos_licence_url = "https://creativecommons.org/licenses/by/4.0/"
+
 [measure]
 # Count only each user_project_wrapper, not the pad frame, the Caravel harness
 # or the seal ring that reticle-stitcher puts around each die.
