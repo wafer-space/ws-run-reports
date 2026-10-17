@@ -57,6 +57,7 @@
           <a class="btn btn-default btn-sm mb-10" href="{{ design.project.repository }}{% if tt and design.project.extra.COMMIT and design.project.repository.startswith("https://github.com/") %}/tree/{{ design.project.extra.COMMIT }}{% endif %}">Source repository</a>
           {% endif %}
           {% if tt and tt.chip_url %}<a class="btn btn-outline-primary btn-sm mb-10" href="{{ tt.chip_url }}{{ design.project.top }}">On tinytapeout.com</a>{% endif %}
+          {% for child in children.get(design.code, []) %}<a class="btn btn-outline-primary btn-sm mb-10" href="{{ child.pages_url }}">{{ child.heading[0] }} projects</a>{% endfor %}
           {% if photo %}<a class="btn btn-outline-primary btn-sm mb-10" href="#photo">Die photograph</a>{% endif %}
           {% if cob_url %}<a class="btn btn-outline-primary btn-sm mb-10" href="#bonding">Bonding results</a>{% endif %}
         </p>

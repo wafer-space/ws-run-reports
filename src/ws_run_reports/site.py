@@ -17,7 +17,7 @@ from pathlib import Path
 from jinja2 import Environment, PackageLoader, select_autoescape
 from markupsafe import Markup
 
-from . import external, links, projects, report, reticle, tinytapeout
+from . import config, external, links, projects, report, reticle, tinytapeout
 from . import stats as stats_module
 from .classify import CATEGORY_ORDER
 from .config import SLOT_FRACTIONS, https_url
@@ -234,6 +234,18 @@ def _tiny_tapeout(run) -> dict | None:
             "repo": https_url(index.get("repo")), "commit": index.get("commit", ""), "name": index.get("name", "")}
 
 
+def _children(run) -> dict:
+    """Project code -> the runs whose [site.parent] is that project's page here (a die's Tiny Tapeout site)."""
+    found = {}
+    prefix = f"{run.pages_url}projects/"
+    for name in config.available_runs():
+        other = config.load_run(name)
+        url = other.site.get("parent", {}).get("url", "")
+        if url.startswith(prefix) and url.endswith(".html"):
+            found.setdefault(url[len(prefix):-len(".html")], []).append(other)
+    return found
+
+
 def build_context(run, out_dir: Path) -> dict:
     stats = stats_module.load(run, out_dir)
     site_dir = out_dir / "site"
@@ -346,6 +358,7 @@ def build_context(run, out_dir: Path) -> dict:
         "precheck": _precheck_summary(details),
         "precheck_table": _precheck_table,
         "feature_labels": FEATURE_LABELS,
+        "children": _children(run),
         "words": TERMS["tiny-tapeout" if run.site.get("kind") == "tiny-tapeout" else "wafer.space"],
         "tt": _tiny_tapeout(run),
         "window_side": stats_module.length_label(stats.window_um),
