@@ -67,6 +67,7 @@ Everything else is optional:
 | `[manifest] csv` | The project list | `data/manifest.csv` |
 | `[site] heading` | Lines of the page title, the first at full size and the rest smaller | The title |
 | `[site] slot_origin`, `slot_letters`, `slot_labels` | Slot labels around the reticle: the corner of A1 (`top-left`, `top-right`, `bottom-left`, `bottom-right`), whether letters name the `columns` or the `rows`, or `slot_labels = false` for none | As platform.wafer.space: A1 top left, letters for columns |
+| `[site] reticle_frame_mm` | `[width, height]` of a frame to draw a small reticle on, in its top left corner, so its dies appear at the same scale as other runs' (MPW-18H1 uses `[30.0, 23.379]`) | The reticle's own size |
 | `[site] runs_yml_key` | The run's key in the website's `_data/runs.yml`, for the shuttle timeline | No timeline |
 | `[site] runs_yml_path`, `timeline_source`, `timeline_source_url` | A timeline file in the same format in the run repository, and the source the page credits for it | The website's file, credited to wafer.space |
 | `[site] campaign_url` | Crowd Supply or similar campaign page | None |
