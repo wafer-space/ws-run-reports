@@ -1,11 +1,13 @@
-# Tiny Tapeout GF 0.3: die T0P3 on wafer.space Run 2 (G802).
+# Tiny Tapeout GF 26a: die T26A on wafer.space Run 2 (G802), in wafer-space/tinytapeouts.
 # The "reticle" is the one die; its slots are the Tiny Tapeout projects in it.
-title = "Tiny Tapeout GF 0.3 on wafer.space Run 2"
-shuttle = "T0P3"
-slots = 32
+title = "Tiny Tapeout GF 26a on wafer.space Run 2"
+shuttle = "T26A"
+slots = 95
+repo = "wafer-space/tinytapeouts"
+path = "ttgf26a/ws-run2-t26a"
 
 [layout]
-md5 = "bfd37b3547ee338c21a9689a031bbb0c"
+md5 = "8fdfc77220918a548aa0b9707aa0e5ff"
 slots = "manifest"
 
 [measure]
@@ -17,13 +19,13 @@ pad_ring_um = 0
 
 [site]
 kind = "tiny-tapeout"
-tt_chip = "ttgf0p3"
-heading = ["Tiny Tapeout GF 0.3", "Die T0P3 on wafer.space Run 2"]
+tt_chip = "ttgf26a"
+heading = ["Tiny Tapeout GF 26a", "Die T26A on wafer.space Run 2"]
 slot_labels = false
 
 [site.parent]
 title = "wafer.space Run 2 (G802)"
-url = "https://wafer.space/ws-run2/projects/T0P3.html"
+url = "https://wafer.space/ws-run2/projects/T26A.html"
 
 [site.render]
 design_px_per_mm = 4000

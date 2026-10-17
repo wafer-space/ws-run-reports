@@ -1,0 +1,36 @@
+# Tiny Tapeout GF 0.3: die T0P3 on wafer.space Run 2 (G802), in wafer-space/tinytapeouts.
+# The "reticle" is the one die; its slots are the Tiny Tapeout projects in it.
+title = "Tiny Tapeout GF 0.3 on wafer.space Run 2"
+shuttle = "T0P3"
+slots = 32
+repo = "wafer-space/tinytapeouts"
+path = "ttgf0p3/ws-run2-t0p3"
+
+[layout]
+md5 = "bfd37b3547ee338c21a9689a031bbb0c"
+slots = "manifest"
+
+[measure]
+# Projects are a few hundred µm across: map them in 0.1 mm squares, slide the
+# densest window in 20 µm steps, and count each project's whole area as core.
+grid_um = 100
+bin_um = 20
+pad_ring_um = 0
+
+[site]
+kind = "tiny-tapeout"
+tt_chip = "ttgf0p3"
+heading = ["Tiny Tapeout GF 0.3", "Die T0P3 on wafer.space Run 2"]
+slot_labels = false
+
+[site.parent]
+title = "wafer.space Run 2 (G802)"
+url = "https://wafer.space/ws-run2/projects/T0P3.html"
+
+[site.render]
+design_px_per_mm = 4000
+design_max_px = 2400
+thumb_px_per_mm = 600
+thumb_max_px = 400
+reticle_px_per_mm = 400
+reticle_background = true

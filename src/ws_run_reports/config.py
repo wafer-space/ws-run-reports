@@ -46,6 +46,9 @@ class Run:
     repo_dir: Path
     layout: dict
     repo: str = ""
+    # The run's folder inside a repository shared with other runs (e.g. "ttgf0p3/ws-run2-t0p3" in
+    # wafer-space/tinytapeouts); its files, density report and web page all live there.
+    path: str = ""
     process: str = "GF180MCU"
     manifest: dict = field(default_factory=lambda: {"csv": "data/manifest.csv"})
     site: dict = field(default_factory=dict)
@@ -65,6 +68,17 @@ class Run:
         return f"https://github.com/{self.repo}"
 
     @property
+    def source_url(self) -> str:
+        """The run's files on GitHub: the repository, or the run's folder in it."""
+        return f"{self.github_url}/tree/main/{self.path}" if self.path else self.github_url
+
+    @property
+    def report_url(self) -> str:
+        """The density report on the repository's density-report branch."""
+        folder = f"{self.path}/" if self.path else ""
+        return f"{self.github_url}/blob/density-report/{folder}reticle_density_report.md"
+
+    @property
     def heading(self) -> list:
         """Lines of the run page's title: ``[site] heading``, or the title."""
         return list(self.site.get("heading") or [self.title])
@@ -77,6 +91,8 @@ class Run:
 
     @property
     def pages_url(self) -> str:
+        if self.path:
+            return f"https://wafer.space/{self.repo.split('/')[-1]}/{self.path}/"
         return f"https://wafer.space/{self.name}/"
 
     def assemble_layout(self) -> Path:
@@ -130,7 +146,8 @@ def load_run(name: str, repo_dir: Path | None = None) -> Run:
     layout.setdefault("parts", f"layout/{data['shuttle']}-part-*")
     layout.setdefault("file", f"layout/{data['shuttle']}.oas")
     if repo_dir is None:
-        repo_dir = RUNS_DIR.parent.parent / data["name"]
+        # A sibling checkout of the run repository, and the run's folder in it.
+        repo_dir = RUNS_DIR.parent.parent / data["repo"].split("/")[-1] / data.get("path", "")
     return Run(repo_dir=Path(repo_dir).resolve(), **data)
 
 

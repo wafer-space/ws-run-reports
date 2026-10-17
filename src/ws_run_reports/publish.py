@@ -44,7 +44,7 @@ def _remote_url(run) -> str:
         url = git("remote", "get-url", "origin", cwd=run.repo_dir, capture=True)
     except (subprocess.CalledProcessError, FileNotFoundError):
         return default
-    if top != run.repo_dir.resolve() or not _names_repo(url, run.repo):
+    if top / getattr(run, "path", "") != run.repo_dir.resolve() or not _names_repo(url, run.repo):
         return default
     return url
 
@@ -86,15 +86,17 @@ def publish_density_report(run, out_dir: Path, clone: Path, url: str):
     else:
         git("checkout", "-q", "-b", branch, "origin/HEAD", cwd=clone)
 
+    target = clone / run.path              # the run's folder, in a repository shared with other runs
+    target.mkdir(parents=True, exist_ok=True)
     files = stats_module.data_files(out_dir) + [out_dir / report.REPORT_NAME]
     for path in files:
-        shutil.copy(path, clone / path.name)
+        shutil.copy(path, target / path.name)
     # The platform's precheck step results and logs, when they have been imported.
     precheck = out_dir / projects.PRECHECK_DIR
     if precheck.exists():
-        if (clone / precheck.name).exists():
-            shutil.rmtree(clone / precheck.name)
-        shutil.copytree(precheck, clone / precheck.name)
+        if (target / precheck.name).exists():
+            shutil.rmtree(target / precheck.name)
+        shutil.copytree(precheck, target / precheck.name)
     return branch, (
         "Update standard cell and SRAM density report\n\n"
         f"Regenerated from {Path(run.layout['file']).name} (md5 {run.layout['md5']})\n"
@@ -109,14 +111,21 @@ def publish_pages(run, out_dir: Path, clone: Path, url: str):
         raise FileNotFoundError(f"{site}/index.html not found; run 'ws-run-reports site {run.name}' first")
     if _remote_has(url, branch):
         git("clone", "-q", "--single-branch", "--branch", branch, url, str(clone), cwd=out_dir)
-        for path in clone.iterdir():
-            if path.name != ".git":
-                shutil.rmtree(path) if path.is_dir() else path.unlink()
     else:
         clone.mkdir(parents=True)
         git("init", "-q", "-b", branch, cwd=clone)
         git("remote", "add", "origin", url, cwd=clone)
-    shutil.copytree(site, clone, dirs_exist_ok=True)
+    # Replace the run's own pages only: in a repository shared with other
+    # runs, everything outside the run's folder belongs to them.
+    target = clone / run.path
+    if target.exists():
+        for path in target.iterdir():
+            if path.name != ".git":
+                shutil.rmtree(path) if path.is_dir() else path.unlink()
+    target.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(site, target, dirs_exist_ok=True)
+    if run.path:
+        (clone / ".nojekyll").write_text("")
     return branch, (
         f"Update the {run.name} web page\n\n"
         f"Generated with {GENERATOR_URL} {_generator_version()}."

@@ -157,7 +157,7 @@
         <p class="text-muted">No schedule is published for this run.</p>
         {% endif %}
         <div class="space20"></div>
-        <a class="btn btn-default btn-sm" href="{{ run.github_url }}">Layout on GitHub</a>
+        <a class="btn btn-default btn-sm" href="{{ run.source_url }}">Layout on GitHub</a>
         {% if run.site.campaign_url %}<a class="btn btn-outline-primary btn-sm" href="{{ run.site.campaign_url }}">Campaign</a>{% endif %}
       </div>
     </div>
@@ -497,7 +497,7 @@
       </div>
       <div class="col-lg-6 mb-30">
         <p>The full written analysis is the
-          <a href="{{ run.github_url }}/blob/density-report/reticle_density_report.md">density report</a>.
+          <a href="{{ run.report_url }}">density report</a>.
           The measurements behind it:</p>
         <ul class="run-files">
           {% for name in data_files %}<li><a href="data/{{ name }}">{{ name }}</a></li>{% endfor %}
