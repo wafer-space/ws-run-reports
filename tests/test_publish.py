@@ -96,3 +96,12 @@ def test_pages_in_a_shared_repository_keep_the_other_runs(tmp_path):
     assert (clone / "ttgf0p3" / "ws-run2-t0p3" / "index.html").read_text() == "new page"
     assert not (clone / "ttgf0p3" / "ws-run2-t0p3" / "stale.html").exists()
     assert (clone / ".nojekyll").exists()
+
+
+def test_collection_lists_the_runs_of_its_repository():
+    from ws_run_reports import collection
+
+    tt = collection.load("tinytapeouts")
+    assert tt.pages_url == "https://wafer.space/tinytapeouts/"
+    paths = [r.path for r in collection.members(tt)]
+    assert "ttgf0p3/ws-run2-t0p3" in paths and all(p.count("/") == 1 for p in paths)

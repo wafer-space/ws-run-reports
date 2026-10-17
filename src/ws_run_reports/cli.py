@@ -71,6 +71,15 @@ COMMANDS = {
 }
 
 
+def cmd_collection(args):
+    from . import collection, publish
+    out = args.out or Path("out")
+    path = collection.build(args.name, out)
+    print(f"Wrote {path}")
+    if args.publish:
+        publish.publish_collection(collection.load(args.name), path.parent, out / args.name, push=args.push)
+
+
 def cmd_tt_manifest(args):
     from . import tinytapeout
     n = tinytapeout.write_manifest(args.index, args.tt_repo, args.output)
@@ -100,9 +109,16 @@ def main(argv=None):
         if name == "publish":
             p.add_argument("target", choices=["density-report", "gh-pages"])
             p.add_argument("--push", action="store_true", help="push the branch after committing")
+    col = sub.add_parser("collection", help="build the index page of a repository shared by several runs")
+    col.add_argument("name", help="runs/collections/<name>.toml")
+    col.add_argument("--out", type=Path, help="output directory (default: out/)")
+    col.add_argument("--publish", action="store_true", help="commit the page to the root of the repository's gh-pages")
+    col.add_argument("--push", action="store_true", help="push the gh-pages branch after committing")
     args = parser.parse_args(argv)
     if args.command == "tt-manifest":
         return cmd_tt_manifest(args)
+    if args.command == "collection":
+        return cmd_collection(args)
     run = config.load_run(args.run, args.repo_dir)
     COMMANDS[args.command][0](args, run)
 

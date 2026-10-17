@@ -156,7 +156,7 @@ gh api repos/wafer-space/ws-run2/pages -X POST -f 'source[branch]=gh-pages' -f '
 A Tiny Tapeout chip on a wafer.space reticle gets its own run: the die is
 the "reticle" and its projects are the "slots". To add one:
 
-1. Make a run repository (e.g. `ws-run2-ttgf0p3-t0p3`) holding the die as
+1. Make a folder for the die in `wafer-space/tinytapeouts` (e.g. `ttgf0p3/ws-run2-t0p3`) holding the die as
    cut from the wafer.space reticle in `layout/<CODE>-part-*`, the
    release's `shuttle_index.json` in `data/`, and a manifest made from it:
 
@@ -169,7 +169,7 @@ the "reticle" and its projects are the "slots". To add one:
    Its title, author, description, language and clock come from its
    `info.yaml` at the release commit.
 
-2. Add `runs/<repo>.toml`, as `runs/ws-run2-ttgf0p3-t0p3.toml`:
+2. Add `runs/tinytapeouts-<chip>-<run>-<code>.toml`, as `runs/tinytapeouts-ttgf0p3-ws-run2-t0p3.toml`:
 
    | Setting | Purpose |
    |---|---|
@@ -180,7 +180,19 @@ the "reticle" and its projects are the "slots". To add one:
    | `[site.parent] title`, `url` | Link back to the die on its wafer.space run |
    | `[site.render]` | Design, thumbnail and die scales (`design_px_per_mm`, `design_max_px`, `thumb_px_per_mm`, `thumb_max_px`, `reticle_px_per_mm`), and `reticle_background = true` to draw the whole die under the projects |
 
-3. Run `ws-run-reports all <repo>` as for any run.
+3. Run `ws-run-reports all <run>` as for any run.
+
+The Tiny Tapeout dies share one repository, `wafer-space/tinytapeouts`, with
+a folder per die (`<chip>/<run>-<code>`); a run config says so with `repo`
+and `path`, and its pages are published into that folder of the repository's
+gh-pages branch, at `https://wafer.space/tinytapeouts/<chip>/<run>-<code>/`,
+leaving the other dies alone. `runs/collections/tinytapeouts.toml` describes
+the index page at the root, which lists every run in the repository:
+
+```bash
+uv run ws-run-reports collection tinytapeouts             # build out/tinytapeouts/site/index.html
+uv run ws-run-reports collection tinytapeouts --publish --push
+```
 
 ## What is measured
 

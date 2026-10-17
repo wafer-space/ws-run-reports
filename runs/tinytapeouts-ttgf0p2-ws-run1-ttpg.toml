@@ -28,8 +28,8 @@ title = "wafer.space Run 1 (G801)"
 url = "https://wafer.space/ws-run1/projects/TTPG.html"
 
 [site.render]
-design_px_per_mm = 4000
-design_max_px = 2400
+design_px_per_mm = 3000
+design_max_px = 1600
 thumb_px_per_mm = 600
 thumb_max_px = 400
 reticle_px_per_mm = 400

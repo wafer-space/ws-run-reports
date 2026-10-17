@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% set short_title = collection.short_title %}
+{% block title %}{{ collection.title }} — wafer.space{% endblock %}
+{% block description %}{{ collection.intro or collection.title }}{% endblock %}
+
+{% block content %}
+<div class="wrapper image-wrapper bg-image page-title-wrapper inverse-text"
+     data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
+  <div class="container inner text-center">
+    <div class="space90"></div>
+    <h1 class="page-title">{{ collection.heading[0] }}{% for line in collection.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
+    <p class="lead">{{ entries | length }} dies · {{ entries | sum(attribute="projects") }} projects</p>
+  </div>
+</div>
+
+<div class="wrapper light-wrapper">
+  <div class="container inner">
+    {% if collection.intro %}<p class="lead text-center mb-40">{{ collection.intro }}</p>{% endif %}
+    <div class="row">
+      {% for e in entries %}
+      {% set r = e.run %}
+      <div class="col-sm-6 col-lg-4 mb-30">
+        <a class="run-card box bg-white shadow" href="{{ r.path }}/index.html">
+          <figure class="run-card-image">
+            {% if e.renders %}<img src="{{ r.path }}/renders/{{ e.renders.reticle.file }}" alt="Render of die {{ r.shuttle }}" loading="lazy">{% endif %}
+            <span class="run-code">{{ r.shuttle }}</span>
+          </figure>
+          <div class="run-card-body">
+            <h5 class="post-title mb-5">{{ r.heading[0] }}</h5>
+            <p class="mb-0 text-muted small">{{ r.heading[1:] | join(" ") }}</p>
+            <p class="mb-0 text-muted small">{{ e.projects }} projects{% if e.stats %} · {{ '{:,}'.format(e.stats.logic_cells) }} logic cells{% endif %}</p>
+          </div>
+        </a>
+        <p class="small text-muted mt-10 mb-0">
+          {% if e.parent.url %}{{ link(e.parent.title or "on its run", e.parent.url) }}{% endif %}
+          {% if e.chip_url %} · {{ link(e.chip ~ " on tinytapeout.com", e.chip_url) }}{% endif %}
+          · {{ link("files", r.source_url) }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

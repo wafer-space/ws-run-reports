@@ -151,3 +151,32 @@ def publish(run, out_dir: Path, target: str, push: bool = False):
     if committed:
         git("push", "origin", branch, cwd=clone)
         print(f"Pushed {branch} to {url}")
+
+
+def publish_collection(collection, site_dir: Path, out_dir: Path, push: bool = False):
+    """Put a collection's index page at the root of its repository's gh-pages branch.
+
+    Only the files of the index page itself are replaced; the runs' folders are left alone.
+    """
+    url = f"git+ssh://github.com/{collection.repo}.git"
+    clone = out_dir.resolve() / "publish" / "gh-pages"
+    if clone.exists():
+        shutil.rmtree(clone)
+    clone.parent.mkdir(parents=True, exist_ok=True)
+    branch = "gh-pages"
+    if _remote_has(url, branch):
+        git("clone", "-q", "--single-branch", "--branch", branch, url, str(clone), cwd=clone.parent)
+    else:
+        clone.mkdir(parents=True)
+        git("init", "-q", "-b", branch, cwd=clone)
+        git("remote", "add", "origin", url, cwd=clone)
+    for path in site_dir.iterdir():
+        if path.is_file():
+            shutil.copy(path, clone / path.name)
+    committed = _commit(clone, f"Update the {collection.name} index page\n\n"
+                               f"Generated with {GENERATOR_URL} {_generator_version()}.")
+    if push and committed:
+        git("push", "origin", branch, cwd=clone)
+        print(f"Pushed {branch} to {url}")
+    elif not push:
+        print(f"Committed locally in {clone}; re-run with --push to publish." if committed else "Nothing to publish.")
