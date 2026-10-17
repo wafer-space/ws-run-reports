@@ -2,17 +2,16 @@
 
 A run can exclude whole groups of cells, for example the I/O pad ring or a
 harness that every design on a shuttle shares, and keep measuring cells
-below an excluded one. On a Caravel die the management SoC's standard cells
-sit directly in ``caravel_core``, next to the user's ``user_project_wrapper``,
-so the run excludes ``caravel_core`` and keeps ``user_project_wrapper``::
+below an excluded one. A run defines its own groups under ``[measure.groups]``
+and names the ones to leave out, with any cells below them to keep::
 
     [measure]
-    exclude = ["pad_ring", "caravel_harness"]
-    keep = ["user_project_wrapper"]
-    core_cell = "user_project_wrapper"
+    exclude = ["pad_ring", "harness"]
+    keep = ["user_area"]
+    core_cell = "user_area"
 
-``caravel_harness`` is built in; a run can define its own groups under
-``[measure.groups]``.
+    [measure.groups]
+    harness = ["management_core", "logo"]
 
 Patterns are shell globs on the cell name without KLayout's ``$<n>`` suffix.
 They are also tried with a leading ``<CODE>_`` removed, so that the same
@@ -33,9 +32,6 @@ BUILTIN_GROUPS = {
     "seal_ring": ["sealring"],
     # Dummy fill from the PDK's fill_all.rb, as LibreLane and the wafer.space flow run it.
     "dummy_fill": ["COMP_FILL", "POLY2_FILL", "METAL?_FILL", "*_fill_cell"],
-    # Everything on an Efabless Caravel die except the user's user_project_wrapper (keep that).
-    "caravel_harness": ["caravel_core", "caravel_power_routing", "chip_io", "caravel_logo", "caravel_motto",
-                        "copyright_block", "open_source", "user_id_textblock"],
 }
 
 CODE_PREFIX_RE = re.compile(r"^[A-Za-z0-9]{4}_")

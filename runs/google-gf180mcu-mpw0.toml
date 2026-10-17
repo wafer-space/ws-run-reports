@@ -33,3 +33,8 @@ photos_licence_url = "https://creativecommons.org/licenses/by/4.0/"
 exclude = ["pad_ring", "caravel_harness", "seal_ring"]
 keep = ["user_project_wrapper"]
 core_cell = "user_project_wrapper"
+
+[measure.groups]
+# Everything on a Caravel die except the user's user_project_wrapper (kept above).
+caravel_harness = ["caravel_core", "caravel_power_routing", "chip_io", "caravel_logo", "caravel_motto",
+           "copyright_block", "open_source", "user_id_textblock"]

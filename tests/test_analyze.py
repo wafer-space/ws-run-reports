@@ -399,7 +399,7 @@ def test_dummy_fill_is_not_a_transistor():
     assert gates(whole) == 4
     assert gates(gate_selection(layout, whole, {})) == 2
     assert gates(gate_selection(layout, whole, {"count_fill_transistors": True})) == 4
-    measure = {"exclude": ["caravel_harness"], "keep": ["user_project_wrapper"]}
+    measure = {"groups": {"harness": ["caravel_core"]}, "exclude": ["harness"], "keep": ["user_project_wrapper"]}
     user = selection_for(layout, measure)
     assert gates(user) == 3            # the wrapper, its fill and the fill beside it
     assert gates(gate_selection(layout, user, measure)) == 1
