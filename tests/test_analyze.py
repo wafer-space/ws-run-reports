@@ -317,7 +317,7 @@ def test_features_in_stats_and_report(analog, tmp_path):
     assert d.voltages == {"3.3 V": ["1 custom transistor"], "5 V": ["7t-5V standard cells", "1 custom transistor"],
                           "6 V": ["2 custom transistors"]}
     assert d.device_features == ["mim", "res_poly_high"]
-    assert d.mim_levels == ["Metal4"]
+    assert d.mim_levels == ["Metal4-Metal5"]
     assert d.io_libraries == {"gf180mcu_fd_io": 1}
     text = report.build_report(run_stats)
     assert "## Process Features and Voltages" in text

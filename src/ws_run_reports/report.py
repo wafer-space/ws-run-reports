@@ -454,8 +454,11 @@ def features_section(stats) -> str:
     rows = []
     for d in designs:
         gates = " / ".join(f"{d.custom_gates.get(v, 0):,}" for v in ("3.3 V", "5 V", "6 V"))
-        devices = ", ".join(FEATURE_LABELS[key] + (f" ({', '.join(d.mim_levels)})" if key == "mim" and d.mim_levels
-                                                   else "") for key in d.device_features)
+        def notes(key):
+            parts = ([", ".join(d.mim_levels)] if key == "mim" and d.mim_levels else []) + \
+                    ([f"only in {', '.join(d.ip_sources[key])}"] if d.ip_only(key) else [])
+            return f" ({'; '.join(parts)})" if parts else ""
+        devices = ", ".join(FEATURE_LABELS[key] + notes(key) for key in d.device_features)
         rows.append([link(d), ", ".join(d.voltages) or "—", gates, devices or "—",
                      ", ".join(lib.replace("gf180mcu_", "") for lib in d.io_libraries) or "—"])
     out.append(table(["Design", "Voltages", "Custom transistors 3.3 / 5 / 6 V", "Devices drawn", "I/O library"],

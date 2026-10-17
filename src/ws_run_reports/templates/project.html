@@ -169,7 +169,9 @@
             {% endfor %}
             {% for key in design.device_features %}
             <tr><th>{{ feature_labels[key] }}</th><td>{{ '{:,}'.format(design.features[key][0]) }}
-              <span class="text-muted">({{ '{:,.0f}'.format(design.features[key][1]) }} µm²{% if key == "mim" and design.mim_levels %}, on {{ design.mim_levels | join(", ") }}{% endif %})</span></td></tr>
+              <span class="text-muted">({{ '{:,.0f}'.format(design.features[key][1]) }} µm²{% if key == "mim" and design.mim_levels %}, between {{ design.mim_levels | join(", ") | replace("-", " and ") }}{% endif %})</span>
+              {% if design.ip_sources.get(key) %}<br><span class="small text-muted">{{ "all" if design.ip_only(key) else "of which" }}
+                {% for ip, n in design.ip_sources[key].items() %}{{ '{:,}'.format(n) if not design.ip_only(key) or design.ip_sources[key] | length > 1 }} in reused <span class="run-mono">{{ ip }}</span>{{ ", " if not loop.last }}{% endfor %}</span>{% endif %}</td></tr>
             {% endfor %}
             {% if design.io_libraries %}
             <tr><th>I/O library</th><td>{% for lib, n in design.io_libraries.items() %}{{ link(lib, links.library(lib), mono=true) }} <span class="text-muted">({{ n }} cells)</span>{{ ", " if not loop.last }}{% endfor %}</td></tr>

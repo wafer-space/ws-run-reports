@@ -202,6 +202,8 @@ class Design:
     pad_ring_mm: float = PAD_RING_MM                    # [measure] pad_ring_um; 0 makes the whole design its core
     page_url: str = ""                                  # the design's page on the run's site
     features: dict = field(default_factory=dict)        # feature -> (count, area_um2), designer-drawn only
+    mim_top_levels: list = field(default_factory=list)  # from the usage output: e.g. ["Metal4-Metal5"]
+    ip_sources: dict = field(default_factory=dict)      # feature -> {reused IP block: count} (usage provenance)
     buffer_max_per_mm2: float = 0.0
     category: str = ""
     # Area of the run's core cell (e.g. a Caravel user_project_wrapper), when it names one.
@@ -319,7 +321,14 @@ class Design:
 
     @property
     def mim_levels(self) -> list:
+        """The metals each MIM sits between: from the via on its top plate when usage was measured."""
+        if self.mim_top_levels:
+            return self.mim_top_levels
         return [metal for metal in MIM_VIA_LEVELS.values() if f"mim_on_{metal.lower()}" in self.features]
+
+    def ip_only(self, feature: str) -> bool:
+        """Whether every instance of a feature comes from reused IP blocks."""
+        return bool(self.ip_sources.get(feature)) and sum(self.ip_sources[feature].values()) >= self.features[feature][0]
 
     @property
     def io_libraries(self) -> dict:
@@ -593,6 +602,32 @@ def load(run: Run, out_dir: Path) -> RunStats:
         d = first_cell.get(r["cell_name"])
         if d is not None:
             d.features[r["feature"]] = (int(r["count"]), float(r["area_um2"]))
+
+    # usage.py's measurement, where present, replaces the designer device counts above.
+    usage_names = {"custom_3v3": "gates_3v3", "custom_5v": "gates_5v", "custom_6v": "gates_6v",
+                   "native": "gates_native", "ldmos": "gates_ldmos", "moscap": "moscap", "mim": "mim",
+                   "hres": "res_poly_high", "poly_unsal": "res_poly_unsalicided", "poly_sal": "res_poly_salicided",
+                   "diff_res": "res_diffusion", "nwell_res": "res_nwell", "metal_res": "res_metal",
+                   "dnwell": "dnwell", "bjt": "bjt", "schottky": "schottky", "diode": "diode",
+                   "well_diode": "well_diode", "zener": "zener", "efuse": "efuse", "otp": "otp", "inductor": "inductor"}
+    usage_rows = _read(Path(f"{stem}_usage.csv"))
+    replaced = set()
+    for r in usage_rows:
+        d = first_cell.get(r["cell_name"])
+        if d is None or r["scope"] != "designer":
+            continue
+        if d.cell_name not in replaced:
+            replaced.add(d.cell_name)
+            d.features = {k: v for k, v in d.features.items() if k.startswith("io:")}
+        if r["device"] in usage_names and int(r["count"]):
+            d.features[usage_names[r["device"]]] = (int(r["count"]), float(r["area_um2"]))
+        elif r["device"].startswith("mim_top_via_") and int(r["count"]):
+            d.mim_top_levels.append(r["device"][len("mim_top_via_"):])
+    for r in _read(Path(f"{stem}_provenance.csv")):
+        d = first_cell.get(r["cell_name"])
+        if d is not None and r["ip_cell"] and r["device"] in usage_names and r["source_class"] != "own":
+            key = usage_names[r["device"]]
+            d.ip_sources.setdefault(key, {})[r["ip_cell"]] = int(r["count"])
 
     for r in _read(Path(f"{stem}_slot_areas.csv")):
         d = first_cell.get(r["cell_name"])
