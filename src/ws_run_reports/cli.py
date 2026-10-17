@@ -82,7 +82,7 @@ def cmd_collection(args):
 
 def cmd_tt_manifest(args):
     from . import tinytapeout
-    n = tinytapeout.write_manifest(args.index, args.tt_repo, args.output)
+    n = tinytapeout.write_manifest(args.index, args.tt_repo, args.output, args.release_tag)
     print(f"Wrote {args.output} ({n} projects)")
 
 
@@ -94,6 +94,8 @@ def main(argv=None):
     tt.add_argument("--tt-repo", type=Path, required=True,
                     help="checkout of the Tiny Tapeout shuttle repository (it must contain the release commit)")
     tt.add_argument("--output", type=Path, required=True, help="manifest CSV to write (data/manifest.csv)")
+    tt.add_argument("--release-tag", default="", help="the tapeout release tag; also writes data/tt_shuttle.json "
+                    "(submissions close and release date) beside the manifest")
     for name, (_, help_text) in COMMANDS.items():
         p = sub.add_parser(name, help=help_text)
         p.add_argument("run", help=f"run name or path to a run .toml ({', '.join(config.available_runs())})")

@@ -90,9 +90,13 @@ def manifest_rows(index: dict, tt_repo: Path) -> list[dict]:
     return rows
 
 
-def write_manifest(index_path: Path, tt_repo: Path, out: Path) -> int:
+def write_manifest(index_path: Path, tt_repo: Path, out: Path, release_tag: str = "") -> int:
+    """Write the manifest, and with ``release_tag`` the shuttle's milestones (data/tt_shuttle.json) beside it."""
     index = json.loads(Path(index_path).read_text())
     rows = manifest_rows(index, tt_repo)
+    if release_tag:
+        info = shuttle_info(index, tt_repo, release_tag)
+        (out.parent / SHUTTLE_NAME).write_text(json.dumps(info, indent=1, sort_keys=True) + "\n")
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=FIELDS, lineterminator="\n")
@@ -105,3 +109,57 @@ def load_index(repo_dir: Path) -> dict | None:
     """The run repository's copy of the release's shuttle index, if it has one."""
     path = Path(repo_dir) / "data" / "shuttle_index.json"
     return json.loads(path.read_text()) if path.exists() else None
+
+
+SHUTTLE_NAME = "tt_shuttle.json"
+
+
+def shuttle_info(index: dict, tt_repo: Path, release_tag: str = "") -> dict:
+    """The Tiny Tapeout shuttle's own milestones: when submissions closed (``end_date`` in its
+    config.yaml at the release commit) and when the tapeout release was published (GitHub)."""
+    info = {"name": index.get("name", ""), "repo": https_url(index.get("repo")), "commit": index.get("commit", "")}
+    result = subprocess.run(["git", "-C", str(tt_repo), "show", f"{index['commit']}:config.yaml"],
+                            capture_output=True, text=True)
+    if result.returncode == 0:
+        config = yaml.safe_load(result.stdout) or {}
+        info.update(id=str(config.get("id") or ""), end_date=str(config.get("end_date") or ""))
+    if release_tag and info["repo"].startswith("https://github.com/"):
+        repo = info["repo"].removeprefix("https://github.com/")
+        result = subprocess.run(["gh", "api", f"repos/{repo}/releases/tags/{release_tag}",
+                                 "--jq", "{published_at, html_url}"], capture_output=True, text=True)
+        if result.returncode == 0:
+            release = json.loads(result.stdout)
+            info["release"] = {"tag": release_tag, "date": release["published_at"][:10], "url": release["html_url"]}
+        else:
+            print(f"  warning: no release {release_tag} in {repo}: {result.stderr.strip()}")
+    return info
+
+
+def load_shuttle(repo_dir: Path) -> dict:
+    path = Path(repo_dir) / "data" / SHUTTLE_NAME
+    return json.loads(path.read_text()) if path.exists() else {}
+
+
+def _display_date(iso: str) -> str:
+    """'2026-06-19' -> '19 June 2026', as the run schedule writes dates."""
+    from datetime import date
+    day = date.fromisoformat(iso)
+    return f"{day.day} {day:%B %Y}"
+
+
+def timeline_items(shuttle: dict) -> list:
+    """The shuttle's milestones in the format of the run timeline (external.timeline)."""
+    items = []
+    name = shuttle.get("name") or "Tiny Tapeout"
+    if shuttle.get("end_date"):
+        items.append({"title": f"{name} submissions close", "date": shuttle["end_date"],
+                      "display_date": _display_date(shuttle["end_date"]),
+                      "description": "Last day to submit a project to this Tiny Tapeout shuttle", "status": "critical",
+                      "url": f"{shuttle['repo']}/blob/{shuttle['commit']}/config.yaml" if shuttle.get("repo") else ""})
+    if shuttle.get("release"):
+        release = shuttle["release"]
+        items.append({"title": f"{name} tapeout release", "date": release["date"],
+                      "display_date": _display_date(release["date"]),
+                      "description": f"Tiny Tapeout publishes the chip's layout as {release['tag']}",
+                      "status": "milestone", "url": release["url"]})
+    return items

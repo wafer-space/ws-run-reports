@@ -17,7 +17,7 @@ from types import SimpleNamespace
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from . import config, links
+from . import config, external, links, tinytapeout
 from . import stats as stats_module
 from .site import WEBSITE
 
@@ -50,7 +50,13 @@ def build(name: str, out: Path) -> Path:
         renders_path = out_dir / "site" / "renders" / "renders.json"
         renders = json.loads(renders_path.read_text()) if renders_path.exists() else None
         stats = stats_module.load(run, out_dir) if (out_dir / f"{stats_module.OUTPUT_STEM}.csv").exists() else None
+        timeline = sorted(external.timeline(run) + tinytapeout.timeline_items(tinytapeout.load_shuttle(run.repo_dir)),
+                          key=lambda item: item["date"])
+        today = date.today().isoformat()
+        reached = [item for item in timeline if item["date"] <= today]
+        upcoming = [item for item in timeline if item["date"] > today]
         entries.append({"run": run, "renders": renders, "stats": stats,
+                        "status": reached[-1] if reached else None, "next": upcoming[0] if upcoming else None,
                         "projects": len(run.projects()), "parent": run.site.get("parent", {}),
                         "chip": run.site.get("tt_chip", ""),
                         "chip_url": f"https://tinytapeout.com/chips/{run.site['tt_chip']}/" if run.site.get("tt_chip") else ""})

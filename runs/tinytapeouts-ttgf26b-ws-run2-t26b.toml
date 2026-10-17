@@ -22,6 +22,8 @@ kind = "tiny-tapeout"
 tt_chip = "ttgf26b"
 heading = ["Tiny Tapeout GF 26b", "Die T26B on wafer.space Run 2"]
 slot_labels = false
+# The run's schedule, with the Tiny Tapeout shuttle's own milestones (data/tt_shuttle.json) merged in.
+runs_yml_key = "gf180mcu_run_2"
 
 [site.parent]
 title = "wafer.space Run 2 (G802)"

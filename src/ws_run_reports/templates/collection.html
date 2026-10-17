@@ -29,6 +29,9 @@
             <h5 class="post-title mb-5">{{ r.heading[0] }}</h5>
             <p class="mb-0 text-muted small">{{ r.heading[1:] | join(" ") }}</p>
             <p class="mb-0 text-muted small">{{ e.projects }} projects{% if e.stats %} · {{ '{:,}'.format(e.stats.logic_cells) }} logic cells{% endif %}</p>
+            {% if e.status %}<p class="mb-0 small mt-5"><span class="text-muted">Status:</span> {{ e.status.title }}
+              <span class="text-muted">({{ e.status.display_date or e.status.date }})</span>{% if e.next %}<br><span class="text-muted">Next:</span>
+              {{ e.next.title }} <span class="text-muted">({{ e.next.display_date or e.next.date }})</span>{% endif %}</p>{% endif %}
           </div>
         </a>
         <p class="small text-muted mt-10 mb-0">
