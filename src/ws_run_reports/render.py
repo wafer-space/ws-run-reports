@@ -17,7 +17,7 @@ from pathlib import Path
 
 import klayout.db as kdb
 import klayout.lay as lay
-from PIL import Image, ImageChops, ImageOps
+from PIL import Image, ImageChops, ImageEnhance, ImageOps
 
 from .analyze import enumerate_slots, extract_slot_id
 
@@ -109,16 +109,39 @@ def compose(coverages, style):
     return image
 
 
+def render_scales(site: dict) -> dict:
+    """Pixels per mm for the design renders, their thumbnails and the reticle overview.
+
+    A run of small designs, such as the projects in a Tiny Tapeout die, sets
+    ``[site.render] design_px_per_mm``, ``thumb_px_per_mm`` and
+    ``reticle_px_per_mm``, and can cap a design render's and a thumbnail's
+    long side with ``design_max_px`` and ``thumb_max_px``.
+    """
+    render = site.get("render", {})
+    return {"design": float(render.get("design_px_per_mm", PX_PER_MM)),
+            "thumb": float(render.get("thumb_px_per_mm", THUMB_PX_PER_MM)),
+            "reticle": float(render.get("reticle_px_per_mm", RETICLE_PX_PER_MM)),
+            "design_max_px": render.get("design_max_px"), "thumb_max_px": render.get("thumb_max_px")}
+
+
+def _scale(box, px_per_mm, max_px):
+    """px per mm for a box, reduced if its long side would exceed max_px."""
+    long_mm = max(box.width(), box.height()) / 1000
+    return min(px_per_mm, max_px / long_mm) if max_px and long_mm else px_per_mm
+
+
 def _render_design(task):
     cell_index, code, out_dir = task
     layout = _STATE["layout"]
     view = _STATE["view"]
+    scales = _STATE["scales"]
     cell = layout.cell(cell_index)
     view.active_cellview().cell = cell
     view.max_hier()
     box = cell.dbbox()
-    width = max(16, round(box.width() / 1000 * PX_PER_MM))
-    height = max(16, round(box.height() / 1000 * PX_PER_MM))
+    px_per_mm = _scale(box, scales["design"], scales["design_max_px"])
+    width = max(16, round(box.width() / 1000 * px_per_mm))
+    height = max(16, round(box.height() / 1000 * px_per_mm))
 
     coverages = {key: _render_layer(view, key, box, width, height) for key in LAYERS}
     files = {}
@@ -128,15 +151,19 @@ def _render_design(task):
         image.save(Path(out_dir) / name, "WEBP", quality=82, method=6)
         files[style] = name
         if style == "full":
-            thumb = image.resize((max(8, round(box.width() / 1000 * THUMB_PX_PER_MM)),
-                                  max(8, round(box.height() / 1000 * THUMB_PX_PER_MM))), Image.LANCZOS)
+            thumb_px = _scale(box, scales["thumb"], scales["thumb_max_px"])
+            thumb = image.resize((max(8, round(box.width() / 1000 * thumb_px)),
+                                  max(8, round(box.height() / 1000 * thumb_px))), Image.LANCZOS)
             thumb.save(Path(out_dir) / f"{code}_thumb.webp", "WEBP", quality=80, method=6)
             files["thumb"] = f"{code}_thumb.webp"
-            reticle_tile = image.resize((max(8, round(box.width() / 1000 * RETICLE_PX_PER_MM)),
-                                         max(8, round(box.height() / 1000 * RETICLE_PX_PER_MM))), Image.LANCZOS)
+            reticle_tile = image.resize((max(8, round(box.width() / 1000 * scales["reticle"])),
+                                         max(8, round(box.height() / 1000 * scales["reticle"]))), Image.LANCZOS)
             reticle_tile.save(Path(out_dir) / f".{code}_tile.png")
-    return code, {"width_px": width, "height_px": height, "width_mm": box.width() / 1000,
-                  "height_mm": box.height() / 1000, "files": files}
+    info = {"width_px": width, "height_px": height, "width_mm": box.width() / 1000,
+            "height_mm": box.height() / 1000, "files": files}
+    if px_per_mm != PX_PER_MM:
+        info["px_per_mm"] = px_per_mm
+    return code, info
 
 
 def render_run(run, out_dir: Path, jobs=None, only=None) -> Path:
@@ -165,7 +192,8 @@ def render_run(run, out_dir: Path, jobs=None, only=None) -> Path:
                            "y_mm": (bbox.bottom - reticle_box.bottom) * dbu / 1000,
                            "width_mm": bbox.width() * dbu / 1000, "height_mm": bbox.height() * dbu / 1000})
 
-    _STATE.update(layout=layout, view=_make_view(layout))
+    scales = render_scales(run.site)
+    _STATE.update(layout=layout, view=_make_view(layout), scales=scales)
     tasks = [(cell.cell_index(), code, str(renders_dir))
              for code, cell in sorted(unique.items(), key=lambda kv: -kv[1].bbox().area())
              if not only or code in only]
@@ -188,7 +216,8 @@ def render_run(run, out_dir: Path, jobs=None, only=None) -> Path:
     # runs upwards, image y runs downwards.
     reticle_w_mm = reticle_box.width() * dbu / 1000
     reticle_h_mm = reticle_box.height() * dbu / 1000
-    reticle_px = (round(reticle_w_mm * RETICLE_PX_PER_MM), round(reticle_h_mm * RETICLE_PX_PER_MM))
+    reticle_px_per_mm = scales["reticle"]
+    reticle_px = (round(reticle_w_mm * reticle_px_per_mm), round(reticle_h_mm * reticle_px_per_mm))
     # A run can draw a small reticle in the top left of a larger frame
     # ([site] reticle_frame_mm), so that its dies appear at the same scale as
     # other runs' do. The rest of the frame is transparent.
@@ -197,22 +226,31 @@ def render_run(run, out_dir: Path, jobs=None, only=None) -> Path:
     if (frame_w_mm, frame_h_mm) == (reticle_w_mm, reticle_h_mm):
         overview = Image.new("RGB", reticle_px, (10, 12, 20))
     else:
-        overview = Image.new("RGBA", (round(frame_w_mm * RETICLE_PX_PER_MM), round(frame_h_mm * RETICLE_PX_PER_MM)),
+        overview = Image.new("RGBA", (round(frame_w_mm * reticle_px_per_mm), round(frame_h_mm * reticle_px_per_mm)),
                              (0, 0, 0, 0))
         overview.paste(Image.new("RGBA", reticle_px, (10, 12, 20, 255)), (0, 0))
+    if run.site.get("render", {}).get("reticle_background"):
+        # The whole reticle, dimmed, under the designs: for a Tiny Tapeout die,
+        # its pads, multiplexer, controller and fill around the projects.
+        view = _STATE["view"]
+        view.active_cellview().cell = top_cell
+        view.max_hier()
+        box = top_cell.dbbox()
+        background = compose({key: _render_layer(view, key, box, *reticle_px) for key in LAYERS}, "full")
+        overview.paste(ImageEnhance.Brightness(background).enhance(0.55), (0, 0))
     for p in placements:
         if p["code"] not in designs:
             continue
         tile = Image.open(renders_dir / f".{p['code']}_tile.png")
-        x = round(p["x_mm"] * RETICLE_PX_PER_MM)
-        y = reticle_px[1] - round((p["y_mm"] + p["height_mm"]) * RETICLE_PX_PER_MM)
+        x = round(p["x_mm"] * reticle_px_per_mm)
+        y = reticle_px[1] - round((p["y_mm"] + p["height_mm"]) * reticle_px_per_mm)
         overview.paste(tile, (x, y))
     overview.save(renders_dir / "reticle.webp", "WEBP", quality=85, method=6)
     for code in designs:
         (renders_dir / f".{code}_tile.png").unlink()
 
     manifest = {
-        "px_per_mm": PX_PER_MM,
+        "px_per_mm": PX_PER_MM if scales["design"] == PX_PER_MM else scales["design"],
         "reticle": {"file": "reticle.webp", "width_mm": reticle_w_mm, "height_mm": reticle_h_mm,
                     "frame_width_mm": frame_w_mm, "frame_height_mm": frame_h_mm,
                     "width_px": overview.width, "height_px": overview.height},

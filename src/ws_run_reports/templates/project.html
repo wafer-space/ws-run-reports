@@ -15,7 +15,8 @@
     <div class="space90"></div>
     <p class="mb-10"><a class="run-crumb" href="{{ root }}index.html">{{ short_title }}</a></p>
     <h1 class="page-title">{{ design.name }}</h1>
-    <p class="lead"><span class="run-code-inline">{{ design.code }}</span> · {{ design.category }} · {{ design.slot_label }} slot</p>
+    <p class="lead"><span class="run-code-inline">{{ design.code }}</span> · {{ design.category }} · {{ design.slot_label }} {{ words.slot }}</p>
+    {% if tt and design.project.extra.AUTHOR %}<p class="mb-0">by {{ design.project.extra.AUTHOR }}</p>{% endif %}
   </div>
 </div>
 
@@ -36,7 +37,7 @@
                   data-render="{{ root }}renders/{{ render.files[key] }}">{{ label }}</button>
           {% endfor %}
         </div>
-        <p class="small text-muted mt-10 mb-0">Rendered from the layout at {{ '%.1f' | format(1000 / renders.px_per_mm) }} µm
+        <p class="small text-muted mt-10 mb-0">Rendered from the layout at {% set um_per_px = 1000 / (render.px_per_mm or renders.px_per_mm) %}{{ ('%.1f' if um_per_px >= 1 else '%.2f') | format(um_per_px) }} µm
           per pixel. Layers:
           {% for key, layer in renders.layers.items() %}<span class="run-swatch"><i style="background: {{ layer.colour }}"></i>{{ layer.label }}</span>{% endfor %}
         </p>
@@ -51,18 +52,35 @@
         {% elif design.project.details %}<p class="lead">{{ design.project.details }}</p>{% endif %}
         <p>
           {% if design.project.repository %}
-          <a class="btn btn-default btn-sm mb-10" href="{{ design.project.repository }}">Source repository</a>
+          <a class="btn btn-default btn-sm mb-10" href="{{ design.project.repository }}{% if tt and design.project.extra.COMMIT %}/tree/{{ design.project.extra.COMMIT }}{% endif %}">Source repository</a>
           {% endif %}
+          {% if tt and tt.chip_url %}<a class="btn btn-outline-primary btn-sm mb-10" href="{{ tt.chip_url }}{{ design.project.top }}">On tinytapeout.com</a>{% endif %}
           {% if photo %}<a class="btn btn-outline-primary btn-sm mb-10" href="#photo">Die photograph</a>{% endif %}
           {% if cob_url %}<a class="btn btn-outline-primary btn-sm mb-10" href="#bonding">Bonding results</a>{% endif %}
         </p>
         <table class="table table-sm run-table">
           <tbody>
-            <tr><th>Die</th><td>{{ '%.2f' | format(design.width_mm) }} × {{ '%.2f' | format(design.height_mm) }} mm
+            {% if tt %}
+            {# The summary CSV keeps sizes to 0.01 mm; the render has them exactly. #}
+            {% set w, h = (render.width_mm, render.height_mm) if render else (design.width_mm, design.height_mm) %}
+            <tr><th>{{ words.Die }}</th><td>{{ '%.0f' | format(w * 1000) }} × {{ '%.0f' | format(h * 1000) }} µm
+              ({{ '%.3f' | format(w * h) }} mm²)</td></tr>
+            {% else %}
+            <tr><th>{{ words.Die }}</th><td>{{ '%.2f' | format(design.width_mm) }} × {{ '%.2f' | format(design.height_mm) }} mm
               ({{ '%.1f' | format(design.die_area_mm2) }} mm²)</td></tr>
+            {% endif %}
+            {% if tt %}
+            {% set x = design.project.extra %}
+            <tr><th>Macro</th><td class="run-mono">{{ design.project.top }}</td></tr>
+            <tr><th>Tiles</th><td>{{ design.slot_label }}{% if x.TILE_X %} <span class="text-muted">at column {{ x.TILE_X }}, row {{ x.TILE_Y }} of the tile grid</span>{% endif %}</td></tr>
+            <tr><th>Mux address</th><td>{{ x.MACRO_ADDRESS or design.code | int }}</td></tr>
+            {% if x.LANGUAGE %}<tr><th>Language</th><td>{{ x.LANGUAGE }}</td></tr>{% endif %}
+            {% if x.CLOCK_HZ and x.CLOCK_HZ != "0" %}<tr><th>Clock</th><td>{{ '{:,}'.format(x.CLOCK_HZ | int) }} Hz</td></tr>{% endif %}
+            {% else %}
             <tr><th>Core area</th><td>{{ '%.1f' | format(design.core_area_mm2) }} mm² inside the pad ring</td></tr>
             <tr><th>Placements</th><td>{{ design.placements }} on the reticle</td></tr>
             <tr><th>Bond pads</th><td>{{ design.pads }}</td></tr>
+            {% endif %}
             <tr><th>Transistors</th><td>{{ '{:,}'.format(design.transistors) }}</td></tr>
             <tr><th>Logic cells</th><td>{{ '{:,}'.format(design.logic_cells) }}
               {% if design.fill_cells %}<span class="text-muted">+ {{ '{:,}'.format(design.fill_cells) }} filler and tap cells</span>{% endif %}</td></tr>
@@ -140,12 +158,12 @@
             <tr><th>Core average</th><td>{{ design.core_density | k }} cells/mm²
               <span class="text-muted">({{ design.pct_of_buffer_max | pct }} of buffer maximum)</span></td></tr>
             {% if design.peak_cells >= design.core_density %}
-            <tr><th>Densest mm²</th><td>{{ design.peak_cells | k }} cells
+            <tr><th>Densest {{ 'mm²' if window_is_mm else window_side ~ ' square' }}</th><td>{{ design.peak_cells | k }} cells{{ '' if window_is_mm else '/mm²' }}
               <span class="text-muted">({{ design.peak_pct_of_buffer_max | pct }} of buffer maximum)</span></td></tr>
             {% endif %}
             <tr><th>Core covered by logic</th><td>{{ design.utilisation | pct }}</td></tr>
             <tr><th>Transistor density</th><td>{{ design.core_transistor_density | k }}/mm² average,
-              {{ design.peak_transistors | k }} in the densest mm²</td></tr>
+              {{ design.peak_transistors | k }}{{ ' in the densest mm²' if window_is_mm else '/mm² in the densest ' ~ window_side ~ ' square' }}</td></tr>
           </tbody>
         </table>
         {% endif %}
@@ -204,31 +222,33 @@
       <div class="col-lg-5 mb-30">
         {% if map and design.logic_cells %}
         <h3 class="mb-10">Logic density map</h3>
-        <svg class="run-heatmap" viewBox="0 0 {{ map.width }} {{ map.height }}" role="img"
-             aria-label="Logic cells per square millimetre across the die">
+        {# Drawn in units of one map square, so strokes and labels suit any square size. #}
+        {% set s = 1 / design.window_mm %}
+        <svg class="run-heatmap" viewBox="0 0 {{ map.width * s }} {{ map.height * s }}" role="img"
+             aria-label="Logic cells per square millimetre across the {{ words.die }}">
           {% for c in map.cells %}
           {% if c.sram is sameas true %}
-          <rect x="{{ '%.3f' | format(c.x) }}" y="{{ '%.3f' | format(c.y) }}" width="{{ '%.3f' | format(c.w) }}" height="{{ '%.3f' | format(c.h) }}" class="sram"><title>SRAM</title></rect>
+          <rect x="{{ '%.3f' | format(c.x * s) }}" y="{{ '%.3f' | format(c.y * s) }}" width="{{ '%.3f' | format(c.w * s) }}" height="{{ '%.3f' | format(c.h * s) }}" class="sram"><title>SRAM</title></rect>
           {% else %}
-          <rect x="{{ '%.3f' | format(c.x) }}" y="{{ '%.3f' | format(c.y) }}" width="{{ '%.3f' | format(c.w) }}" height="{{ '%.3f' | format(c.h) }}" style="fill-opacity: {{ '%.3f' | format(0.06 + 0.94 * c.level) }}"><title>{{ '{:,}'.format(c.cells) }} logic cells, {{ '{:,}'.format(c.transistors) }} transistors{% if c.sram_share %}, {{ c.sram_share | pct }} SRAM{% endif %}</title></rect>
+          <rect x="{{ '%.3f' | format(c.x * s) }}" y="{{ '%.3f' | format(c.y * s) }}" width="{{ '%.3f' | format(c.w * s) }}" height="{{ '%.3f' | format(c.h * s) }}" style="fill-opacity: {{ '%.3f' | format(0.06 + 0.94 * c.level) }}"><title>{{ '{:,}'.format(c.cells) }} logic cells, {{ '{:,}'.format(c.transistors) }} transistors{% if c.sram_share %}, {{ c.sram_share | pct }} SRAM{% endif %}</title></rect>
           {% endif %}
           {% endfor %}
           {% for r in map.rects %}
-          <rect class="sram-macro" x="{{ '%.3f' | format(r.x) }}" y="{{ '%.3f' | format(r.y) }}" width="{{ '%.3f' | format(r.w) }}" height="{{ '%.3f' | format(r.h) }}"><title>{{ r.name }}</title></rect>
+          <rect class="sram-macro" x="{{ '%.3f' | format(r.x * s) }}" y="{{ '%.3f' | format(r.y * s) }}" width="{{ '%.3f' | format(r.w * s) }}" height="{{ '%.3f' | format(r.h * s) }}"><title>{{ r.name }}</title></rect>
           {% endfor %}
           {% if map.window %}
-          <rect class="window" x="{{ '%.3f' | format(map.window.x) }}" y="{{ '%.3f' | format(map.window.y) }}" width="{{ '%g' | format(map.window.w) }}" height="{{ '%g' | format(map.window.h) }}"><title>Densest SRAM-free {{ 'mm²' if window_is_mm else window_side ~ ' square' }}: {{ '{:,}'.format(map.window.cells) }} logic cells</title></rect>
+          <rect class="window" x="{{ '%.3f' | format(map.window.x * s) }}" y="{{ '%.3f' | format(map.window.y * s) }}" width="{{ '%g' | format(map.window.w * s) }}" height="{{ '%g' | format(map.window.h * s) }}"><title>Densest SRAM-free {{ 'mm²' if window_is_mm else window_side ~ ' square' }}: {{ '{:,}'.format(map.window.cells) }} logic cells</title></rect>
           {% endif %}
-          {% for c in map.cells if c.sram is not sameas true and c.w > 0.6 * design.window_mm and c.h > 0.6 * design.window_mm %}
-          <text x="{{ '%.3f' | format(c.x + c.w / 2) }}" y="{{ '%.3f' | format(c.y + c.h / 2) }}" class="{{ 'light' if c.level > 0.55 else '' }}">{{ c.cells | k }}</text>
+          {% for c in map.cells if c.sram is not sameas true and c.w * s > 0.6 and c.h * s > 0.6 %}
+          <text x="{{ '%.3f' | format((c.x + c.w / 2) * s) }}" y="{{ '%.3f' | format((c.y + c.h / 2) * s) }}" class="{{ 'light' if c.level > 0.55 else '' }}">{{ c.cells | k if window_is_mm else c.cells }}</text>
           {% endfor %}
         </svg>
         {% if map.rects or map.window %}
-        <p class="small text-muted mb-0">Logic cells in each {{ 'square millimetre' if window_is_mm else window_side ~ ' square' }} of the die. Hatched outlines are SRAM
+        <p class="small text-muted mb-0">Logic cells in each {{ 'square millimetre' if window_is_mm else window_side ~ ' square' }} of the {{ words.die }}. Hatched outlines are SRAM
           macros{% if map.window %}; the bold outline is the densest {{ '1 mm²' if window_is_mm else window_side ~ ' square' }} that avoids them, found by sliding a
-          {{ window_side }} square over the die in {{ window_step }} steps{% endif %}. Edge squares are smaller than {{ '1 mm²' if window_is_mm else window_side ~ ' square' }}.</p>
+          {{ window_side }} square over the {{ words.die }} in {{ window_step }} steps{% endif %}. Edge squares are smaller than {{ '1 mm²' if window_is_mm else window_side ~ ' square' }}.</p>
         {% else %}
-        <p class="small text-muted mb-0">Logic cells in each {{ 'square millimetre' if window_is_mm else window_side ~ ' square' }} of the die. Hatched squares overlap an
+        <p class="small text-muted mb-0">Logic cells in each {{ 'square millimetre' if window_is_mm else window_side ~ ' square' }} of the {{ words.die }}. Hatched squares overlap an
           SRAM macro and are not counted. Edge squares are smaller than {{ '1 mm²' if window_is_mm else window_side ~ ' square' }}.</p>
         {% endif %}
         {% endif %}
