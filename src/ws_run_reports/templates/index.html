@@ -25,7 +25,7 @@
       <span class="badge rounded-pill run-badge" style="background: {{ category_colour[d.category] }}">{{ d.category }}</span>
       <h5 class="post-title mb-5">{{ d.name }}</h5>
       <p class="mb-0 text-muted small">
-        {{ d.slot_label }} slot
+        {{ d.slot_label }} {{ words.slot }}
         {% if d.logic_cells %} · {{ d.logic_cells | count }} logic cells{% endif %}
         {% if d.has_sram %} · {{ d.sram_label }} SRAM{% endif %}
         {% if not d.logic_cells and d.transistors %} · {{ d.transistors | count }} transistors{% endif %}
@@ -33,7 +33,7 @@
       <p class="mb-0 small run-card-icons">
         {% if d.code in photos %}<span title="Die photograph available"><i class="jam jam-camera"></i> photo</span>{% endif %}
         {% if d.code in cob %}<span title="Chip-on-board bonding results available"><i class="jam jam-cpu"></i> bonded</span>{% endif %}
-        {% if d.placements > 1 %}<span title="Placed {{ d.placements }} times on the reticle">× {{ d.placements }}</span>{% endif %}
+        {% if d.placements > 1 %}<span title="Placed {{ d.placements }} times on the {{ words.reticle }}">× {{ d.placements }}</span>{% endif %}
         {% if d.code in details and details[d.code].chip_on_board %}<span title="Chip-on-board packaging selected">CoB</span>{% endif %}
       </p>
       {% if d.voltages %}<p class="mb-0 small text-muted run-card-features">{{ d.voltages | join(" · ") }}
@@ -49,7 +49,12 @@
   <div class="container inner text-center">
     <div class="space90"></div>
     <h1 class="page-title">{{ run.heading[0] }}{% for line in run.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
+    {% if tt %}
+    <p class="lead">{{ stats.designs | length }} projects{% if tt.parent.url %} · <a class="run-crumb" href="{{ tt.parent.url }}">{{ tt.parent.title or 'the run' }}</a>{% endif %}{% if tt.chip_url %}
+      · <a class="run-crumb" href="{{ tt.chip_url }}">{{ tt.chip }} on tinytapeout.com</a>{% endif %}</p>
+    {% else %}
     <p class="lead">Shuttle {{ run.shuttle }} · {{ stats.designs | length }} public designs on one reticle</p>
+    {% endif %}
   </div>
 </div>
 
@@ -58,15 +63,26 @@
   <div class="container inner">
     <h2 class="section-title mb-40 text-center">What was built</h2>
     <div class="row justify-content-center">
+      {% if tt %}
+      {{ stat(stats.designs | length, 'Projects', 'in the die') }}
+      {% else %}
       {{ stat(stats.designs | length, 'Public designs', 'of ' ~ run.slots ~ ' reticle slots') }}
+      {% endif %}
       {{ stat(open_source, 'Open source', 'with a public repository') }}
       {{ stat(stats.transistors | count, 'Transistors', 'across the unique designs') }}
       {{ stat(stats.logic_cells | count, 'Logic cells', 'gates and flip-flops') }}
       {{ stat('%.0f KiB' | format(stats.sram_bits / 8 / 1024), 'SRAM', 'in foundry and custom macros') }}
+      {% if not tt %}
       {{ stat(pads | count, 'Bond pads', '') }}
+      {% endif %}
     </div>
+    {% if tt %}
+    <p class="text-center text-muted small mb-0">Counted inside the projects only: the die's pads, Tiny Tapeout's
+      multiplexer, controller and power switches, and the fill are left out.</p>
+    {% else %}
     <p class="text-center text-muted small mb-0">Private designs on the reticle are not in the public layout and are
       not counted. Designs placed more than once are counted once.</p>
+    {% endif %}
   </div>
 </div>
 
@@ -75,7 +91,7 @@
   <div class="container inner">
     <div class="row gutter-50">
       <div class="col-lg-8 mb-30">
-        <h2 class="section-title mb-20">The reticle</h2>
+        <h2 class="section-title mb-20">The {{ words.reticle }}</h2>
         {% if renders %}
         <div class="run-reticle-frame{{ ' with-labels' if slot_columns else '' }}">
           {% if slot_columns %}
@@ -93,7 +109,7 @@
           {% endif %}
           {% set framed = renders.reticle.frame_width_mm is defined and (renders.reticle.frame_width_mm, renders.reticle.frame_height_mm) != (renders.reticle.width_mm, renders.reticle.height_mm) %}
           <div class="run-reticle{{ ' framed' if framed else ' shadow' }}">
-            <img src="renders/{{ renders.reticle.file }}" alt="Render of the {{ run.shuttle }} reticle"
+            <img src="renders/{{ renders.reticle.file }}" alt="Render of the {{ run.shuttle }} {{ words.reticle }}"
                  width="{{ renders.reticle.width_px }}" height="{{ renders.reticle.height_px }}">
             {% for p in placements %}
             {% set d = design_by_code[p.code] %}
@@ -105,19 +121,19 @@
         </div>
         <p class="small text-muted mt-10 mb-0">Every design rendered from the layout at the same scale and placed where
           it sits on the {{ '%.0f' | format(renders.reticle.width_mm) }} × {{ '%.1f' | format(renders.reticle.height_mm) }} mm
-          reticle.{% if framed %} It is drawn on a {{ '%.0f' | format(renders.reticle.frame_width_mm) }} × {{ '%.1f' | format(renders.reticle.frame_height_mm) }} mm
+          {{ words.reticle }}.{% if framed %} It is drawn on a {{ '%.0f' | format(renders.reticle.frame_width_mm) }} × {{ '%.1f' | format(renders.reticle.frame_height_mm) }} mm
           frame, so that the dies appear at the same scale as on the other runs' pages.{% endif %}{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}
-          Select a die for its details.</p>
+          Select a {{ words.die }} for its details.</p>
         {% else %}
         <p class="text-muted">Renders have not been generated for this run yet.</p>
         {% endif %}
       </div>
       <div class="col-lg-4">
         {% if slot_types %}
-        <h2 class="section-title mb-20">Slots</h2>
+        <h2 class="section-title mb-20">{{ words.Slots }}</h2>
         <table class="table table-sm run-table bg-white mb-30">
           <tbody>
-            {% for row in slot_types %}<tr><td>{{ row.label }}</td><td class="text-end">{{ row.dies }}</td></tr>{% endfor %}
+            {% for row in slot_types %}<tr><td>{{ row.label }}{% if tt %} tiles{% endif %}</td><td class="text-end">{{ row.dies }}</td></tr>{% endfor %}
           </tbody>
         </table>
         {% endif %}
@@ -152,7 +168,7 @@
 <div id="usage" class="wrapper light-wrapper">
   <div class="container inner">
     <h2 class="section-title mb-10 text-center">How people used their silicon</h2>
-    <p class="lead text-center mb-40">Where the area of {{ stats.designs | length }} dies
+    <p class="lead text-center mb-40">Where the area of {{ stats.designs | length }} {{ words.dies }}
       ({{ '%.0f' | format(stats.die_area_mm2) }} mm² of silicon) actually went</p>
 
     <div class="run-bar run-bar-large mb-10">
@@ -197,7 +213,7 @@
     </div>
 
     <h3 class="mb-10">Area budget of every design</h3>
-    <p class="text-muted small mb-20">Each bar is one die, split the same way as above. Sorted by how much of the die is logic.</p>
+    <p class="text-muted small mb-20">Each bar is one {{ words.die }}, split the same way as above. Sorted by how much of the {{ words.die }} is logic.</p>
     <div class="run-rows">
       {% for d in stats.designs | sort(attribute='utilisation', reverse=true) %}
       <a class="run-row" href="projects/{{ d.code }}.html">
@@ -359,7 +375,7 @@
 <div id="guidance" class="wrapper gray-wrapper">
   <div class="container inner">
     <h2 class="section-title mb-10 text-center">Sizing your own design</h2>
-    <p class="lead text-center mb-40">What each slot size held on this run, and what it would hold at this run's densities</p>
+    <p class="lead text-center mb-40">What each {{ 'tile size' if tt else 'slot size' }} held on this run, and what it would hold at this run's densities</p>
     <div class="table-responsive">
       <table class="table run-table bg-white shadow">
         <thead><tr>

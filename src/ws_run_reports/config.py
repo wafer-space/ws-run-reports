@@ -34,6 +34,7 @@ class Project:
     repository: str = ""
     top: str = ""
     visibility: str = "Public"
+    extra: dict = field(default_factory=dict)   # any other manifest columns, e.g. a Tiny Tapeout die's AUTHOR
 
 
 @dataclass
@@ -151,6 +152,9 @@ def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+_MANIFEST_COLUMNS = {"CODE", "PROJECT", "SLOT_SIZE", "PROJECT_DETAILS", "REPOSITORY", "TOP", "VISIBILITY"}
+
+
 def _projects_from_csv(path: Path) -> list[Project]:
     with open(path, newline="") as f:
         return [
@@ -162,6 +166,7 @@ def _projects_from_csv(path: Path) -> list[Project]:
                 repository=row["REPOSITORY"].strip(),
                 top=row["TOP"],
                 visibility=row["VISIBILITY"],
+                extra={key: value for key, value in row.items() if key not in _MANIFEST_COLUMNS and value},
             )
             for row in csv.DictReader(f)
         ]

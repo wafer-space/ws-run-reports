@@ -199,6 +199,7 @@ class Design:
     sram_rects: list = field(default_factory=list)      # (macro, x0, y0, x1, y1) in mm from the die corner
     windows: dict = field(default_factory=dict)         # kind -> densest 1 mm window, from _windows.csv
     window_mm: float = 1.0                              # side of the map squares and windows ([measure] grid_um)
+    pad_ring_mm: float = PAD_RING_MM                    # [measure] pad_ring_um; 0 makes the whole design its core
     features: dict = field(default_factory=dict)        # feature -> (count, area_um2), designer-drawn only
     buffer_max_per_mm2: float = 0.0
     category: str = ""
@@ -237,7 +238,7 @@ class Design:
         """Die area inside the I/O pad ring, or the area of the run's core cell."""
         if self.measured_core_mm2 is not None:
             return self.measured_core_mm2
-        return max(0.0, self.width_mm - 2 * PAD_RING_MM) * max(0.0, self.height_mm - 2 * PAD_RING_MM)
+        return max(0.0, self.width_mm - 2 * self.pad_ring_mm) * max(0.0, self.height_mm - 2 * self.pad_ring_mm)
 
     @property
     def outside_core_label(self) -> str:
@@ -291,13 +292,16 @@ class Design:
         """How the die area is spent, in mm2. The parts sum to the die area."""
         ring = self.die_area_mm2 - self.core_area_mm2
         used = self.logic_area_mm2 + self.fill_area_mm2 + self.sram_area_mm2
-        return {
+        parts = {
             self.outside_core_label: ring,
             "Logic cells": self.logic_area_mm2,
             "SRAM": self.sram_area_mm2,
             "Filler and tap cells": self.fill_area_mm2,
             "Other": max(0.0, self.core_area_mm2 - used),
         }
+        if self.measured_core_mm2 is None and self.pad_ring_mm == 0:
+            del parts[self.outside_core_label]          # the whole design is its core
+        return parts
 
     # --- process features -------------------------------------------------
 
@@ -338,8 +342,9 @@ class Design:
 
     @property
     def slot_label(self) -> str:
-        return {"1x1": "1 × 1", "1x0p5": "1 × ½", "0p5x1": "½ × 1", "0p5x0p5": "½ × ½"}.get(
-            self.project.slot_size, self.project.slot_size)
+        size = self.project.slot_size
+        known = {"1x1": "1 × 1", "1x0p5": "1 × ½", "0p5x1": "½ × 1", "0p5x0p5": "½ × ½"}
+        return known.get(size) or re.sub(r"^(\d+)x(\d+)$", r"\1 × \2", size)
 
 
 @dataclass
@@ -514,6 +519,7 @@ def load(run: Run, out_dir: Path) -> RunStats:
     # Map squares and windows are 1 mm unless the run measured smaller ones;
     # peak densities are always given per mm².
     window_mm = float(meta.get("grid_um", 1000)) / 1000
+    pad_ring_mm = float(meta["pad_ring_um"]) / 1000 if "pad_ring_um" in meta else PAD_RING_MM
     per_mm2 = 1 / (window_mm * window_mm)
 
     projects = run.projects()
@@ -529,7 +535,8 @@ def load(run: Run, out_dir: Path) -> RunStats:
             code=code, cell_name=r["cell_name"], project=projects.get(code, Project(code, code)),
             width_mm=float(r["width_mm"]), height_mm=float(r["height_mm"]), pads=int(r["pad_count"]),
             sram_blocks=int(r["sram_block_count"]), logic_cells=int(r["stdcell_count"]),
-            transistors=int(r["transistor_count"]), positions=[position], window_mm=window_mm)
+            transistors=int(r["transistor_count"]), positions=[position], window_mm=window_mm,
+            pad_ring_mm=pad_ring_mm)
     first_cell = {d.cell_name: d for d in designs.values()}
 
     for r in _read(Path(f"{stem}_cells.csv")):

@@ -406,14 +406,8 @@ def _analyze_cell_index(cell_index):
     metrics["windows"] = density.densest_windows(bins, sizes["grid_um"])
     usage = count_stdcell_usage(cell, _STATE["cell_info"], selection)
     metrics["macros"] = count_macro_usage(cell, _STATE["macro_cells"], selection)
-    if selection.core_cell:
-        metrics["core_area_mm2"] = core_area_um2(layout, cell, selection.core_cell) / 1e6
-    elif sizes.get("pad_ring_um") is not None:
-        ring_mm = sizes["pad_ring_um"] / 1000
-        metrics["core_area_mm2"] = (max(0.0, metrics["width_mm"] - 2 * ring_mm)
-                                    * max(0.0, metrics["height_mm"] - 2 * ring_mm))
-    else:
-        metrics["core_area_mm2"] = None
+    metrics["core_area_mm2"] = (core_area_um2(layout, cell, selection.core_cell) / 1e6
+                                if selection.core_cell else None)
     return cell_index, metrics, grid_rows, usage
 
 

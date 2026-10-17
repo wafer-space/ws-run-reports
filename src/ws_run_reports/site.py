@@ -202,6 +202,25 @@ def _precheck_summary(details: dict) -> dict:
     }
 
 
+# How the pages name things. A Tiny Tapeout run's "reticle" is one die and
+# its "dies" are the projects in it, sized in tiles.
+TERMS = {
+    "wafer.space": {"reticle": "reticle", "Reticle": "Reticle", "die": "die", "dies": "dies", "Die": "Die",
+                    "slot": "slot", "Slots": "Slots"},
+    "tiny-tapeout": {"reticle": "die", "Reticle": "Die", "die": "project", "dies": "projects", "Die": "Size",
+                     "slot": "tiles", "Slots": "Project sizes"},
+}
+
+
+def _tiny_tapeout(run) -> dict | None:
+    """Links for a Tiny Tapeout die's pages: the chip on tinytapeout.com and the die on its wafer.space run."""
+    if run.site.get("kind") != "tiny-tapeout":
+        return None
+    chip = run.site.get("tt_chip", "")
+    return {"chip": chip, "chip_url": f"https://tinytapeout.com/chips/{chip}/" if chip else "",
+            "parent": run.site.get("parent", {})}
+
+
 def build_context(run, out_dir: Path) -> dict:
     stats = stats_module.load(run, out_dir)
     site_dir = out_dir / "site"
@@ -309,6 +328,8 @@ def build_context(run, out_dir: Path) -> dict:
         "precheck": _precheck_summary(details),
         "precheck_table": _precheck_table,
         "feature_labels": FEATURE_LABELS,
+        "words": TERMS["tiny-tapeout" if run.site.get("kind") == "tiny-tapeout" else "wafer.space"],
+        "tt": _tiny_tapeout(run),
         "window_side": stats_module.length_label(stats.window_um),
         "window_step": stats_module.length_label(stats.step_um),
         "window_is_mm": stats.window_um == 1000,
