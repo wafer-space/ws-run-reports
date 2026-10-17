@@ -392,37 +392,43 @@
         {# Tiny Tapeout projects are small: their figures get a decimal; full shuttles keep the coarser rounding. #}
         {% macro num(v) %}{{ v | count_fine if tt else v | count }}{% endmacro %}
         {% set mx = maxima %}
-        <thead><tr>
-          <th rowspan="2">{{ 'Tiles' if tt else 'Slot' }}</th><th rowspan="2">{{ 'Size' if tt else 'Die' }}</th>
-          <th rowspan="2" class="text-end">Core area</th><th rowspan="2" class="text-end">{{ 'Projects' if tt else 'Designs' }}</th>
-          <th rowspan="2" class="text-end">Most logic<br>cells</th><th rowspan="2" class="text-end">Median</th>
-          <th rowspan="2" class="text-end">At typical<br>density <span class="small text-muted fw-normal">(per mm²)</span><br><span class="small text-muted">{{ median_density | k }}</span></th>
-          <th rowspan="2" class="text-end">At best<br>density <span class="small text-muted fw-normal">(per mm²)</span><br><span class="small text-muted">{{ best_density | k }}</span></th>
-          <th colspan="3" class="text-center">Max</th>
+        {# Every column header is a label over one note line (a density or a cell), so the labels line up. #}
+        {% macro head(label, note="", cls="text-end") %}<th class="{{ cls }}">{{ label }}<span class="run-note">{{ note or "\u00a0" }}</span></th>{% endmacro %}
+        {% macro per_mm2(v) %}{{ v | k }} / mm²{% endmacro %}
+        {% macro ref(cell) %}{{ link(cell.cell_type, links.cell(mx.library, cell.cell_type), mono=true) if cell else "none used" }}{% endmacro %}
+        <thead><tr class="run-groups">
+          <th colspan="4"></th>
+          <th colspan="2" class="run-group">Logic cells in its {{ 'projects' if tt else 'designs' }}</th>
+          <th colspan="3" class="run-group">Logic cells at this run's density</th>
+          <th colspan="2" class="run-group">Theoretical maximum</th>
         </tr><tr>
-          <th class="text-end">NAND gates<br><span class="small text-muted fw-normal">theoretical{% if mx.nand %}<br>{{ link(mx.nand.cell_type, links.cell(mx.library, mx.nand.cell_type), mono=true) }}{% endif %}</span></th>
-          <th class="text-end">Flip-flops<br><span class="small text-muted fw-normal">theoretical{% if mx.flop %}<br>{{ link(mx.flop.cell_type, links.cell(mx.library, mx.flop.cell_type), mono=true) }}{% endif %}</span></th>
-          <th class="text-end">At densest<br>achieved <span class="small text-muted fw-normal">(per mm²)</span><br><span class="small text-muted fw-normal">{{ mx.densest | k }}</span></th>
+          {{ head('Tiles' if tt else 'Slot', cls="") }}{{ head('Size' if tt else 'Die', cls="") }}
+          {{ head("Core area") }}{{ head('Projects' if tt else 'Designs') }}
+          {{ head("Most", cls="text-end run-group-start") }}{{ head("Median") }}
+          {{ head("Typical", per_mm2(median_density), cls="text-end run-group-start") }}{{ head("Best", per_mm2(best_density)) }}
+          {{ head("Densest", per_mm2(mx.densest)) }}
+          {{ head("NAND gates", ref(mx.nand), cls="text-end run-group-start") }}{{ head("Flip-flops", ref(mx.flop)) }}
         </tr></thead>
         <tbody>
           {% for row in slot_guidance %}
           <tr><td class="text-nowrap"><strong>{{ row.label }}</strong></td><td class="text-nowrap">{{ row.die }}</td>
             <td class="text-end">{{ ('%.2f' if tt else '%.1f') | format(row.core_mm2) }} mm²</td><td class="text-end">{{ row.designs }}</td>
-            <td class="text-end">{{ num(row.best) }}</td><td class="text-end">{{ num(row.median) }}</td>
-            <td class="text-end">{{ num(row.at_median_density) }}</td>
+            <td class="text-end run-group-start">{{ num(row.best) }}</td><td class="text-end">{{ num(row.median) }}</td>
+            <td class="text-end run-group-start">{{ num(row.at_median_density) }}</td>
             <td class="text-end">{{ num(row.at_best_density) }}</td>
-            <td class="text-end">{{ num(row.max_nand) }}</td><td class="text-end">{{ num(row.max_flop) }}</td>
-            <td class="text-end">{{ num(row.at_densest) }}</td></tr>
+            <td class="text-end">{{ num(row.at_densest) }}</td>
+            <td class="text-end run-group-start">{{ num(row.max_nand) if mx.nand else "—" }}</td>
+            <td class="text-end">{{ num(row.max_flop) if mx.flop else "—" }}</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    <p class="small text-muted mb-40">{{ core_area_text }} "At typical density"
-      and "at best density" multiply the core area by this run's median and best whole-die densities; SRAM and analog
+    <p class="small text-muted mb-40">{{ core_area_text }} "Typical"
+      and "best" multiply the core area by this run's median and best whole-die logic densities, and "densest" by the
+      densest {{ '1 mm²' if window_is_mm else window_side ~ ' square' }} any design on this run reached; SRAM and analog
       blocks take their area out of that. The theoretical maxima fill the core with nothing but that one cell of
       {{ link(maxima.library | library_label, links.library(maxima.library)) if maxima.library else "the main library" }}, the
-      library most used on this run, edge to edge with no routing; "at densest achieved" multiplies the core area by the
-      densest {{ '1 mm²' if window_is_mm else window_side ~ ' square' }} any design on this run reached.</p>
+      library most used on this run, edge to edge with no routing.</p>
 
     <h3 class="mb-10">Logic density of every digital design</h3>
     <p class="text-muted small mb-20">Solid bar: average over the core. Outlined bar: the densest single mm² outside SRAM (a dash where memory covers most of the die). The scale
