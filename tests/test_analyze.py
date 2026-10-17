@@ -403,3 +403,41 @@ def test_dummy_fill_is_not_a_transistor():
     user = selection_for(layout, measure)
     assert gates(user) == 3            # the wrapper, its fill and the fill beside it
     assert gates(gate_selection(layout, user, measure)) == 1
+
+
+def test_manifest_slots_are_outermost_placements():
+    layout = kdb.Layout()
+    layout.dbu = DBU
+    top = layout.create_cell("T0P3_tt_gf_wrapper_6_0")
+    wrapper = layout.create_cell("tt_ctrl")
+    a = layout.create_cell("tt_um_a$2")
+    b = layout.create_cell("tt_um_b")
+    nested = layout.create_cell("tt_um_example")       # inside a, also listed: still part of a
+    for cell, w in ((a, 340), (b, 340), (nested, 50)):
+        cell.shapes(layout.layer(22, 0)).insert(kdb.Box(0, 0, um(w), um(160)))
+    a.insert(kdb.CellInstArray(nested.cell_index(), kdb.Trans(um(10), um(10))))
+    top.insert(kdb.CellInstArray(wrapper.cell_index(), kdb.Trans()))
+    wrapper.insert(kdb.CellInstArray(a.cell_index(), kdb.Trans(um(100), um(200))))
+    top.insert(kdb.CellInstArray(b.cell_index(), kdb.Trans(um(500), um(200))))
+
+    slots = analyze.enumerate_slots(top, {"tt_um_a": "001", "tt_um_b": "002", "tt_um_example": "003",
+                                          "tt_um_missing": "004"})
+    assert [(name, analyze.extract_slot_id(name)) for name, _, _ in slots] == [
+        ("001_tt_um_a$2", "001"), ("002_tt_um_b", "002")]
+    assert slots[0][1].bbox().transformed(slots[0][2]).left == um(100)
+    # Without the manifest, the top cell's direct children are the slots, as for a reticle.
+    assert [name for name, _, _ in analyze.enumerate_slots(top)] == ["tt_ctrl", "tt_um_b"]
+
+
+def test_small_density_windows():
+    from ws_run_reports import density
+
+    bins = density.Bins(kdb.Box(0, 0, um(350), um(160)), DBU, bin_um=10)
+    for x in range(0, 50, 10):
+        gx, gy = bins.index(kdb.Point(um(x + 5), um(5)))
+        bins.cells[gy][gx] += 1
+    windows = density.densest_windows(bins, window_um=100)
+    assert windows["densest_any"][:3] == (0.0, 0.0, 5)
+    rows = density.map_rows(bins, window_um=100)
+    assert len(rows) == 4 * 2 and rows[0][6] == 5
+    assert abs(rows[-1][4] - 0.05) < 1e-9              # the last column is 50 um wide

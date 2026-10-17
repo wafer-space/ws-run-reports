@@ -474,8 +474,8 @@
             (<span class="run-mono">{{ patterns | join(', ') }}</span>){{ '; ' if not loop.last }}{% endfor %}.
             Die sizes are measured on the whole die, and bond pads on the whole die apart from its seal ring.</li>{% endif %}
           <li><strong>Theoretical maximum</strong> tiles one cell at its placement boundary with no routing.</li>
-          {% if windowed %}<li><strong>Densest mm²</strong> is the best 1 mm square anywhere in each die, sliding in
-            0.1 mm steps and avoiding SRAM.</li>{% else %}<li><strong>Densest mm²</strong> is the best cell of a 1 mm grid
+          {% if windowed %}<li><strong>Densest mm²</strong> is the best {{ window_side }} square anywhere in each die, sliding in
+            {{ window_step }} steps and avoiding SRAM{{ ', given per mm²' if not window_is_mm }}.</li>{% else %}<li><strong>Densest mm²</strong> is the best cell of a {{ window_side }} grid
             over each die, skipping SRAM.</li>{% endif %}
         </ul>
       </div>

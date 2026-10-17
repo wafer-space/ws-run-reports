@@ -150,7 +150,7 @@ def render_run(run, out_dir: Path, jobs=None, only=None) -> Path:
     layout.read(str(layout_path))
     dbu = layout.dbu
     top_cell = max(layout.top_cells(), key=lambda c: c.bbox().area())
-    slots = enumerate_slots(top_cell)
+    slots = enumerate_slots(top_cell, run.slot_cells())
     reticle_box = top_cell.bbox()
 
     # Placements relative to the reticle's lower left corner, whatever the

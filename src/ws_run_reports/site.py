@@ -19,7 +19,6 @@ from markupsafe import Markup
 
 from . import external, projects, report, reticle
 from . import stats as stats_module
-from .analyze import GRID_SIZE_UM
 from .classify import CATEGORY_ORDER
 from .config import SLOT_FRACTIONS
 from .features import FEATURE_LABELS
@@ -79,9 +78,9 @@ def _heatmap(design):
         return _full_heatmap(design)
     if not design.grid:
         return None
-    step = GRID_SIZE_UM / 1000
-    nx = max(1, -(-round(design.width_mm * 1000) // int(GRID_SIZE_UM)))
-    ny = max(1, -(-round(design.height_mm * 1000) // int(GRID_SIZE_UM)))
+    step = design.window_mm
+    nx = max(1, -(-round(design.width_mm * 1000) // round(step * 1000)))
+    ny = max(1, -(-round(design.height_mm * 1000) // round(step * 1000)))
     measured = {(gx, gy): (transistors, cells) for gx, gy, transistors, cells in design.grid}
     peak = max((c for _, c in measured.values()), default=0) or 1
     cells = []
@@ -101,7 +100,8 @@ def _heatmap(design):
 
 
 def _full_heatmap(design):
-    """Every 1 mm square shaded by logic cells per mm², with SRAM macros and the densest SRAM-free window."""
+    """Every map square (1 mm unless the run set otherwise) shaded by logic cells per mm², with SRAM
+    macros and the densest SRAM-free window."""
     def flip(y, h):
         return design.height_mm - y - h
 
@@ -116,7 +116,8 @@ def _full_heatmap(design):
     rects = [{"name": name, "x": x0, "y": flip(y0, y1 - y0), "w": x1 - x0, "h": y1 - y0}
              for name, x0, y0, x1, y1 in design.sram_rects]
     best = design.windows.get("densest_sram_free")
-    window = {"x": best["x"], "y": flip(best["y"], 1.0), "w": 1.0, "h": 1.0, "cells": best["cells"]} if best else None
+    side = design.window_mm
+    window = {"x": best["x"], "y": flip(best["y"], side), "w": side, "h": side, "cells": best["cells"]} if best else None
     return {"cells": cells, "width": design.width_mm, "height": design.height_mm, "peak": peak,
             "rects": rects, "window": window}
 
@@ -308,6 +309,9 @@ def build_context(run, out_dir: Path) -> dict:
         "precheck": _precheck_summary(details),
         "precheck_table": _precheck_table,
         "feature_labels": FEATURE_LABELS,
+        "window_side": stats_module.length_label(stats.window_um),
+        "window_step": stats_module.length_label(stats.step_um),
+        "window_is_mm": stats.window_um == 1000,
         "windowed": report.windowed(stats),
         "core_area_text": (f"Core area is the area of each die's {stats.meta['core_cell']} cell."
                            if stats.meta.get("core_cell") else

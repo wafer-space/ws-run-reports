@@ -217,19 +217,19 @@
           <rect class="sram-macro" x="{{ '%.3f' | format(r.x) }}" y="{{ '%.3f' | format(r.y) }}" width="{{ '%.3f' | format(r.w) }}" height="{{ '%.3f' | format(r.h) }}"><title>{{ r.name }}</title></rect>
           {% endfor %}
           {% if map.window %}
-          <rect class="window" x="{{ '%.3f' | format(map.window.x) }}" y="{{ '%.3f' | format(map.window.y) }}" width="1" height="1"><title>Densest SRAM-free mm²: {{ '{:,}'.format(map.window.cells) }} logic cells</title></rect>
+          <rect class="window" x="{{ '%.3f' | format(map.window.x) }}" y="{{ '%.3f' | format(map.window.y) }}" width="{{ '%g' | format(map.window.w) }}" height="{{ '%g' | format(map.window.h) }}"><title>Densest SRAM-free {{ 'mm²' if window_is_mm else window_side ~ ' square' }}: {{ '{:,}'.format(map.window.cells) }} logic cells</title></rect>
           {% endif %}
-          {% for c in map.cells if c.sram is not sameas true and c.w > 0.6 and c.h > 0.6 %}
+          {% for c in map.cells if c.sram is not sameas true and c.w > 0.6 * design.window_mm and c.h > 0.6 * design.window_mm %}
           <text x="{{ '%.3f' | format(c.x + c.w / 2) }}" y="{{ '%.3f' | format(c.y + c.h / 2) }}" class="{{ 'light' if c.level > 0.55 else '' }}">{{ c.cells | k }}</text>
           {% endfor %}
         </svg>
         {% if map.rects or map.window %}
-        <p class="small text-muted mb-0">Logic cells in each square millimetre of the die. Hatched outlines are SRAM
-          macros{% if map.window %}; the bold outline is the densest 1 mm² that avoids them, found by sliding a
-          1 mm square over the die in 0.1 mm steps{% endif %}. Edge squares are smaller than 1 mm².</p>
+        <p class="small text-muted mb-0">Logic cells in each {{ 'square millimetre' if window_is_mm else window_side ~ ' square' }} of the die. Hatched outlines are SRAM
+          macros{% if map.window %}; the bold outline is the densest {{ '1 mm²' if window_is_mm else window_side ~ ' square' }} that avoids them, found by sliding a
+          {{ window_side }} square over the die in {{ window_step }} steps{% endif %}. Edge squares are smaller than {{ '1 mm²' if window_is_mm else window_side ~ ' square' }}.</p>
         {% else %}
-        <p class="small text-muted mb-0">Logic cells in each square millimetre of the die. Hatched squares overlap an
-          SRAM macro and are not counted. Edge squares are smaller than 1 mm².</p>
+        <p class="small text-muted mb-0">Logic cells in each {{ 'square millimetre' if window_is_mm else window_side ~ ' square' }} of the die. Hatched squares overlap an
+          SRAM macro and are not counted. Edge squares are smaller than {{ '1 mm²' if window_is_mm else window_side ~ ' square' }}.</p>
         {% endif %}
         {% endif %}
       </div>

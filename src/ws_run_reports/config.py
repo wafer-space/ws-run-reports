@@ -98,6 +98,12 @@ class Run:
             raise ValueError(f"{target}: md5 {digest} of the joined parts does not match expected {self.layout['md5']}")
         return target
 
+    def slot_cells(self) -> dict | None:
+        """Cell name -> code when the manifest names each slot's cell (``[layout] slots = "manifest"``)."""
+        if self.layout.get("slots", "children") != "manifest":
+            return None
+        return {p.top: p.code for p in self.projects().values()}
+
     def projects(self) -> dict[str, Project]:
         """Projects of this run keyed by their four character code."""
         if "csv" in self.manifest:

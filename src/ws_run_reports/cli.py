@@ -21,7 +21,7 @@ def cmd_analyze(args, run):
     layout = run.assemble_layout()
     analyze.analyze(layout, out_dir(args, run) / f"{OUTPUT_STEM}.csv", jobs=args.jobs,
                     qualified_libraries=run.measure.get("library_names", "qualified") != "short",
-                    measure=run.measure)
+                    measure=run.measure, slot_cells=run.slot_cells())
 
 
 def cmd_report(args, run):
@@ -71,9 +71,20 @@ COMMANDS = {
 }
 
 
+def cmd_tt_manifest(args):
+    from . import tinytapeout
+    n = tinytapeout.write_manifest(args.index, args.tt_repo, args.output)
+    print(f"Wrote {args.output} ({n} projects)")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="ws-run-reports", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+    tt = sub.add_parser("tt-manifest", help="write a Tiny Tapeout die's manifest from its release's shuttle index")
+    tt.add_argument("--index", type=Path, required=True, help="shuttle_index.json from the tapeout release")
+    tt.add_argument("--tt-repo", type=Path, required=True,
+                    help="checkout of the Tiny Tapeout shuttle repository (it must contain the release commit)")
+    tt.add_argument("--output", type=Path, required=True, help="manifest CSV to write (data/manifest.csv)")
     for name, (_, help_text) in COMMANDS.items():
         p = sub.add_parser(name, help=help_text)
         p.add_argument("run", help=f"run name or path to a run .toml ({', '.join(config.available_runs())})")
@@ -90,6 +101,8 @@ def main(argv=None):
             p.add_argument("target", choices=["density-report", "gh-pages"])
             p.add_argument("--push", action="store_true", help="push the branch after committing")
     args = parser.parse_args(argv)
+    if args.command == "tt-manifest":
+        return cmd_tt_manifest(args)
     run = config.load_run(args.run, args.repo_dir)
     COMMANDS[args.command][0](args, run)
 

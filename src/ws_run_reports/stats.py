@@ -198,6 +198,7 @@ class Design:
     density_map: list = field(default_factory=list)     # every 1 mm square: dicts from _map.csv
     sram_rects: list = field(default_factory=list)      # (macro, x0, y0, x1, y1) in mm from the die corner
     windows: dict = field(default_factory=dict)         # kind -> densest 1 mm window, from _windows.csv
+    window_mm: float = 1.0                              # side of the map squares and windows ([measure] grid_um)
     features: dict = field(default_factory=dict)        # feature -> (count, area_um2), designer-drawn only
     buffer_max_per_mm2: float = 0.0
     category: str = ""
@@ -349,6 +350,16 @@ class RunStats:
     macros: dict         # name -> Macro
     placements: int
     meta: dict = field(default_factory=dict)   # reticle_analysis_meta.json: what was measured and excluded
+
+    @property
+    def window_um(self) -> float:
+        """Side of the density map squares and the densest window ([measure] grid_um)."""
+        return float(self.meta.get("grid_um", 1000))
+
+    @property
+    def step_um(self) -> float:
+        """Step the densest window slides in ([measure] bin_um)."""
+        return float(self.meta.get("bin_um", 100))
     boundary_sources: Counter = field(default_factory=Counter)  # where cell sizes came from: layout, reference, bbox
 
     @property
@@ -471,6 +482,13 @@ def _read(path: Path) -> list:
         return list(csv.DictReader(f))
 
 
+def length_label(um: float, compact: bool = False) -> str:
+    """A length as the report ("1mm", "100um") or the pages ("1 mm", "0.1 mm", "20 µm") write it."""
+    if compact:
+        return f"{um / 1000:g}mm" if um >= 1000 else f"{um:g}um"
+    return f"{um / 1000:g} mm" if um >= 100 else f"{um:g} µm"
+
+
 def load(run: Run, out_dir: Path) -> RunStats:
     """Build the statistics for a run from the CSV files in ``out_dir``."""
     stem = out_dir / OUTPUT_STEM
@@ -491,6 +509,13 @@ def load(run: Run, out_dir: Path) -> RunStats:
         for r in _read(Path(f"{stem}_macros.csv"))
     }
 
+    meta_path = Path(f"{stem}_meta.json")
+    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+    # Map squares and windows are 1 mm unless the run measured smaller ones;
+    # peak densities are always given per mm².
+    window_mm = float(meta.get("grid_um", 1000)) / 1000
+    per_mm2 = 1 / (window_mm * window_mm)
+
     projects = run.projects()
     designs = {}
     for r in summary:
@@ -504,7 +529,7 @@ def load(run: Run, out_dir: Path) -> RunStats:
             code=code, cell_name=r["cell_name"], project=projects.get(code, Project(code, code)),
             width_mm=float(r["width_mm"]), height_mm=float(r["height_mm"]), pads=int(r["pad_count"]),
             sram_blocks=int(r["sram_block_count"]), logic_cells=int(r["stdcell_count"]),
-            transistors=int(r["transistor_count"]), positions=[position])
+            transistors=int(r["transistor_count"]), positions=[position], window_mm=window_mm)
     first_cell = {d.cell_name: d for d in designs.values()}
 
     for r in _read(Path(f"{stem}_cells.csv")):
@@ -530,8 +555,8 @@ def load(run: Run, out_dir: Path) -> RunStats:
             continue
         transistors, cells = int(r["transistor_count"]), int(r["stdcell_count"])
         d.grid.append((int(r["grid_x"]), int(r["grid_y"]), transistors, cells))
-        d.peak_cells = max(d.peak_cells, cells)
-        d.peak_transistors = max(d.peak_transistors, transistors)
+        d.peak_cells = max(d.peak_cells, round(cells * per_mm2))
+        d.peak_transistors = max(d.peak_transistors, round(transistors * per_mm2))
 
     # The sliding-window peaks replace the fixed grid's where they were measured.
     for r in _read(Path(f"{stem}_map.csv")):
@@ -553,7 +578,7 @@ def load(run: Run, out_dir: Path) -> RunStats:
                   "transistors": int(r["transistor_count"]), "sram": float(r["sram_fraction"])}
         d.windows[r["kind"]] = window
         if r["kind"] == "densest_sram_free":
-            d.peak_cells, d.peak_transistors = window["cells"], window["transistors"]
+            d.peak_cells, d.peak_transistors = round(window["cells"] * per_mm2), round(window["transistors"] * per_mm2)
 
     for r in _read(Path(f"{stem}_features.csv")):
         d = first_cell.get(r["cell_name"])

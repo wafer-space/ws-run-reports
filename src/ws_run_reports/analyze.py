@@ -242,12 +242,19 @@ def transistor_region(layout, cell, l_comp, l_poly2, selection=Selection()):
     return transistors
 
 
-def enumerate_slots(top_cell):
+def enumerate_slots(top_cell, cells=None):
     """Find design slots as direct children of the top cell.
 
     Returns list of (cell_name, cell, placement_trans) for each design slot,
     filtering out fill patterns and text/alignment marks.
+
+    With ``cells``, a mapping of cell name to project code (a run with
+    ``[layout] slots = "manifest"``), the slots are instead the outermost
+    placements of those cells anywhere below the top cell, named
+    ``<CODE>_<cell>`` so that the code reads back as for a reticle.
     """
+    if cells is not None:
+        return _manifest_slots(top_cell, cells)
     slots = []
     for inst in top_cell.each_inst():
         child = inst.cell
@@ -256,6 +263,27 @@ def enumerate_slots(top_cell):
         for t in inst.cell_inst.each_trans():
             slots.append((child.name, child, t))
     # Sort by position: column then row
+    slots.sort(key=lambda s: (s[2].disp.x, s[2].disp.y))
+    return slots
+
+
+def _manifest_slots(top_cell, cells):
+    layout = top_cell.layout()
+    targets = {c.cell_index(): cells[c.name.split("$")[0]] for c in layout.each_cell()
+               if c.name.split("$")[0] in cells}
+    it = kdb.RecursiveInstanceIterator(layout, top_cell)
+    it.targets = list(targets)
+    slots = []
+    for _ in it.each():
+        # A project cell inside another one (a logo, an example block) is part of it.
+        if any(element.cell_inst().cell_index in targets for element in it.path()):
+            continue
+        cell = it.inst_cell()
+        trans = it.trans() * it.inst_trans()
+        slots.append((f"{targets[cell.cell_index()]}_{cell.name}", cell, trans))
+    missing = sorted(set(cells.values()) - {name.split("_", 1)[0] for name, _, _ in slots})
+    if missing:
+        print(f"  warning: no placement of its own (outside another project) for {', '.join(missing)}")
     slots.sort(key=lambda s: (s[2].disp.x, s[2].disp.y))
     return slots
 
@@ -298,13 +326,14 @@ def analyze_slot(layout, cell, dbu, layers, selection=Selection(), pads=Selectio
     }
 
 
-def analyze_slot_grid(layout, cell, dbu, layers, sram_region, selection=Selection(), gates=None):
-    """Compute 1mm grid density map for a single slot cell.
+def analyze_slot_grid(layout, cell, dbu, layers, sram_region, selection=Selection(), gates=None,
+                      grid_um=GRID_SIZE_UM):
+    """Compute the grid density map (1 mm squares unless ``grid_um`` says otherwise) for a single slot cell.
 
     Grid cells that overlap an SRAM macro are skipped, so the grid describes
     standard cell regions only.
     """
-    grid_size_dbu = int(GRID_SIZE_UM / dbu)
+    grid_size_dbu = int(grid_um / dbu)
     bbox = cell.bbox()
     x_start = bbox.left
     y_start = bbox.bottom
@@ -340,6 +369,21 @@ def analyze_slot_grid(layout, cell, dbu, layers, sram_region, selection=Selectio
 _STATE = {}
 
 
+def grid_sizes(measure: dict) -> dict:
+    """The density map and window size, the binning step and the pad ring width a run measures with.
+
+    Defaults: 1 mm squares and windows in 100 um steps, and core area as the
+    die minus a 350 um pad ring (``stats.PAD_RING_MM``). A run of small designs
+    such as Tiny Tapeout projects sets ``[measure] grid_um``, ``bin_um`` and
+    ``pad_ring_um`` (0 makes each design's core its whole area).
+    """
+    grid_um = float(measure.get("grid_um", GRID_SIZE_UM))
+    bin_um = float(measure.get("bin_um", density.BIN_UM))
+    if grid_um / bin_um != round(grid_um / bin_um):
+        raise ValueError(f"[measure] grid_um ({grid_um}) must be a whole number of bin_um ({bin_um})")
+    return {"grid_um": grid_um, "bin_um": bin_um, "pad_ring_um": measure.get("pad_ring_um")}
+
+
 def _analyze_cell_index(cell_index):
     layout = _STATE["layout"]
     layers = _STATE["layers"]
@@ -347,21 +391,29 @@ def _analyze_cell_index(cell_index):
     dbu = layout.dbu
     selection = _STATE["selection"]
     metrics = analyze_slot(layout, cell, dbu, layers, selection, _STATE["pads"], _STATE["gates"])
-    grid_rows = analyze_slot_grid(layout, cell, dbu, layers, metrics.pop("sram_region"), selection, _STATE["gates"])
+    sizes = _STATE["sizes"]
+    grid_rows = analyze_slot_grid(layout, cell, dbu, layers, metrics.pop("sram_region"), selection, _STATE["gates"],
+                                  sizes["grid_um"])
     bins, rects = density.measure(layout, cell, layers["marker"], metrics.pop("transistor_region"),
-                                  _STATE["macro_cells"], selection)
+                                  _STATE["macro_cells"], selection, sizes["bin_um"])
     origin = cell.bbox().p1
     metrics["sram_rects"] = [(name, (r.left - origin.x) * dbu / 1000, (r.bottom - origin.y) * dbu / 1000,
                               (r.right - origin.x) * dbu / 1000, (r.top - origin.y) * dbu / 1000)
                              for name, r in rects]
-    metrics["map"] = density.map_rows(bins)
+    metrics["map"] = density.map_rows(bins, sizes["grid_um"])
     metrics["features"] = {**features.measure(layout, cell, _STATE["designer"]),
                            **features.io_libraries(cell, selection, _STATE["io_cells"])}
-    metrics["windows"] = density.densest_windows(bins)
+    metrics["windows"] = density.densest_windows(bins, sizes["grid_um"])
     usage = count_stdcell_usage(cell, _STATE["cell_info"], selection)
     metrics["macros"] = count_macro_usage(cell, _STATE["macro_cells"], selection)
-    metrics["core_area_mm2"] = (core_area_um2(layout, cell, selection.core_cell) / 1e6
-                                if selection.core_cell else None)
+    if selection.core_cell:
+        metrics["core_area_mm2"] = core_area_um2(layout, cell, selection.core_cell) / 1e6
+    elif sizes.get("pad_ring_um") is not None:
+        ring_mm = sizes["pad_ring_um"] / 1000
+        metrics["core_area_mm2"] = (max(0.0, metrics["width_mm"] - 2 * ring_mm)
+                                    * max(0.0, metrics["height_mm"] - 2 * ring_mm))
+    else:
+        metrics["core_area_mm2"] = None
     return cell_index, metrics, grid_rows, usage
 
 
@@ -473,7 +525,7 @@ def output_paths(output_path):
 
 
 def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, jobs=None,
-            qualified_libraries=True, measure=None):
+            qualified_libraries=True, measure=None, slot_cells=None):
     """Analyze a layout and write the summary, grid, cell usage, library and macro CSVs.
 
     ``measure`` is the run's ``[measure]`` table; its exclusions are recorded
@@ -520,7 +572,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     selection = selection_for(layout, measure or {})
 
     # --- Detect reticle vs single design ---
-    slots = enumerate_slots(top_cell)
+    slots = enumerate_slots(top_cell, slot_cells)
     if not slots:
         # A layout of one design rather than a reticle.
         print("Single design detected")
@@ -538,6 +590,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
 
     _STATE.update(layout=layout, layers=layers, cell_info=cell_info, macro_cells=macro_cells, selection=selection,
                   pads=pad_selection(layout, measure or {}), gates=gate_selection(layout, selection, measure or {}),
+                  sizes=grid_sizes(measure or {}),
                   designer=features.designer_selection(selection, features.library_cells(layout)),
                   io_cells=features.io_cells(layout))
     results = {}
@@ -654,11 +707,14 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
             writer.writerows(rows)
 
     print(f"Writing {paths['meta']}...")
+    # Grid sizes and the pad ring are recorded only when a run sets them, so
+    # that the metadata of the other runs is unchanged.
     paths["meta"].write_text(json.dumps({
         "top_cell": top_cell.name,
         "stdcell_prefixes": list(stdcell_prefixes),
         "library_names": "qualified" if qualified_libraries else "short",
         **selection.describe(),
+        **{key: (measure or {})[key] for key in ("grid_um", "bin_um", "pad_ring_um") if key in (measure or {})},
     }, indent=1) + "\n")
 
     print(f"\nDone. {len(summary_rows)} slots, {len(all_grid_rows)} grid cells, "
