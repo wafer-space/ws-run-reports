@@ -209,6 +209,10 @@ uv run ws-run-reports collection tinytapeouts --publish --push
 | `reticle_analysis_windows.csv` | The densest whole 1 x 1 mm window of each design, sliding in 100 µm steps, overall and avoiding SRAM |
 | `reticle_analysis_sram_rects.csv` | The outline of every SRAM macro in each design |
 | `reticle_analysis_features.csv` | Designer-drawn transistors by voltage and optional devices per design, and the I/O library used |
+| `reticle_analysis_usage.csv` | Every device in full (uses, count, area, average area; no threshold): designer-drawn devices, the gate matrix by kind and voltage for the designer and for the pad cells, and library placements. Long format: `slot_id, cell_name, scope, device, uses, count, area_um2, avg_area_um2, unit` |
+| `reticle_analysis_provenance.csv` | Where each device comes from: library cells by vendor, pad gates, and the designer's devices split into reused IP blocks and the designer's own (`source_class`, `ip_cell`, `ip_origin`, `basis`) |
+| `reticle_analysis_metal.csv` | Merged coverage of Metal1-5 and MetalTop by the designer, standard cells and SRAM (pads, seal ring, fill and artwork excluded), as area and share of the design |
+| `reticle_analysis_content.csv` | A SHA-256 of each design's size, library placements and designer devices: the same design on another run has the same hash |
 | `reticle_analysis_meta.json` | What was measured: top cell, library prefixes, exclusions |
 | `projects.json` | Imported project details (see above) |
 
@@ -226,6 +230,13 @@ uv run ws-run-reports collection tinytapeouts --publish --push
   Semiconductors' (`as_sc`, `as_ex`) and Oklahoma State University's (`osu_sc`).
   The foundry libraries are named by their last part (`mcu7t5v0`), the others
   with their vendor prefix (`as_ex_mcu7t5v0`).
+* **Device usage** (`usage.py`) uses the same definitions as the process
+  features, plus the gate matrix (n/p, plain, SAB, MOS capacitor, each at
+  3.3/5/6 V; a SAB transistor has salicide block on a source or drain it
+  touches), Nwell and metal resistors, diodes and BJT cells (`npn_*`,
+  `pnp_*`). A MIM's level is the highest via inside its top plate. Counts
+  are of merged shapes. Reused IP blocks (`IP_RULES`) are found by cell
+  name, and a block's share is the design measured again without it.
 * **Process features** count only what the designer drew: standard cell, SRAM,
   I/O, fill and artwork cells are skipped. A gate is thick oxide inside
   Dualgate (55/0), 5 V where V5_XTOR (112/1) also covers it and 6 V where it

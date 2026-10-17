@@ -22,7 +22,8 @@ from pathlib import Path
 import klayout.db as kdb
 
 from . import density, features
-from .exclude import Selection, core_area_um2, gate_selection, pad_selection, selection_for
+from . import usage as device_usage
+from .exclude import Selection, base_name, core_area_um2, gate_selection, pad_selection, selection_for
 
 # GDS layer definitions (from gf180mcu.lyp)
 LAYER_COMP = (22, 0)       # Diffusion/active area
@@ -404,6 +405,8 @@ def _analyze_cell_index(cell_index):
     metrics["features"] = {**features.measure(layout, cell, _STATE["designer"]),
                            **features.io_libraries(cell, selection, _STATE["io_cells"])}
     metrics["windows"] = density.densest_windows(bins, sizes["grid_um"])
+    metrics["usage"] = device_usage.measure(layout, cell, selection, _STATE["designer"], _STATE["metal"],
+                                     _STATE["library_of"], _STATE["pad_matrices"])
     usage = count_stdcell_usage(cell, _STATE["cell_info"], selection)
     metrics["macros"] = count_macro_usage(cell, _STATE["macro_cells"], selection)
     metrics["core_area_mm2"] = (core_area_um2(layout, cell, selection.core_cell) / 1e6
@@ -515,6 +518,10 @@ def output_paths(output_path):
         "map": sibling("_map"),
         "windows": sibling("_windows"),
         "features": sibling("_features"),
+        "usage": sibling("_usage"),
+        "metal": sibling("_metal"),
+        "provenance": sibling("_provenance"),
+        "content": sibling("_content"),
     }
 
 
@@ -586,7 +593,14 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
                   pads=pad_selection(layout, measure or {}), gates=gate_selection(layout, selection, measure or {}),
                   sizes=grid_sizes(measure or {}),
                   designer=features.designer_selection(selection, features.library_cells(layout)),
-                  io_cells=features.io_cells(layout))
+                  io_cells=features.io_cells(layout),
+                  # Device usage and provenance (usage.py): library of each library cell, the metal
+                  # measured (all but pads, seal ring, fill and artwork) and the pad cells' gate matrices.
+                  library_of={c.cell_index(): key for c in layout.each_cell() if (key := device_usage.library_key(c.name))},
+                  metal=features.designer_selection(selection, [c.cell_index() for c in layout.each_cell()
+                                                                if features.FILL_RE.search(base_name(c.name))
+                                                                or features.IO_RE.search(base_name(c.name))]),
+                  pad_matrices=device_usage.PadMatrices(layout))
     results = {}
     if jobs == 1:
         iterator = map(_analyze_cell_index, order)
@@ -612,6 +626,7 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
     slot_macro_rows = []
     slot_area_rows = []
     sram_rect_rows, map_rows, window_rows, feature_rows = [], [], [], []
+    usage_rows, metal_rows, provenance_rows, hash_rows = [], [], [], []
     written = set()
     macro_totals = Counter()
     for cell_name, cell, trans in slots:
@@ -646,6 +661,12 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
                              f"{sram:.3f}"))
         for feature, (n, area) in sorted(metrics["features"].items()) if first_placement else []:
             feature_rows.append((slot_id, cell_name, feature, n, f"{area:.3f}"))
+        if first_placement:
+            found = metrics["usage"]
+            usage_rows.extend({"slot_id": slot_id, "cell_name": cell_name, **r} for r in found["records"])
+            metal_rows.extend({"slot_id": slot_id, "cell_name": cell_name, **r} for r in found["metal"])
+            provenance_rows.extend({"slot_id": slot_id, "cell_name": cell_name, **r} for r in found["provenance"])
+            hash_rows.append({"slot_id": slot_id, "cell_name": cell_name, "content_hash": found["content_hash"]})
         for kind, (x, y, n, tr, sram) in sorted(metrics["windows"].items()) if first_placement else []:
             window_rows.append((slot_id, cell_name, kind, f"{x:.2f}", f"{y:.2f}", n, tr, f"{sram:.3f}"))
         slot_area_rows.append({
@@ -698,6 +719,14 @@ def analyze(input_path, output_path, stdcell_prefixes=DEFAULT_STDCELL_PREFIXES, 
         with open(paths[kind], "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(fields)
+            writer.writerows(rows)
+    for kind, fields, rows in (("usage", device_usage.FIELDS, usage_rows), ("metal", device_usage.METAL_FIELDS, metal_rows),
+                               ("provenance", device_usage.PROVENANCE_FIELDS, provenance_rows),
+                               ("content", device_usage.HASH_FIELDS, hash_rows)):
+        print(f"Writing {paths[kind]}...")
+        with open(paths[kind], "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fields)
+            writer.writeheader()
             writer.writerows(rows)
 
     print(f"Writing {paths['meta']}...")
