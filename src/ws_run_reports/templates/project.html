@@ -2,6 +2,7 @@
 {% set short_title = run.short_title %}
 {% set render = renders.designs[design.code] if renders and design.code in renders.designs else none %}
 {% set photo = photos[design.code] if design.code in photos else none %}
+{% set packed = package_photos.get(design.code, []) %}
 {% set cob_url = cob[design.code] if design.code in cob else none %}
 {% set map = heatmap(design) %}
 {% set info = details[design.code] if design.code in details else none %}
@@ -59,6 +60,7 @@
           {% if tt and tt.chip_url %}<a class="btn btn-outline-primary btn-sm mb-10" href="{{ tt.chip_url }}{{ design.project.top }}">On tinytapeout.com</a>{% endif %}
           {% for child in children.get(design.code, []) %}<a class="btn btn-outline-primary btn-sm mb-10" href="{{ child.pages_url }}">{{ child.heading[0] }} projects</a>{% endfor %}
           {% if photo %}<a class="btn btn-outline-primary btn-sm mb-10" href="#photo">Die photograph</a>{% endif %}
+          {% if packed %}<a class="btn btn-outline-primary btn-sm mb-10" href="#package">As shipped</a>{% endif %}
           {% if cob_url %}<a class="btn btn-outline-primary btn-sm mb-10" href="#bonding">Bonding results</a>{% endif %}
         </p>
         <table class="table table-sm run-table">
@@ -305,6 +307,24 @@
           <a href="{{ photo.full_url }}">full resolution (very large file)</a>{% endif %} ·
           <a href="{{ run.site.photos_url }}">all photographs</a>
         </p>      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if packed %}
+<div id="package" class="wrapper {{ 'gray-wrapper' if photo else 'light-wrapper' }}">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">As shipped</h2>
+    <p class="lead text-center mb-30">How the dies were packed, photographed {{ photo_credit() }}</p>
+    <div class="row justify-content-center">
+      {% for p in packed %}
+      <div class="col-sm-6 col-lg-4 mb-20 text-center">
+        <a class="run-viewer shadow d-inline-block" href="{{ p.url }}">
+          <img src="{{ root }}{{ p.preview }}" alt="Package of {{ design.code }} by {{ run.site.photos_credit }}" loading="lazy">
+        </a>
+      </div>
+      {% endfor %}
     </div>
   </div>
 </div>

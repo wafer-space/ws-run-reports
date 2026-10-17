@@ -265,6 +265,7 @@ def build_context(run, out_dir: Path) -> dict:
                           key=lambda item: item["date"])
     cob = external.cob_pages(run)
     photos = external.die_photos(run, site_dir)
+    package_photos = external.package_photos(run, site_dir, [d.code for d in stats.designs])
     details = projects.load(out_dir)
 
     today = date.today().isoformat()
@@ -334,6 +335,7 @@ def build_context(run, out_dir: Path) -> dict:
         "timeline": timeline,
         "cob": cob,
         "photos": photos,
+        "package_photos": package_photos,
         "categories": categories,
         "category_colour": category_colour,
         "total_area": _area_bar(total_breakdown),

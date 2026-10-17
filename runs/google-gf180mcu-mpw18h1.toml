@@ -23,6 +23,9 @@ photos_credit_url = "https://siliconprawn.org/"
 photos_year = 2025
 photos_licence = "CC BY 4.0"
 photos_licence_url = "https://creativecommons.org/licenses/by/4.0/"
+# Photographs of the packed dies (Gel-Pak boxes), one folder per die.
+package_photos_url = "https://data.wafer.space/big-storage/siliconprawn.org/efabless/package/"
+package_photos_dir = "gf180mcu-mpw18h1-1810{code}/"
 
 [measure]
 # Count only each user_project_wrapper, not the pad frame, the Caravel harness

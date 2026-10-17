@@ -15,6 +15,7 @@ from pathlib import Path
 USER_AGENT = "ws-run-reports (https://github.com/wafer-space/ws-run-reports)"
 RUNS_YML_URL = "https://raw.githubusercontent.com/wafer-space/wafer-space.github.io/main/_data/runs.yml"
 PHOTO_PREVIEW_PX = 1100
+PACKAGE_PREVIEW_PX = 600
 
 
 def fetch(url: str, timeout: int = 120) -> bytes:
@@ -119,3 +120,48 @@ def die_photos(run, site_dir: Path) -> dict:
         return {code: entry for code, entry in photos.items() if "preview" in entry}
 
     return _try("die photographs", load, {})
+
+
+def package_photos(run, site_dir: Path, codes) -> dict:
+    """Project code -> photographs of how its dies were packed and shipped, with small previews.
+
+    ``package_photos_url`` is a folder holding one folder per die, named by the
+    ``package_photos_dir`` template (``{code}`` lower case, ``{CODE}``); every
+    JPEG in a die's folder is shown. Dies without a folder have none. They share
+    the die photographs' credit.
+    """
+    base = run.site.get("package_photos_url")
+    folder = run.site.get("package_photos_dir")
+    if not base or not folder:
+        return {}
+    from PIL import Image
+    out_dir = site_dir / "photos" / "package"
+    found = {}
+    for code in sorted(codes):
+        url = base + folder.format(code=code.lower(), CODE=code)
+        try:
+            names = re.findall(r'href="([^"/]+\.jpe?g)"', fetch(url).decode())
+        except urllib.error.HTTPError as error:
+            if error.code != 404:
+                print(f"  warning: package photographs for {code} unavailable: {error}")
+            continue
+        except (urllib.error.URLError, OSError) as error:
+            print(f"  warning: package photographs for {code} unavailable: {error}")
+            continue
+        entries = []
+        for name in sorted(names):
+            preview = out_dir / f"{code}_{Path(name).stem}.webp"
+            if not preview.exists():
+                print(f"  fetching package photo preview {code}/{name}")
+                out_dir.mkdir(parents=True, exist_ok=True)
+                try:
+                    image = Image.open(io.BytesIO(fetch(url + name))).convert("RGB")
+                except (urllib.error.URLError, OSError) as error:
+                    print(f"  warning: package photograph {url + name} unavailable: {error}")
+                    continue
+                image.thumbnail((PACKAGE_PREVIEW_PX, PACKAGE_PREVIEW_PX), Image.LANCZOS)
+                image.save(preview, "WEBP", quality=82, method=6)
+            entries.append({"url": url + name, "preview": f"photos/package/{preview.name}"})
+        if entries:
+            found[code] = entries
+    return found
