@@ -34,6 +34,15 @@ def pct(fraction: float) -> str:
     return f"{round(fraction * 100)}%"
 
 
+def count_fine(value: float) -> str:
+    """Like count, with a decimal for small runs: 2430 -> '2.4k', 2054000 -> '2.05M', 12.4 -> '12'."""
+    if value >= 1_000_000:
+        return f"{value / 1_000_000:.2f}M"
+    if value >= 1_000:
+        return f"{value / 1000:,.1f}k"
+    return f"{value:,.0f}"
+
+
 def count(value: float) -> str:
     """Compact count for prose: 2054000 -> '2.1M', 36000 -> '36k', 122 -> '122'."""
     if value >= 1_000_000:

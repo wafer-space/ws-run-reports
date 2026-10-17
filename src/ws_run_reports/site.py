@@ -55,11 +55,20 @@ def _slot_guidance(stats):
     median_density = statistics.median([d.core_density for d in digital]) if digital else 0
     present = {d.project.slot_size for d in stats.designs}
     known = [s for s in SLOT_FRACTIONS if s in present]
+    # The theoretical maxima use the run's most used library; "densest" is the
+    # best densest-window density any design on the run reached.
+    lib = stats.libraries[0] if stats.libraries else None
+    nand = stats.reference_cell(lib, REFERENCE_CELLS[1][2]) if lib else None
+    flop = stats.reference_cell(lib, REFERENCE_CELLS[3][2]) if lib else None
+    densest = max((d.peak_cells for d in digital), default=0)
     for slot_size in known + sorted(present - set(known)):
         group = [d for d in stats.designs if d.project.slot_size == slot_size]
         sample = group[0]
         cells = sorted(d.logic_cells for d in group if d in digital)
         rows.append({
+            "max_nand": sample.core_area_mm2 * nand.per_mm2 if nand else 0,
+            "max_flop": sample.core_area_mm2 * flop.per_mm2 if flop else 0,
+            "at_densest": sample.core_area_mm2 * densest,
             "label": sample.slot_label,
             "die": f"{sample.width_mm:.2f} × {sample.height_mm:.2f} mm",
             "core_mm2": sample.core_area_mm2,
@@ -69,7 +78,8 @@ def _slot_guidance(stats):
             "at_median_density": sample.core_area_mm2 * median_density,
             "at_best_density": sample.core_area_mm2 * best_density,
         })
-    return rows, best_density, median_density
+    maxima = {"library": lib, "nand": nand, "flop": flop, "densest": densest}
+    return rows, best_density, median_density, maxima
 
 
 def _heatmap(design):
@@ -234,6 +244,10 @@ def build_context(run, out_dir: Path) -> dict:
 
     print("Collecting external content...")
     timeline = external.timeline(run)
+    if run.site.get("kind") == "tiny-tapeout":
+        # The Tiny Tapeout shuttle's own milestones, among its run's.
+        timeline = sorted(timeline + tinytapeout.timeline_items(tinytapeout.load_shuttle(run.repo_dir)),
+                          key=lambda item: item["date"])
     cob = external.cob_pages(run)
     photos = external.die_photos(run, site_dir)
     details = projects.load(out_dir)
@@ -262,7 +276,7 @@ def build_context(run, out_dir: Path) -> dict:
                               "best": max(e["cell"].per_mm2 for e in entries)})
 
     digital = [d for d in stats.by_core_density if d.logic_cells >= report.MINIMAL_LOGIC_CELLS]
-    slot_guidance, best_density, median_density = _slot_guidance(stats)
+    slot_guidance, best_density, median_density, maxima = _slot_guidance(stats)
     scale_max = max([stats.buffer_max(lib) for lib in stats.libraries] or [1])
     best_peak = max(digital, key=lambda d: d.peak_cells, default=None)
     utilisations = [d.utilisation for d in digital]
@@ -313,6 +327,7 @@ def build_context(run, out_dir: Path) -> dict:
         "digital": digital,
         "scale_max": scale_max,
         "slot_guidance": slot_guidance,
+        "maxima": maxima,
         "best_density": best_density,
         "median_density": median_density,
         "best_peak": best_peak,
@@ -369,7 +384,8 @@ def build_site(run, out_dir: Path) -> Path:
 
     env = Environment(loader=PackageLoader("ws_run_reports", "templates"),
                       autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
-    env.filters.update(k=report.k, pct=report.pct, count=report.count, library_label=library_label,
+    env.filters.update(k=report.k, pct=report.pct, count=report.count, count_fine=report.count_fine,
+                       library_label=library_label,
                        describe_cell=describe_cell)
     # A content hash on the stylesheet and script links, so browsers fetch them again after a change.
     static = Path(__file__).parent / "static"
