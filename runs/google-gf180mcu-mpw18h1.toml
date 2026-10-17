@@ -13,6 +13,11 @@ slot_labels = false
 # Draw the 2 x 2 on a wafer.space-sized reticle frame, so the dies appear at the
 # same scale as on the ws-run1 and ws-run2 pages.
 reticle_frame_mm = [30.0, 23.379]
+# The shuttle timeline, in the format of the website's _data/runs.yml.
+runs_yml_key = "gfmpw_18h1"
+runs_yml_path = "data/schedule.yml"
+timeline_source = "the shuttle repositories, the dies' GDS headers, the OpenFASoC paper and the Silicon Prawn photographs (no schedule was published for this private shuttle)"
+timeline_source_url = "https://foss-eda-tools.googlesource.com/third_party/shuttle/gf180mcu/mpw-18h1"
 
 # Die photographs by John McMaster (Silicon Prawn), mirrored on data.wafer.space.
 photos_url = "https://data.wafer.space/big-storage/siliconprawn.org/efabless/"
