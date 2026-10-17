@@ -113,6 +113,10 @@ def build_clipped_region(layout, cell, layer_idx, clip_box, selection=Selection(
     return region
 
 
+# The smallest pad opening (shorter side) that counts as a bond or probe pad.
+MIN_PAD_UM = 20.0
+
+
 def count_region(layout, cell, layer_idx, selection=Selection()):
     """Count merged polygons on a layer within a cell hierarchy."""
     region = kdb.Region()
@@ -308,7 +312,12 @@ def analyze_slot(layout, cell, dbu, layers, selection=Selection(), pads=Selectio
     selection without dummy fill.
     """
     bbox = cell.bbox()
-    pad_count, pad_region = count_region(layout, cell, layers["pad"], pads)
+    _, pad_region = count_region(layout, cell, layers["pad"], pads)
+    # Only openings big enough to bond or probe are pads: test structures can have
+    # thousands of micron-sized passivation openings (MPW-18H1's LibreSilicon tile).
+    min_pad = round(MIN_PAD_UM / dbu)
+    pad_region = pad_region.with_bbox_min(min_pad, None, False)
+    pad_count = pad_region.count()
     sram_count, sram_region = count_region(layout, cell, layers["sram"], selection)
     dbu2_per_mm2 = 1e6 / (dbu * dbu)
     gates = transistor_region(layout, cell, layers["comp"], layers["poly2"], gates or selection)
