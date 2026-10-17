@@ -177,3 +177,15 @@ def test_tt_manifest(tmp_path):
     assert rows[0]["TOP"] == "tt_um_rom" and rows[0]["SLOT_SIZE"] == "1x1" and rows[0]["AUTHOR"] == "Uri"
     # No info.yaml: the macro name stands in for the title.
     assert rows[1]["CODE"] == "295" and rows[1]["PROJECT"] == "tt_um_gone" and rows[1]["CLOCK_HZ"] == ""
+
+
+def test_https_url():
+    from ws_run_reports.config import https_url
+
+    assert https_url("git@github.com:MichaelBell/ttgf0p3-tinyQV.git") == "https://github.com/MichaelBell/ttgf0p3-tinyQV"
+    assert https_url("ssh://git@github.com/owner/repo.git") == "https://github.com/owner/repo"
+    assert https_url("http://github.com/SUD0NET/as16") == "https://github.com/SUD0NET/as16"
+    assert https_url("https://www.github.com/a/b/") == "https://github.com/a/b"
+    assert https_url(" https://github.com/a/b.git/ ") == "https://github.com/a/b"
+    assert https_url("https://foss-eda-tools.googlesource.com/x/slot-002") == "https://foss-eda-tools.googlesource.com/x/slot-002"
+    assert https_url("") == "" and https_url(None) == ""

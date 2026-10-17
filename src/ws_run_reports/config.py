@@ -152,6 +152,23 @@ def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def https_url(url: str) -> str:
+    """A repository URL as an https link: git@host:owner/repo, ssh://git@host/owner/repo and
+    http:// become https://host/owner/repo, www.github.com becomes github.com, and a trailing
+    .git and slashes are dropped. Anything else is returned stripped."""
+    url = (url or "").strip()
+    if not url:
+        return ""
+    if m := re.match(r"^(?:ssh://)?git@([^:/]+)[:/](.+)$", url):
+        url = f"https://{m.group(1)}/{m.group(2)}"
+    url = re.sub(r"^http://", "https://", url)
+    url = re.sub(r"^https://www\.github\.com/", "https://github.com/", url)
+    url = url.rstrip("/")
+    if url.endswith(".git"):
+        url = url[:-4].rstrip("/")
+    return url
+
+
 _MANIFEST_COLUMNS = {"CODE", "PROJECT", "SLOT_SIZE", "PROJECT_DETAILS", "REPOSITORY", "TOP", "VISIBILITY"}
 
 
@@ -163,7 +180,7 @@ def _projects_from_csv(path: Path) -> list[Project]:
                 name=_clean(row["PROJECT"]),
                 slot_size=row["SLOT_SIZE"],
                 details=_clean(row["PROJECT_DETAILS"]),
-                repository=row["REPOSITORY"].strip(),
+                repository=https_url(row["REPOSITORY"]),
                 top=row["TOP"],
                 visibility=row["VISIBILITY"],
                 extra={key: value for key, value in row.items() if key not in _MANIFEST_COLUMNS and value},
@@ -188,5 +205,6 @@ def _projects_from_readme(path: Path) -> list[Project]:
             continue
         code, name, slot_size, details, repository = (cells + [""] * 5)[:5]
         visibility = "Private" if name == "Private" else "Public"
-        projects.append(Project(code, _clean(name), slot_size, _clean(details), repository, visibility=visibility))
+        projects.append(Project(code, _clean(name), slot_size, _clean(details), https_url(repository),
+                                visibility=visibility))
     return projects

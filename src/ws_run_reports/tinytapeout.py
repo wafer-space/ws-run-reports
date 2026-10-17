@@ -21,6 +21,8 @@ from pathlib import Path
 
 import yaml
 
+from .config import https_url
+
 FIELDS = ["CODE", "PROJECT", "SLOT_SIZE", "VISIBILITY", "PROJECT_DETAILS", "REPOSITORY", "TOP",
           "MACRO_ADDRESS", "TILE_X", "TILE_Y", "AUTHOR", "COMMIT", "LANGUAGE", "CLOCK_HZ"]
 
@@ -51,7 +53,7 @@ def manifest_rows(index: dict, tt_repo: Path) -> list[dict]:
             "SLOT_SIZE": project["tiles"],
             "VISIBILITY": "Public",
             "PROJECT_DETAILS": str(info.get("description") or "").strip(),
-            "REPOSITORY": project.get("repo") or "",
+            "REPOSITORY": https_url(project.get("repo")),
             "TOP": project["macro"],
             "MACRO_ADDRESS": project["address"],
             "TILE_X": project["x"],
@@ -69,7 +71,7 @@ def write_manifest(index_path: Path, tt_repo: Path, out: Path) -> int:
     rows = manifest_rows(index, tt_repo)
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=FIELDS)
+        writer = csv.DictWriter(f, fieldnames=FIELDS, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     return len(rows)

@@ -25,6 +25,8 @@ import re
 import shutil
 from pathlib import Path
 
+from .config import https_url
+
 PROJECTS_NAME = "projects.json"
 PRECHECK_DIR = "precheck"
 
@@ -130,7 +132,7 @@ def build(platform: list, audit: list | None, run_name: str) -> dict:
     for record in sorted(platform, key=lambda r: r["code"]):
         if record.get("run", run_name) != run_name:
             continue
-        repository = (record.get("repository_url") or "").strip()
+        repository = https_url(record.get("repository_url"))
         licence = {"declared": record.get("license") or "", "declared_raw": record.get("license_type_raw") or ""}
         entry = audit_by_code.get(record["code"])
         if entry is not None:

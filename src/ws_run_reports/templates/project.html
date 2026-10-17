@@ -52,7 +52,7 @@
         {% elif design.project.details %}<p class="lead">{{ design.project.details }}</p>{% endif %}
         <p>
           {% if design.project.repository %}
-          <a class="btn btn-default btn-sm mb-10" href="{{ design.project.repository }}{% if tt and design.project.extra.COMMIT %}/tree/{{ design.project.extra.COMMIT }}{% endif %}">Source repository</a>
+          <a class="btn btn-default btn-sm mb-10" href="{{ design.project.repository }}{% if tt and design.project.extra.COMMIT and design.project.repository.startswith("https://github.com/") %}/tree/{{ design.project.extra.COMMIT }}{% endif %}">Source repository</a>
           {% endif %}
           {% if tt and tt.chip_url %}<a class="btn btn-outline-primary btn-sm mb-10" href="{{ tt.chip_url }}{{ design.project.top }}">On tinytapeout.com</a>{% endif %}
           {% if photo %}<a class="btn btn-outline-primary btn-sm mb-10" href="#photo">Die photograph</a>{% endif %}
