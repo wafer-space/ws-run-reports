@@ -23,8 +23,10 @@ import gzip
 import json
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
+from . import links
 from .config import https_url
 
 PROJECTS_NAME = "projects.json"
@@ -57,6 +59,9 @@ def _check(record: dict) -> dict | None:
     if not check:
         return None
     kept = {key: check[key] for key in CHECK_FIELDS if key in check}
+    if not kept.get("precheck_version") and links.precheck_version("", kept.get("docker_image_digest")):
+        kept.update(precheck_version=links.precheck_version("", kept["docker_image_digest"]),
+                    precheck_version_from="image")
     # Checksums identify the artefacts without revealing where the platform stores them.
     sha256 = (check.get("artefacts") or {}).get("sha256") or {}
     kept["artefact_sha256"] = {k: v for k, v in sha256.items() if k in ("log_file", "runs_archive", "output_gds")}
@@ -69,9 +74,15 @@ def _check_summary(row: dict, steps: dict | None, files: dict) -> dict:
     ``row`` is the check from ``acceptance-checks.json``; ``steps`` its parsed
     run directory, or None when the platform no longer has it.
     """
+    digest = ((steps or {}).get("check") or {}).get("docker_image_digest") or ""
     summary = {"id": row["check_id"], "created_at": row["created_at"], "trigger": row["trigger"],
                "is_manufacturable": row["is_manufacturable"], "precheck_version": row["precheck_version"],
                "details": steps is not None, **files}
+    if digest:
+        summary["docker_image_digest"] = digest
+    # Before the platform recorded the version, the image tells it.
+    if not row["precheck_version"] and links.precheck_version("", digest):
+        summary.update(precheck_version=links.precheck_version("", digest), precheck_version_from="image")
     if steps is not None:
         metrics = steps.get("final_metrics") or {}
         summary.update(
@@ -125,8 +136,38 @@ def import_precheck(export: Path, run_name: str, out_dir: Path) -> dict:
     return checks
 
 
-def build(platform: list, audit: list | None, run_name: str) -> dict:
-    """Code -> public project details for one run."""
+def _makefile_pins(repo_dir: Path, commit: str) -> dict:
+    """The PDK a project's Makefile pins at a commit: {"PDK_TAG": ...} or {"PDK_COMMIT": ...}."""
+    result = subprocess.run(["git", "-C", str(repo_dir), "show", f"{commit}:Makefile"], capture_output=True, text=True)
+    if result.returncode != 0:
+        return {}
+    return dict(re.findall(r"^\s*(PDK_TAG|PDK_COMMIT)\s*\??=\s*(\S+)", result.stdout, re.M))
+
+
+def template_of(entry: dict, repos_root: Path | None) -> dict | None:
+    """The project template a repository was made from, and which release(s) of it.
+
+    The release is the one whose Makefile pins the same PDK as the project's
+    at the audited commit; the template itself comes from that match, or
+    else from the audit's README comparison. None when neither says.
+    """
+    pins = {}
+    if repos_root and entry.get("head"):
+        pins = _makefile_pins(Path(repos_root) / entry["run"] / entry["code"] / "repo", entry["head"])
+    for name in links.tables().get("templates", {}):
+        versions = links.template_versions(name, pins) if pins else []
+        if versions:
+            return {"repo": name, "versions": versions, "pin": pins}
+    closest = (entry.get("readme") or {}).get("closest_template")
+    return {"repo": closest, "versions": [], "pin": pins} if closest else None
+
+
+def build(platform: list, audit: list | None, run_name: str, repos_root: Path | None = None) -> dict:
+    """Code -> public project details for one run.
+
+    ``repos_root`` holds the audit's clones (``<run>/<CODE>/repo``), from
+    which the project template release is read.
+    """
     audit_by_code = {a["code"]: a for a in (audit or []) if a.get("run") == run_name}
     projects = {}
     for record in sorted(platform, key=lambda r: r["code"]):
@@ -156,6 +197,7 @@ def build(platform: list, audit: list | None, run_name: str) -> dict:
             "chip_on_board": bool(record.get("chip_on_board")),
             "submitted_at": record.get("submitted_at") or "",
             "precheck": _check(record),
+            "template": template_of(entry, repos_root) if entry is not None else None,
         }
     return projects
 
@@ -164,7 +206,7 @@ def import_files(run, out_dir: Path, platform_file: Path, audit_file: Path | Non
                  precheck_dir: Path | None = None) -> Path:
     platform = json.loads(Path(platform_file).read_text())
     audit = json.loads(Path(audit_file).read_text()) if audit_file else None
-    projects = build(platform, audit, run.name)
+    projects = build(platform, audit, run.name, Path(audit_file).parent if audit_file else None)
     if precheck_dir:
         checks = import_precheck(precheck_dir, run.name, out_dir)
         for code, entry in projects.items():

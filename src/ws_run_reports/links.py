@@ -85,3 +85,49 @@ def site(name: str) -> str:
 def tool(name: str) -> str:
     """A tool's home page: KLayout, Magic, LibreLane..."""
     return tables().get("tools", {}).get(name, "")
+
+
+# --- precheck, LibreLane, templates --------------------------------------
+
+def precheck_version(version: str, digest: str = "") -> str:
+    """The precheck version a check ran: as recorded, or from its image digest."""
+    return version or tables()["precheck"]["digests"].get(digest or "", "")
+
+
+def precheck(version: str) -> str:
+    """The precheck repository at a release tag, or the repository itself."""
+    repo = tables()["precheck"]["repo"]
+    return f"{repo}/tree/{version}" if version else repo
+
+
+def precheck_contents(version: str) -> dict:
+    """What a precheck release runs: {"pdk", "pdk_url", "librelane", "librelane_url"}, or {}."""
+    info = dict(tables()["precheck"].get("versions", {}).get(version, {}))
+    if info.get("librelane"):
+        info["librelane_url"] = f"{tables()['librelane']['repo']}/tree/{info['librelane']}"
+    return info
+
+
+def precheck_image() -> str:
+    return tables()["precheck"]["package"]
+
+
+def librelane(version: str) -> str:
+    """LibreLane at a tag or commit."""
+    return f"{tables()['librelane']['repo']}/tree/{version}" if version else tool("LibreLane")
+
+
+def template(repo_name: str, version: str = "") -> str:
+    """A project template ("owner/repo"), at a release tag when known."""
+    url = tables().get("templates", {}).get(repo_name, {}).get("url", "")
+    return f"{url}/tree/{version}" if url and version else url
+
+
+def template_versions(repo_name: str, pins: dict) -> list:
+    """The template releases whose Makefile pins the same PDK as ``pins`` ({"PDK_TAG": ...} or {"PDK_COMMIT": ...})."""
+    found = []
+    for version, pin in tables().get("templates", {}).get(repo_name, {}).get("pdk", {}).items():
+        key, _, value = pin.partition("=")
+        if pins.get(key) == value:
+            found.append(version)
+    return found

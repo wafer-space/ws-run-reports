@@ -10,3 +10,79 @@
 KLayout = "https://www.klayout.de/"
 Magic = "http://opencircuitdesign.com/magic/"
 LibreLane = "https://librelane.readthedocs.io/"
+
+[precheck]
+# wafer.space's precheck: tags are plain versions ("1.7.3"); the image is
+# ghcr.io/wafer-space/gf180mcu-precheck.
+repo = "https://github.com/wafer-space/gf180mcu-precheck"
+package = "https://github.com/wafer-space/gf180mcu-precheck/pkgs/container/gf180mcu-precheck"
+
+# Checks made before the platform recorded the precheck version: the
+# version of their image, from its org.opencontainers.image.version label.
+[precheck.digests]
+"sha256:f6c0cb88efce8769ec87de5a2035ada731fd8fffb1b3e5e1968078f6dd191c2f" = "1.7.3"
+"sha256:fe44a8d260dc38c54dab80a93f184c35054884fb38b6ade992e9a1e7721e6cd7" = "1.7.2"
+"sha256:7aa4baf798acbbfc21807c913dfa05c3ee9250401d332ad584fb21da89a090d0" = "1.7.1"
+"sha256:d28f6a50f7854865571b2161f7099dc1d2666237ffcc49cd143152f9e6aab14b" = "1.5.5"
+
+# What each precheck release runs, from its Makefile (PDK) and flake.lock (LibreLane).
+[precheck.versions."1.7.3"]
+pdk = "open_pdks 1.0.604"
+pdk_url = "https://github.com/fossi-foundation/open-pdks/tree/1.0.604"
+librelane = "5fe3db1bbea68aa9973a9e7b045d24af1a089571"
+[precheck.versions."1.7.2"]
+pdk = "open_pdks 1.0.604"
+pdk_url = "https://github.com/fossi-foundation/open-pdks/tree/1.0.604"
+librelane = "5fe3db1bbea68aa9973a9e7b045d24af1a089571"
+[precheck.versions."1.7.1"]
+pdk = "open_pdks 1.0.604"
+pdk_url = "https://github.com/fossi-foundation/open-pdks/tree/1.0.604"
+librelane = "5fe3db1bbea68aa9973a9e7b045d24af1a089571"
+[precheck.versions."1.5.5"]
+pdk = "wafer-space/gf180mcu 1.6.6"
+pdk_url = "https://github.com/wafer-space/gf180mcu/tree/1.6.6"
+librelane = "e2f0b0e71f0394dc8e3e9b3376a3ceea41837d06"
+
+[librelane]
+repo = "https://github.com/librelane/librelane"
+
+# Project templates, by repository; a template release is found by the PDK
+# its Makefile pins (PDK_TAG of wafer-space/gf180mcu up to 1.4.0, then
+# PDK_COMMIT of open_pdks).
+[templates."wafer-space/gf180mcu-project-template"]
+url = "https://github.com/wafer-space/gf180mcu-project-template"
+[templates."wafer-space/gf180mcu-project-template".pdk]
+"1.0.0" = "PDK_TAG=1.1.0"
+"1.0.1" = "PDK_TAG=1.1.0"
+"1.0.2" = "PDK_TAG=1.1.0"
+"1.1.0" = "PDK_TAG=1.1.0"
+"1.1.1" = "PDK_TAG=1.1.2"
+"1.1.2" = "PDK_TAG=1.1.2"
+"1.1.3" = "PDK_TAG=1.1.2"
+"1.1.4" = "PDK_TAG=1.1.2"
+"1.2.0" = "PDK_TAG=1.3.0"
+"1.2.1" = "PDK_TAG=1.3.1"
+"1.2.2" = "PDK_TAG=1.3.1"
+"1.2.3" = "PDK_TAG=1.4.1"
+"1.2.4" = "PDK_TAG=1.4.4"
+"1.2.5" = "PDK_TAG=1.4.4"
+"1.2.6" = "PDK_TAG=1.4.4"
+"1.3.0" = "PDK_TAG=1.6.3"
+"1.3.1" = "PDK_TAG=1.6.4"
+"1.3.2" = "PDK_TAG=1.6.4"
+"1.3.3" = "PDK_TAG=1.6.5"
+"1.3.4" = "PDK_TAG=1.6.5"
+"1.3.5" = "PDK_TAG=1.6.6"
+"1.4.0" = "PDK_TAG=1.8.0"
+"1.5.0" = "PDK_COMMIT=f3b5e46babb6b417f9a1a1b5c413f7dda6f68a51"
+"1.5.1" = "PDK_COMMIT=9233c19260cd813c3fa67dd4594fe4cc67016832"
+"1.5.2" = "PDK_COMMIT=f6bfbd4d3d23c4236ff1f36126489ee59aa35cbd"
+"1.5.3" = "PDK_COMMIT=019cf7a3e0de79bb0e4b6213758882d283c65816"
+"1.5.4" = "PDK_COMMIT=b344c97eacc2aaf8e14ae7e43e2e9dc0871de2c0"
+"1.5.5" = "PDK_COMMIT=140b0494c6665b10ce9353cb1c2ef5bcc18e7d66"
+"1.5.6" = "PDK_COMMIT=140b0494c6665b10ce9353cb1c2ef5bcc18e7d66"
+"1.5.7" = "PDK_COMMIT=d658698bd8bcf4e05fc7b5991a701247ba0d744c"
+"1.5.8" = "PDK_COMMIT=f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7"
+
+[templates."egorxe/gf180mcu-caravel-template"]
+url = "https://github.com/egorxe/gf180mcu-caravel-template"

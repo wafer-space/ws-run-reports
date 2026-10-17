@@ -8,6 +8,8 @@
 {% block title %}{{ design.code }} {{ design.name }} — {{ short_title }}{% endblock %}
 {% block description %}{{ (info.description if info and info.description else design.project.details) or design.name }}{% endblock %}
 
+{# A check's precheck release, linking to its tag; "from its image" when the platform did not record it. #}
+{% macro precheck_ref(check) %}{% if check.precheck_version %}{{ link("gf180mcu-precheck " ~ check.precheck_version, links.precheck(check.precheck_version)) }}{% if check.precheck_version_from == "image" %} <span class="small">(from its image)</span>{% endif %}{% endif %}{% endmacro %}
 {% block content %}
 <div class="wrapper image-wrapper bg-image page-title-wrapper inverse-text"
      data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
@@ -113,6 +115,14 @@
               {% elif lic.status == "no licence file" %}<br><span class="run-warn">The repository has no licence file</span>
               {% elif lic.status == "no repository" %}<br><span class="text-muted">No public repository</span>{% endif %}
               {% if lic.repo_commit %}<br><span class="small text-muted">Repository checked at {{ link(lic.repo_commit[:12], links.repo_commit(lic_repo, lic.repo_commit), mono=true) }}</span>{% endif %}</td></tr>
+            {% if info.template and info.template.repo %}
+            {% set tpl = info.template %}
+            <tr><th>Template</th><td>{{ link(tpl.repo, links.template(tpl.repo)) }} {% if tpl.versions %}
+              {% for v in tpl.versions %}{{ link(v, links.template(tpl.repo, v)) }}{{ " or " if not loop.last }}{% endfor %}
+              <br><span class="small text-muted">the release{{ "s" if tpl.versions | length > 1 }} whose Makefile pins the same PDK
+              ({{ tpl.pin.keys() | first }} {{ (tpl.pin.values() | first)[:12] }}) at the commit checked</span>{% else %}
+              <br><span class="small text-muted">from its README</span>{% endif %}</td></tr>
+            {% endif %}
             {% set checks = info.checks or {} %}
             <tr><th>Chip-on-board</th><td>{{ "Selected at submission" if info.chip_on_board else "Not selected at submission" }}
               {% if cob_url %}· <a href="#bonding">bonding results</a>{% endif %}
@@ -121,16 +131,16 @@
             {% if checks.latest %}
             {% set acc, lat = checks.accepted, checks.latest %}
             <tr><th>Precheck</th><td>{% if acc %}{{ "Passed" if acc.is_manufacturable else "Did not pass" }}
-              <span class="text-muted">the check it was accepted on, {{ acc.created_at[:10] }}</span>
+              <span class="text-muted">the check it was accepted on, {{ acc.created_at[:10] }}{% if acc.precheck_version %}, {{ precheck_ref(acc) }}{% endif %}</span>
               {% if not acc.same_as_latest %}<br>{{ "Passed" if lat.is_manufacturable else "Did not pass" }}
-              <span class="text-muted">latest re-run, {{ lat.created_at[:10] }}{% if lat.precheck_version %}, gf180mcu-precheck {{ lat.precheck_version }}{% endif %}</span>{% endif %}
+              <span class="text-muted">latest re-run, {{ lat.created_at[:10] }}{% if lat.precheck_version %}, {{ precheck_ref(lat) }}{% endif %}</span>{% endif %}
               {% else %}{{ "Passed" if lat.is_manufacturable else "Did not pass" }}
               <span class="text-muted">latest platform check, {{ lat.created_at[:10] }}</span>{% endif %}
               <br><a href="#precheck">step results and logs</a></td></tr>
             {% elif info.precheck %}
             <tr><th>Precheck</th><td>{{ "Passed" if info.precheck.is_manufacturable else "Did not pass" }}
               <span class="text-muted">latest platform check, {{ info.precheck.created_at[:10] }}{% if info.precheck.precheck_version %},
-                gf180mcu-precheck {{ info.precheck.precheck_version }}{% endif %}</span></td></tr>
+                {{ precheck_ref(info.precheck) }}{% endif %}</span></td></tr>
             {% else %}
             <tr><th>Precheck</th><td class="text-muted">No finished precheck recorded</td></tr>
             {% endif %}
@@ -312,7 +322,8 @@
         <table class="table table-sm run-table run-precheck bg-white">
           <thead><tr><th>Step</th>{% for label, check in table.columns %}<th>{{ label }}<br>
             <span class="small text-muted fw-normal">check {{ check.id }}, {{ check.created_at[:10] }}, <span class="run-mono">{{ check.trigger }}</span>{% if check.precheck_version %},
-              gf180mcu-precheck {{ check.precheck_version }}{% endif %}</span></th>{% endfor %}</tr></thead>
+              {{ precheck_ref(check) }}{% set runs = links.precheck_contents(check.precheck_version) %}{% if runs %}<br>PDK {{ link(runs.pdk, runs.pdk_url) }},
+              LibreLane {{ link(runs.librelane[:7], runs.librelane_url, mono=true) }}{% endif %}{% endif %}</span></th>{% endfor %}</tr></thead>
           <tbody>
             {% for step, results in table.rows %}
             <tr><td class="run-mono">{{ step }}</td>{% for result in results %}<td>{% if result == "passed" %}passed{% elif result == "warning" and step == "Checker.MagicDRC" %}<span class="text-muted">advisory warning</span>{% elif result == "warning" %}<span class="run-warn">warning</span>{% elif result %}<span class="run-warn">{{ result }}</span>{% elif result is none %}<span class="text-muted">not in this flow</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>{% endfor %}</tr>
@@ -325,9 +336,11 @@
           </tbody>
         </table>
         </div>
-        <p class="small text-muted">The steps of the gf180mcu-precheck LibreLane flow, as run by platform.wafer.space. The
+        <p class="small text-muted">The steps of the {{ link("gf180mcu-precheck", links.precheck("")) }} {{ link("LibreLane", links.tool("LibreLane")) }}
+          flow, as run by {{ link("platform.wafer.space", links.site("platform.wafer.space")) }}. The
           design was accepted on the newest finished check before it was submitted; later re-runs check the same file with
-          updated rules. KLayout DRC is the sign-off check. Magic DRC is advisory: its count does not stop a design. In the
+          updated rules. {{ link("KLayout", links.tool("KLayout")) }} DRC is the sign-off check. {{ link("Magic", links.tool("Magic")) }}
+          DRC is advisory: its count does not stop a design. In the
           logs, Magic's "Error while reading cell" lines about fill cells are messages from its reader, not check failures.</p>
       </div>
     </div>
