@@ -4,7 +4,7 @@ shuttle = "GFMPW18H1"
 slots = 4
 
 [layout]
-md5 = "9656625041036d94d27bf52af8eb2a8d"
+md5 = "e65f93005a41a1c997298f8b4abfc07c"
 
 [site]
 heading = ["MPW-18H1", "Google & Efabless", "GF180MCU Micro-Shuttle"]
@@ -12,7 +12,8 @@ heading = ["MPW-18H1", "Google & Efabless", "GF180MCU Micro-Shuttle"]
 slot_labels = false
 
 [measure]
-# Count only each user_project_wrapper, not the pad frame or the Caravel harness.
-exclude = ["pad_ring", "caravel_harness"]
+# Count only each user_project_wrapper, not the pad frame, the Caravel harness
+# or the seal ring that reticle-stitcher puts around each die.
+exclude = ["pad_ring", "caravel_harness", "seal_ring"]
 keep = ["user_project_wrapper"]
 core_cell = "user_project_wrapper"
