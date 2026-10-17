@@ -25,7 +25,7 @@ from .config import https_url
 
 FIELDS = ["CODE", "PROJECT", "SLOT_SIZE", "VISIBILITY", "PROJECT_DETAILS", "REPOSITORY", "TOP",
           "MACRO_ADDRESS", "TILE_X", "TILE_Y", "AUTHOR", "COMMIT", "LANGUAGE", "CLOCK_HZ",
-          "FLOW_VERSION", "PDK_VERSION"]
+          "FLOW_VERSION", "PDK_VERSION", "LICENSE_FILE", "DOCS_FILE"]
 
 
 def code(address: int) -> str:
@@ -36,6 +36,11 @@ def code(address: int) -> str:
 def _one_line(value) -> str:
     """Text from info.yaml on one line: runs of whitespace, newlines included, become one space."""
     return " ".join(str(value or "").split())
+
+
+def _exists(tt_repo: Path, commit: str, path: str) -> bool:
+    return subprocess.run(["git", "-C", str(tt_repo), "cat-file", "-e", f"{commit}:{path}"],
+                          capture_output=True).returncode == 0
 
 
 def _pdk(tt_repo: Path, commit: str, macro: str) -> dict:
@@ -78,6 +83,9 @@ def manifest_rows(index: dict, tt_repo: Path) -> list[dict]:
             "CLOCK_HZ": info.get("clock_hz") if info.get("clock_hz") is not None else "",
             "FLOW_VERSION": pdk.get("FLOW_VERSION") or "",
             "PDK_VERSION": pdk.get("PDK_VERSION") or "",
+            # The project's licence and documentation in the shuttle repository, where it has them.
+            "LICENSE_FILE": "LICENSE" if _exists(tt_repo, index["commit"], f"projects/{project['macro']}/LICENSE") else "",
+            "DOCS_FILE": "docs/info.md" if _exists(tt_repo, index["commit"], f"projects/{project['macro']}/docs/info.md") else "",
         })
     return rows
 

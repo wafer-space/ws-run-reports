@@ -54,8 +54,16 @@ def _github(repo: str) -> bool:
     return (repo or "").startswith(("https://github.com/", "https://gitlab.com/"))
 
 
+def repo_base(repo: str) -> str:
+    """A GitHub repository URL without a branch or path after it:
+    ".../owner/repo/tree/some-branch" -> ".../owner/repo". Other URLs are returned unchanged."""
+    m = re.match(r"(https://github\.com/[^/]+/[^/]+)", repo or "")
+    return m.group(1) if m else repo
+
+
 def repo_file(repo: str, commit: str, path: str) -> str:
     """A file in a repository at a commit (GitHub and GitLab layouts)."""
+    repo = repo_base(repo)
     if not (_github(repo) and commit and path):
         return ""
     sep = "/-/blob/" if repo.startswith("https://gitlab.com/") else "/blob/"
@@ -63,6 +71,7 @@ def repo_file(repo: str, commit: str, path: str) -> str:
 
 
 def repo_commit(repo: str, commit: str) -> str:
+    repo = repo_base(repo)
     if not (_github(repo) and commit):
         return ""
     sep = "/-/commit/" if repo.startswith("https://gitlab.com/") else "/commit/"
@@ -71,6 +80,7 @@ def repo_commit(repo: str, commit: str) -> str:
 
 def repo_tree(repo: str, commit: str) -> str:
     """The repository's files at a commit."""
+    repo = repo_base(repo)
     if not (_github(repo) and commit):
         return ""
     sep = "/-/tree/" if repo.startswith("https://gitlab.com/") else "/tree/"

@@ -76,9 +76,12 @@
             {% set tt_files = links.repo_tree(tt.repo, tt.commit) ~ "/projects/" ~ design.project.top if tt.repo and tt.commit else "" %}
             <tr><th>Macro</th><td>{{ link(design.project.top, tt.chip_url ~ design.project.top if tt.chip_url else tt_files, mono=true) }}</td></tr>
             {% if tt.repo and tt.commit %}
-            <tr><th>Files</th><td>{{ link("documentation", links.repo_file(tt.repo, tt.commit, "projects/" ~ design.project.top ~ "/docs/info.md")) }}
-              · {{ link("licence", links.repo_file(tt.repo, tt.commit, "projects/" ~ design.project.top ~ "/LICENSE")) }}
-              · {{ link("layout and netlist", tt_files) }}
+            {# Older manifests have no LICENSE_FILE/DOCS_FILE columns: link both, as every project used to have them. #}
+            {% set docs_file = x.DOCS_FILE if "DOCS_FILE" in x or "LICENSE_FILE" in x else "docs/info.md" %}
+            {% set licence_file = x.LICENSE_FILE if "DOCS_FILE" in x or "LICENSE_FILE" in x else "LICENSE" %}
+            <tr><th>Files</th><td>{% if docs_file %}{{ link("documentation", links.repo_file(tt.repo, tt.commit, "projects/" ~ design.project.top ~ "/" ~ docs_file)) }} · {% endif %}
+              {% if licence_file %}{{ link("licence", links.repo_file(tt.repo, tt.commit, "projects/" ~ design.project.top ~ "/" ~ licence_file)) }} · {% endif %}
+              {{ link("layout and netlist", tt_files) }}
               <span class="small text-muted">in {{ link(tt.name or "the shuttle repository", links.repo_tree(tt.repo, tt.commit)) }}</span></td></tr>
             {% endif %}
             <tr><th>Tiles</th><td>{{ design.slot_label }}{% if x.TILE_X %} <span class="text-muted">at column {{ x.TILE_X }}, row {{ x.TILE_Y }} of the tile grid</span>{% endif %}</td></tr>

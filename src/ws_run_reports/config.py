@@ -200,7 +200,7 @@ def _projects_from_csv(path: Path) -> list[Project]:
                 repository=https_url(row["REPOSITORY"]),
                 top=row["TOP"],
                 visibility=row["VISIBILITY"],
-                extra={key: value for key, value in row.items() if key not in _MANIFEST_COLUMNS and value},
+                extra={key: value or "" for key, value in row.items() if key not in _MANIFEST_COLUMNS},
             )
             for row in csv.DictReader(f)
         ]
