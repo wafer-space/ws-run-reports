@@ -1,5 +1,5 @@
-# Google / Efabless GF180MCU micro-shuttle MPW-18H1: Caravel dies on a synthetic reticle
-title = "Google / Efabless GF180MCU micro-shuttle MPW-18H1"
+# Google GF180MCU test shuttle MPW-18H1 (a private run on GlobalFoundries' MPW service): Caravel dies on a synthetic reticle
+title = "Google GF180MCU test shuttle MPW-18H1"
 shuttle = "GFMPW18H1"
 slots = 4
 
@@ -7,7 +7,7 @@ slots = 4
 md5 = "e65f93005a41a1c997298f8b4abfc07c"
 
 [site]
-heading = ["MPW-18H1", "Google & Efabless", "GF180MCU Micro-Shuttle"]
+heading = ["MPW-18H1", "Google", "GF180MCU Test Shuttle (GlobalFoundries private MPW)"]
 # The 2 x 2 arrangement is synthetic, so the slots get no row and column labels.
 slot_labels = false
 # Draw the 2 x 2 on a wafer.space-sized reticle frame, so the dies appear at the
