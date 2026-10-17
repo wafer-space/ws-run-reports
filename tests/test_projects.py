@@ -147,3 +147,33 @@ def test_precheck_table_merges_the_two_flows():
     gone = _precheck_table({"accepted": {"id": "3", "details": False}, "latest": latest})
     assert gone["rows"][1] == ("B", ["", "passed"])
     assert _precheck_table({}) is None
+
+
+def test_tt_manifest(tmp_path):
+    import csv
+    import json
+    import subprocess
+
+    from ws_run_reports import tinytapeout
+
+    repo = tmp_path / "tt"
+    (repo / "projects" / "tt_um_rom").mkdir(parents=True)
+    (repo / "projects" / "tt_um_rom" / "info.yaml").write_text(
+        'project:\n  title: "Chip ROM"\n  author: "Uri"\n  description: "ROM"\n  language: "Verilog"\n  clock_hz: 0\n')
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "x"],
+                   check=True)
+    commit = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True,
+                            check=True).stdout.strip()
+    index = {"commit": commit, "projects": [
+        {"macro": "tt_um_rom", "address": 0, "x": 3, "y": 9, "tiles": "1x1", "repo": "https://r", "commit": "c"},
+        {"macro": "tt_um_gone", "address": 295, "x": 0, "y": 0, "tiles": "2x2", "repo": "", "commit": ""}]}
+    (tmp_path / "index.json").write_text(json.dumps(index))
+
+    assert tinytapeout.write_manifest(tmp_path / "index.json", repo, tmp_path / "manifest.csv") == 2
+    rows = list(csv.DictReader(open(tmp_path / "manifest.csv")))
+    assert rows[0]["CODE"] == "000" and rows[0]["PROJECT"] == "Chip ROM" and rows[0]["CLOCK_HZ"] == "0"
+    assert rows[0]["TOP"] == "tt_um_rom" and rows[0]["SLOT_SIZE"] == "1x1" and rows[0]["AUTHOR"] == "Uri"
+    # No info.yaml: the macro name stands in for the title.
+    assert rows[1]["CODE"] == "295" and rows[1]["PROJECT"] == "tt_um_gone" and rows[1]["CLOCK_HZ"] == ""
