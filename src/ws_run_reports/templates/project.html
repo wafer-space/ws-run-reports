@@ -182,15 +182,16 @@
         <h4 class="mb-10">Logic density</h4>
         <table class="table table-sm run-table">
           <tbody>
-            <tr><th>Core average</th><td>{{ design.core_density | k }} cells/mm²
+            {# Units go in the headings, so that no value carries a ² that could read as a footnote. #}
+            <tr><th>Core average<br><span class="small text-muted fw-normal">logic cells per mm²</span></th><td>{{ design.core_density | k }}
               <span class="text-muted">({{ design.pct_of_buffer_max | pct }} of buffer maximum)</span></td></tr>
             {% if design.peak_cells >= design.core_density %}
-            <tr><th>Densest {{ 'mm²' if window_is_mm else window_side ~ ' square' }}</th><td>{{ design.peak_cells | k }} cells{{ '' if window_is_mm else '/mm²' }}
+            <tr><th>Densest {{ 'mm²' if window_is_mm else window_side ~ ' square' }}<br><span class="small text-muted fw-normal">logic cells per mm²</span></th><td>{{ design.peak_cells | k }}
               <span class="text-muted">({{ design.peak_pct_of_buffer_max | pct }} of buffer maximum)</span></td></tr>
             {% endif %}
             <tr><th>Core covered by logic</th><td>{{ design.utilisation | pct }}</td></tr>
-            <tr><th>Transistor density</th><td>{{ design.core_transistor_density | k }}/mm² average,
-              {{ design.peak_transistors | k }}{{ ' in the densest mm²' if window_is_mm else '/mm² in the densest ' ~ window_side ~ ' square' }}</td></tr>
+            <tr><th>Transistor density<br><span class="small text-muted fw-normal">transistors per mm²</span></th><td>{{ design.core_transistor_density | k }} average,
+              {{ design.peak_transistors | k }} in the densest {{ 'mm²' if window_is_mm else window_side ~ ' square' }}</td></tr>
           </tbody>
         </table>
         {% endif %}

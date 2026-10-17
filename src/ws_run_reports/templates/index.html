@@ -386,13 +386,13 @@
           <th rowspan="2">{{ 'Tiles' if tt else 'Slot' }}</th><th rowspan="2">{{ 'Size' if tt else 'Die' }}</th>
           <th rowspan="2" class="text-end">Core area</th><th rowspan="2" class="text-end">{{ 'Projects' if tt else 'Designs' }}</th>
           <th rowspan="2" class="text-end">Most logic<br>cells</th><th rowspan="2" class="text-end">Median</th>
-          <th rowspan="2" class="text-end">At typical<br>density<br><span class="small text-muted">{{ median_density | k }}/mm²</span></th>
-          <th rowspan="2" class="text-end">At best<br>density<br><span class="small text-muted">{{ best_density | k }}/mm²</span></th>
+          <th rowspan="2" class="text-end">At typical<br>density <span class="small text-muted fw-normal">(per mm²)</span><br><span class="small text-muted">{{ median_density | k }}</span></th>
+          <th rowspan="2" class="text-end">At best<br>density <span class="small text-muted fw-normal">(per mm²)</span><br><span class="small text-muted">{{ best_density | k }}</span></th>
           <th colspan="3" class="text-center">Max</th>
         </tr><tr>
           <th class="text-end">NAND gates<br><span class="small text-muted fw-normal">theoretical{% if mx.nand %}<br>{{ link(mx.nand.cell_type, links.cell(mx.library, mx.nand.cell_type), mono=true) }}{% endif %}</span></th>
           <th class="text-end">Flip-flops<br><span class="small text-muted fw-normal">theoretical{% if mx.flop %}<br>{{ link(mx.flop.cell_type, links.cell(mx.library, mx.flop.cell_type), mono=true) }}{% endif %}</span></th>
-          <th class="text-end">At densest<br>achieved<br><span class="small text-muted fw-normal">{{ mx.densest | k }}/mm²</span></th>
+          <th class="text-end">At densest<br>achieved <span class="small text-muted fw-normal">(per mm²)</span><br><span class="small text-muted fw-normal">{{ mx.densest | k }}</span></th>
         </tr></thead>
         <tbody>
           {% for row in slot_guidance %}
