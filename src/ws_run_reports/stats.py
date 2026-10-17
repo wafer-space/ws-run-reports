@@ -32,7 +32,7 @@ REFERENCE_CELLS = [
     ("Inverter", "Flips a signal", r"inv_\d+"),
     ("NAND gate", "Basic logic gate", r"nand2_\d+"),
     ("Buffer", "Strengthens a signal", r"buff?_\d+"),
-    ("Flip-flop", "Stores one bit", r"(dffq|dfxtp)_\d+"),
+    ("Flip-flop", "Stores one bit", r"(dffq|dfxtp|dff)_\d+"),  # GF, SkyWater-style, OSU
 ]
 
 CELL_DESCRIPTIONS = {
