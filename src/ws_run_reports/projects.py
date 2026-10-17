@@ -138,8 +138,13 @@ def build(platform: list, audit: list | None, run_name: str) -> dict:
         if entry is not None:
             files = sorted({f["spdx"] for f in (entry.get("license") or {}).get("files", []) if f.get("spdx")})
             headers = sorted(set((entry.get("license") or {}).get("spdx_headers") or []))
-            licence.update(repo_files=files, repo_headers=headers, repo_commit=entry.get("head") or "",
-                           repo_checked=entry.get("repo_url") or repository,
+            # Each licence file found, so that the pages can link to it at the commit checked.
+            paths = sorted(({"file": f["file"], "spdx": f.get("spdx") or ""}
+                            for f in (entry.get("license") or {}).get("files", []) if f.get("file")),
+                           key=lambda f: f["file"])
+            licence.update(repo_files=files, repo_headers=headers, repo_licence_files=paths,
+                           repo_commit=entry.get("head") or "",
+                           repo_checked=https_url(entry.get("repo_url")) or repository,
                            status=licence_status(licence["declared"], files, headers,
                                                  bool(entry.get("head")) and entry.get("status") == "cloned"))
         projects[record["code"]] = {

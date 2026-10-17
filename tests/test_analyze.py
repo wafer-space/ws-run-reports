@@ -321,7 +321,7 @@ def test_features_in_stats_and_report(analog, tmp_path):
     assert d.io_libraries == {"gf180mcu_fd_io": 1}
     text = report.build_report(run_stats)
     assert "## Process Features and Voltages" in text
-    assert "| MIM capacitors | 1 of 1 | `ANLG` |" in text
+    assert "| MIM capacitors | 1 of 1 | [ANLG](https://wafer.space/test/projects/ANLG.html) |" in text
 
 
 def test_missing_boundaries_come_from_the_reference(tmp_path):

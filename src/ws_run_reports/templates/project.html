@@ -100,13 +100,19 @@
         <table class="table table-sm run-table">
           <tbody>
             {% set lic = info.licence %}
-            <tr><th>Licence</th><td>{{ lic.declared or "not declared" }} <span class="text-muted">declared</span>
-              {% if lic.status == "match" %}<br><span class="text-muted">Repository: {{ (lic.repo_files or lic.repo_headers) | join(", ") }}
-                {% if not lic.repo_files %}(in source file headers){% endif %} — agrees</span>
-              {% elif lic.status == "mismatch" %}<br><span class="run-warn">Repository: {{ (lic.repo_files or lic.repo_headers) | join(", ") }} — differs from the declared licence</span>
+            {# Licence files link to the file in the repository at the commit that was checked. #}
+            {% set lic_repo = lic.repo_checked or info.repository %}
+            {% set lic_files = lic.repo_licence_files or [] %}
+            {% set declared_file = (lic_files | selectattr("spdx", "equalto", lic.declared) | list)[:1] %}
+            {% set declared_url = links.repo_file(lic_repo, lic.repo_commit, declared_file[0].file) if declared_file else links.spdx(lic.declared) %}
+            {% macro found() %}{% if lic_files %}{% for f in lic_files %}{{ link(f.spdx or f.file, links.repo_file(lic_repo, lic.repo_commit, f.file)) }}{% if f.spdx %} <span class="small">in <span class="run-mono">{{ f.file }}</span></span>{% endif %}{{ ", " if not loop.last }}{% endfor %}{% else %}{{ lic.repo_headers | join(", ") }}{% endif %}{% endmacro %}
+            <tr><th>Licence</th><td>{% if lic.declared %}{{ link(lic.declared, declared_url) }}{% else %}not declared{% endif %} <span class="text-muted">declared</span>
+              {% if lic.status == "match" %}<br><span class="text-muted">Repository: {{ found() }}
+                {% if not lic_files %}(in {{ link("source file headers", links.repo_tree(lic_repo, lic.repo_commit)) }}){% endif %} — agrees</span>
+              {% elif lic.status == "mismatch" %}<br><span class="run-warn">Repository: {{ found() }} — differs from the declared licence</span>
               {% elif lic.status == "no licence file" %}<br><span class="run-warn">The repository has no licence file</span>
               {% elif lic.status == "no repository" %}<br><span class="text-muted">No public repository</span>{% endif %}
-              {% if lic.repo_commit %}<br><span class="small text-muted">Repository checked at <span class="run-mono">{{ lic.repo_commit[:12] }}</span></span>{% endif %}</td></tr>
+              {% if lic.repo_commit %}<br><span class="small text-muted">Repository checked at {{ link(lic.repo_commit[:12], links.repo_commit(lic_repo, lic.repo_commit), mono=true) }}</span>{% endif %}</td></tr>
             {% set checks = info.checks or {} %}
             <tr><th>Chip-on-board</th><td>{{ "Selected at submission" if info.chip_on_board else "Not selected at submission" }}
               {% if cob_url %}· <a href="#bonding">bonding results</a>{% endif %}

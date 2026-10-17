@@ -276,7 +276,7 @@
         <table class="table table-sm run-table bg-white mb-10">
           <thead><tr><th>Declared licence</th><th class="text-end">Designs</th></tr></thead>
           <tbody>
-            {% for licence, n in licence_counts %}<tr><td>{{ licence }}</td><td class="text-end">{{ n }}</td></tr>{% endfor %}
+            {% for licence, n in licence_counts %}<tr><td>{{ link(licence, links.spdx(licence)) }}</td><td class="text-end">{{ n }}</td></tr>{% endfor %}
           </tbody>
         </table>
         {% if licence_issues %}<p class="small text-muted mb-0">Repository licence differs from the declared one, or is

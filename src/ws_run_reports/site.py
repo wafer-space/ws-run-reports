@@ -17,7 +17,7 @@ from pathlib import Path
 from jinja2 import Environment, PackageLoader, select_autoescape
 from markupsafe import Markup
 
-from . import external, projects, report, reticle
+from . import external, links, projects, report, reticle
 from . import stats as stats_module
 from .classify import CATEGORY_ORDER
 from .config import SLOT_FRACTIONS
@@ -373,6 +373,7 @@ def build_site(run, out_dir: Path) -> Path:
     digest = hashlib.sha256(b"".join(path.read_bytes() for path in sorted(static.iterdir())))
     env.globals.update(static_version=digest.hexdigest()[:10])
     env.globals.update(area_bar=_area_bar, heatmap=_heatmap, photo_credit=lambda target=None: _photo_credit(run, target))
+    env.globals.update(links=links, link=links.html)
 
     # The data behind the page, so every figure on it can be checked.
     data_dir = site_dir / "data"

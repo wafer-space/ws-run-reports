@@ -1,0 +1,12 @@
+# Where the names the pages and the report print link to (see links.py).
+# Every URL here was checked to resolve when it was added.
+
+[sites]
+"platform.wafer.space" = "https://platform.wafer.space/"
+"wafer.space" = "https://wafer.space/"
+"tinytapeout.com" = "https://tinytapeout.com/"
+
+[tools]
+KLayout = "https://www.klayout.de/"
+Magic = "http://opencircuitdesign.com/magic/"
+LibreLane = "https://librelane.readthedocs.io/"

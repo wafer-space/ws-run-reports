@@ -4,6 +4,7 @@ import statistics
 from pathlib import Path
 
 from . import stats as stats_module
+from . import links
 from .analyze import FILL_CELL_PREFIXES
 from .features import FEATURE_LABELS
 from .stats import REFERENCE_CELLS, FLIP_FLOP_RE, describe_cell, library_label, library_long_label
@@ -42,8 +43,13 @@ def count(value: float) -> str:
 
 
 def link(design) -> str:
-    repo = design.project.repository
-    return f"[{design.code}]({repo})" if repo else design.code
+    """A design's code, linking to its page on the run's site."""
+    return links.markdown(design.code, design.page_url)
+
+
+def name(design, limit: int = 70) -> str:
+    """A design's name, shortened, linking to its source repository."""
+    return links.markdown(short(design.name, limit), design.project.repository)
 
 
 def table(header: list, rows: list) -> str:
@@ -60,7 +66,7 @@ def short(text: str, limit: int = 70) -> str:
 def density_rows(designs):
     return [
         [link(d), d.library_label, k(d.core_density), pct(d.pct_of_buffer_max), pct(d.utilisation),
-         count(d.logic_cells), d.sram_label, short(d.name)]
+         count(d.logic_cells), d.sram_label, name(d)]
         for d in designs
     ]
 
@@ -182,7 +188,7 @@ def build_report(stats) -> str:
         add("### Minimal (analog, custom or test structures)\n")
         add(f"These designs contain fewer than {MINIMAL_LOGIC_CELLS:,} logic standard cells:\n")
         add(table(["Design", "Logic SC", "Transistors", "SRAM", "Pads", "Project"],
-                  [[link(d), f"{d.logic_cells:,}", count(d.transistors), d.sram_label, d.pads, short(d.name)]
+                  [[link(d), f"{d.logic_cells:,}", count(d.transistors), d.sram_label, d.pads, name(d)]
                    for d in sorted(minimal, key=lambda d: d.code)]) + "\n")
 
     # --- Peak grid -----------------------------------------------------------
@@ -255,7 +261,7 @@ def build_report(stats) -> str:
         add(table(["Design", "SRAM macros", "SRAM bits", "SRAM area", "Logic SC", "Project"],
                   [[link(d), d.sram_label, f"{d.sram_bits:,}" if d.sram_bits else "—",
                     f"{d.sram_area_mm2:.2f} mm² ({pct(d.sram_area_mm2 / d.core_area_mm2)} of core)",
-                    count(d.logic_cells), short(d.name)] for d in with_sram]) + "\n")
+                    count(d.logic_cells), name(d)] for d in with_sram]) + "\n")
         add("SRAM macros are identified by cell name, and their area is the macro footprint. \"custom\" marks a "
             "design with SRAM marker shapes (GDS 108/5) but no recognised macro, where the count and size are "
             "not known and the area is that of the marked bitcell arrays.\n")
@@ -403,9 +409,9 @@ def features_section(stats) -> str:
            "SRAM macros, I/O pads and fill are left out, because every die has them. A single test structure "
            "counts the same as a large block.\n"]
     rows = [[v, f"{len(stats.voltage_users(v))} of {len(designs)}",
-             ", ".join(f"`{d.code}`" for d in stats.voltage_users(v))] for v in stats.voltage_levels]
+             ", ".join(link(d) for d in stats.voltage_users(v))] for v in stats.voltage_levels]
     out.append(table(["Transistor voltage", "Designs", "Which"], rows) + "\n")
-    rows = [[label, f"{len(users)} of {len(designs)}", ", ".join(f"`{d.code}`" for d in users) or "—"]
+    rows = [[label, f"{len(users)} of {len(designs)}", ", ".join(link(d) for d in users) or "—"]
             for _, label, users in stats.feature_popularity]
     out.append(table(["Device", "Designs drawing it", "Which"], rows) + "\n")
     rows = []

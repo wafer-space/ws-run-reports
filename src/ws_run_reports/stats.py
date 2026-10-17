@@ -200,6 +200,7 @@ class Design:
     windows: dict = field(default_factory=dict)         # kind -> densest 1 mm window, from _windows.csv
     window_mm: float = 1.0                              # side of the map squares and windows ([measure] grid_um)
     pad_ring_mm: float = PAD_RING_MM                    # [measure] pad_ring_um; 0 makes the whole design its core
+    page_url: str = ""                                  # the design's page on the run's site
     features: dict = field(default_factory=dict)        # feature -> (count, area_um2), designer-drawn only
     buffer_max_per_mm2: float = 0.0
     category: str = ""
@@ -536,7 +537,7 @@ def load(run: Run, out_dir: Path) -> RunStats:
             width_mm=float(r["width_mm"]), height_mm=float(r["height_mm"]), pads=int(r["pad_count"]),
             sram_blocks=int(r["sram_block_count"]), logic_cells=int(r["stdcell_count"]),
             transistors=int(r["transistor_count"]), positions=[position], window_mm=window_mm,
-            pad_ring_mm=pad_ring_mm)
+            pad_ring_mm=pad_ring_mm, page_url=f"{run.pages_url}projects/{code}.html")
     first_cell = {d.cell_name: d for d in designs.values()}
 
     for r in _read(Path(f"{stem}_cells.csv")):
