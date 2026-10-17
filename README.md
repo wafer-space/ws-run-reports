@@ -151,6 +151,37 @@ repository on the `gh-pages` branch:
 gh api repos/wafer-space/ws-run2/pages -X POST -f 'source[branch]=gh-pages' -f 'source[path]=/'
 ```
 
+### Tiny Tapeout dies
+
+A Tiny Tapeout chip on a wafer.space reticle gets its own run: the die is
+the "reticle" and its projects are the "slots". To add one:
+
+1. Make a run repository (e.g. `ws-run2-ttgf0p3-t0p3`) holding the die as
+   cut from the wafer.space reticle in `layout/<CODE>-part-*`, the
+   release's `shuttle_index.json` in `data/`, and a manifest made from it:
+
+   ```bash
+   uv run ws-run-reports tt-manifest --index data/shuttle_index.json \
+       --tt-repo <checkout of TinyTapeout/tinytapeout-gf-...> --output data/manifest.csv
+   ```
+
+   Each project's code is its mux address, three digits (`000`, `295`).
+   Its title, author, description, language and clock come from its
+   `info.yaml` at the release commit.
+
+2. Add `runs/<repo>.toml`, as `runs/ws-run2-ttgf0p3-t0p3.toml`:
+
+   | Setting | Purpose |
+   |---|---|
+   | `[layout] slots = "manifest"` | Slots are the outermost placements of each manifest `TOP` cell (a project's own nested `tt_um_*` cells stay part of it) |
+   | `[measure] grid_um`, `bin_um` | Density map squares and densest window (100 µm), and its step (20 µm); peaks stay per mm² |
+   | `[measure] pad_ring_um = 0` | Each project's core is its whole area |
+   | `[site] kind = "tiny-tapeout"`, `tt_chip` | Die/project/tiles wording, project details and tinytapeout.com links |
+   | `[site.parent] title`, `url` | Link back to the die on its wafer.space run |
+   | `[site.render]` | Design, thumbnail and die scales (`design_px_per_mm`, `design_max_px`, `thumb_px_per_mm`, `thumb_max_px`, `reticle_px_per_mm`), and `reticle_background = true` to draw the whole die under the projects |
+
+3. Run `ws-run-reports all <repo>` as for any run.
+
 ## What is measured
 
 | Output | Contents |
