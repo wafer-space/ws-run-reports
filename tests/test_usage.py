@@ -60,3 +60,18 @@ def test_gate_matrix_mim_level_and_provenance():
     assert ("poly_sal", "own", "") not in prov
     assert prov[("custom_3v3", "own", "")] == 1
     assert len(found["content_hash"]) == 64
+
+
+def test_gates_split_across_cells_count_once():
+    """One gate drawn across two cells is one transistor (unmerged deep regions count each piece)."""
+    layout = kdb.Layout()
+    layout.dbu = DBU
+    top = layout.create_cell("AB12_chip_top_0_0")
+    half = layout.create_cell("half_comp")
+    box(half, (22, 0), 0, 0, 2, 2)                          # half of the diffusion
+    box(half, (32, 0), -0.5, -0.5, 2, 2.5)
+    for x in (0, 2):                                        # two abutting halves make one 4 um wide COMP
+        top.insert(kdb.CellInstArray(half.cell_index(), kdb.Trans(um(x), 0)))
+    box(top, (30, 0), 1.5, -1, 2.5, 3)                      # the gate's poly crosses the seam
+    m = usage.Measure(layout, top, Selection())
+    assert usage.gate_matrix(m)["nmos_3v3"][0] == 1
