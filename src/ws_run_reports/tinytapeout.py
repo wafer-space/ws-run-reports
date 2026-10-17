@@ -33,6 +33,11 @@ def code(address: int) -> str:
     return f"{int(address):03d}"
 
 
+def _one_line(value) -> str:
+    """Text from info.yaml on one line: runs of whitespace, newlines included, become one space."""
+    return " ".join(str(value or "").split())
+
+
 def _pdk(tt_repo: Path, commit: str, macro: str) -> dict:
     """``projects/<macro>/pdk.json`` at the release commit: the LibreLane and PDK the project was built with."""
     result = subprocess.run(["git", "-C", str(tt_repo), "show", f"{commit}:projects/{macro}/pdk.json"],
@@ -58,18 +63,18 @@ def manifest_rows(index: dict, tt_repo: Path) -> list[dict]:
         pdk = _pdk(tt_repo, index["commit"], project["macro"])
         rows.append({
             "CODE": code(project["address"]),
-            "PROJECT": str(info.get("title") or project["macro"]).strip(),
+            "PROJECT": _one_line(info.get("title") or project["macro"]),
             "SLOT_SIZE": project["tiles"],
             "VISIBILITY": "Public",
-            "PROJECT_DETAILS": str(info.get("description") or "").strip(),
+            "PROJECT_DETAILS": _one_line(info.get("description")),
             "REPOSITORY": https_url(project.get("repo")),
             "TOP": project["macro"],
             "MACRO_ADDRESS": project["address"],
             "TILE_X": project["x"],
             "TILE_Y": project["y"],
-            "AUTHOR": str(info.get("author") or "").strip(),
+            "AUTHOR": _one_line(info.get("author")),
             "COMMIT": project.get("commit") or "",
-            "LANGUAGE": str(info.get("language") or "").strip(),
+            "LANGUAGE": _one_line(info.get("language")),
             "CLOCK_HZ": info.get("clock_hz") if info.get("clock_hz") is not None else "",
             "FLOW_VERSION": pdk.get("FLOW_VERSION") or "",
             "PDK_VERSION": pdk.get("PDK_VERSION") or "",
