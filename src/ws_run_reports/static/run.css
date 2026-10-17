@@ -23,6 +23,8 @@
 
 /* Tables */
 .run-table { color: var(--run-ink); font-variant-numeric: tabular-nums; }
+/* Bootstrap colours table cells from its own variables, which the dark theme does not set. */
+.run-table { --bs-table-color: var(--run-ink); --bs-table-bg: transparent; }
 .run-table th { font-weight: 600; white-space: nowrap; }
 .run-table td, .run-table th { border-color: var(--run-line); vertical-align: middle; }
 [data-theme="dark"] .run-table.bg-white { background: var(--run-surface) !important; }
