@@ -152,14 +152,15 @@ def timeline_items(shuttle: dict) -> list:
     items = []
     name = shuttle.get("name") or "Tiny Tapeout"
     if shuttle.get("end_date"):
-        items.append({"title": f"{name} submissions close", "date": shuttle["end_date"],
+        items.append({"owner": "Tiny Tapeout", "title": f"{name} submissions close", "date": shuttle["end_date"],
                       "display_date": _display_date(shuttle["end_date"]),
-                      "description": "Last day to submit a project to this Tiny Tapeout shuttle", "status": "critical",
+                      "description": "Last day to submit a project to this Tiny Tapeout shuttle",
+                      "status": "critical",
                       "url": f"{shuttle['repo']}/blob/{shuttle['commit']}/config.yaml" if shuttle.get("repo") else ""})
     if shuttle.get("release"):
         release = shuttle["release"]
-        items.append({"title": f"{name} tapeout release", "date": release["date"],
+        items.append({"owner": "Tiny Tapeout", "title": f"{name} tapeout release", "date": release["date"],
                       "display_date": _display_date(release["date"]),
-                      "description": f"Tiny Tapeout publishes the chip's layout as {release['tag']}",
+                      "description": f"Tiny Tapeout publishes the die's layout ({release['tag']}) and sends it to wafer.space",
                       "status": "milestone", "url": release["url"]})
     return items

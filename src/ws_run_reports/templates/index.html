@@ -139,10 +139,17 @@
         {% endif %}
         <h2 class="section-title mb-20">Shuttle status</h2>
         {% if timeline %}
+        {% set owners = timeline | map(attribute="owner") | select | unique | list %}
+        {% if owners | length > 1 %}
+        <p class="small text-muted mb-15">Two schedules meet here: <span class="run-owner run-owner-tt">Tiny Tapeout</span>
+          collects the projects and builds the die, then <span class="run-owner run-owner-ws">wafer.space</span>
+          manufactures it on {{ tt.parent.title if tt and tt.parent.title else "its run" }} and ships the parts.</p>
+        {% endif %}
         <ul class="run-timeline">
           {% for item in timeline %}
-          <li class="{{ 'done' if item.done else 'pending' }} run-timeline-{{ item.status }}">
-            <span class="run-timeline-date">{{ item.display_date or item.date }}</span>
+          <li class="{{ 'done' if item.done else 'pending' }} run-timeline-{{ item.status }}{% if owners | length > 1 %} run-timeline-{{ 'tt' if item.owner == 'Tiny Tapeout' else 'ws' }}{% endif %}">
+            <span class="run-timeline-date">{% if owners | length > 1 %}<span class="run-owner run-owner-{{ 'tt' if item.owner == 'Tiny Tapeout' else 'ws' }}">{{ item.owner }}</span>
+              {% endif %}{{ item.display_date or item.date }}</span>
             <strong>{{ link(item.title, item.url) }}</strong>
             <span class="small text-muted">{{ item.description }}</span>
           </li>

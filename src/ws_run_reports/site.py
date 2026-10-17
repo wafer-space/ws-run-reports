@@ -257,7 +257,10 @@ def build_context(run, out_dir: Path) -> dict:
     print("Collecting external content...")
     timeline = external.timeline(run)
     if run.site.get("kind") == "tiny-tapeout":
-        # The Tiny Tapeout shuttle's own milestones, among its run's.
+        # The Tiny Tapeout shuttle's own milestones among its wafer.space run's,
+        # each marked with who owns the step.
+        for item in timeline:
+            item["owner"] = "wafer.space"
         timeline = sorted(timeline + tinytapeout.timeline_items(tinytapeout.load_shuttle(run.repo_dir)),
                           key=lambda item: item["date"])
     cob = external.cob_pages(run)
