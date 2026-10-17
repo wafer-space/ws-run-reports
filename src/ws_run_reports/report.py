@@ -1,10 +1,11 @@
 """Write the Markdown standard cell and SRAM density report for a run."""
 
+import re
 import statistics
 from pathlib import Path
 
-from . import stats as stats_module
 from . import links
+from . import stats as stats_module
 from .analyze import FILL_CELL_PREFIXES
 from .features import FEATURE_LABELS
 from .stats import REFERENCE_CELLS, FLIP_FLOP_RE, describe_cell, library_label, library_long_label
@@ -47,6 +48,33 @@ def link(design) -> str:
     return links.markdown(design.code, design.page_url)
 
 
+def lib_link(library: str, long: bool = False) -> str:
+    """A library's label, linking to its documentation."""
+    return links.markdown(library_long_label(library) if long else library_label(library), links.library(library))
+
+
+def cell_link(library: str, cell_type: str) -> str:
+    """A standard cell's name, linking to its own documentation page."""
+    return links.markdown(cell_type, links.cell(library, cell_type), code=True)
+
+
+def macro_link(name: str) -> str:
+    return links.markdown(name, links.macro(name), code=True)
+
+
+def gds(text: str) -> str:
+    """Every GDS layer number in text ("GDS 22/0", or "(22/0)" after a layer's name) linked to the PDK's layer table."""
+    text = re.sub(r"GDS \d{1,3}/\d{1,3}\b", lambda m: links.markdown(m.group(0), links.layers()), text)
+    return re.sub(r"\((\d{1,3}/\d{1,3})\)", lambda m: "(" + links.markdown(m.group(1), links.layers()) + ")", text)
+
+
+def design_lib(design) -> str:
+    """A design's library label, linking to the library when it uses just one."""
+    if design.libraries and not design.is_mixed:
+        return lib_link(design.primary_library)
+    return design.library_label
+
+
 def name(design, limit: int = 70) -> str:
     """A design's name, shortened, linking to its source repository."""
     return links.markdown(short(design.name, limit), design.project.repository)
@@ -65,7 +93,7 @@ def short(text: str, limit: int = 70) -> str:
 
 def density_rows(designs):
     return [
-        [link(d), d.library_label, k(d.core_density), pct(d.pct_of_buffer_max), pct(d.utilisation),
+        [link(d), design_lib(d), k(d.core_density), pct(d.pct_of_buffer_max), pct(d.utilisation),
          count(d.logic_cells), d.sram_label, name(d)]
         for d in designs
     ]
@@ -124,7 +152,7 @@ def build_report(stats) -> str:
     for lib in libs:
         height = stats.row_height_um(lib)
         share = stats.library_logic_totals[lib] / logic_total if logic_total else 0
-        rows.append([library_long_label(lib), f"{height:.2f} um", f"{1000 / height:.0f} rows",
+        rows.append([lib_link(lib, long=True), f"{height:.2f} um", f"{1000 / height:.0f} rows",
                      pct(base_height / height), count(stats.library_logic_totals[lib]), pct(share)])
     add(table(["Library", "Row Height", "Rows per mm", "Relative Density", "Logic instances", "Share"], rows) + "\n")
     add("Row height is the height of the cells' placement boundary, which is what rows are stacked at. "
@@ -133,7 +161,7 @@ def build_report(stats) -> str:
     if mixed:
         parts = []
         for d in mixed:
-            mix = " + ".join(f"{count(n)} {lib}" for lib, n in sorted(d.libraries.items(), key=lambda kv: -kv[1]))
+            mix = " + ".join(f"{count(n)} {lib_link(lib)}" for lib, n in sorted(d.libraries.items(), key=lambda kv: -kv[1]))
             parts.append(f"{link(d)} ({mix})")
         add("Most designs use one library exclusively. The designs that mix libraries are: " + "; ".join(parts) + ".\n")
 
@@ -146,9 +174,9 @@ def build_report(stats) -> str:
         row = [label]
         for lib in libs:
             cell = stats.reference_cell(lib, pattern)
-            row.append(f"{k(cell.per_mm2)}/mm² ({cell.cell_type}, {cell.width_um:.2f}um)" if cell else "—")
+            row.append(f"{k(cell.per_mm2)}/mm² ({cell_link(lib, cell.cell_type)}, {cell.width_um:.2f}um)" if cell else "—")
         rows.append(row + [what])
-    add(table(["Cell Type"] + [library_label(lib) for lib in libs] + ["What it does"], rows) + "\n")
+    add(table(["Cell Type"] + [lib_link(lib) for lib in libs] + ["What it does"], rows) + "\n")
     add("These are hard upper bounds — the density if you packed cells edge-to-edge with zero routing overhead. "
         "For each library the smallest cell of that kind is used; the 3.3V library has no drive strength 1 cells, "
         "so its smallest cells are the `_2` variants.\n")
@@ -205,7 +233,7 @@ def build_report(stats) -> str:
     peaks = sorted((d for d in digital if d.peak_cells), key=lambda d: -d.peak_cells)[:15]
     add(table(["Design", "Peak Logic SC/mm²", "% of buffer max", "Library"],
               [[link(d), k(d.peak_cells), f"{pct(d.peak_pct_of_buffer_max)} of {k(d.buffer_max_per_mm2)}",
-                d.library_label] for d in peaks]) + "\n")
+                design_lib(d)] for d in peaks]) + "\n")
     if peaks:
         best = peaks[0]
         region = "1mm²" if stats.window_um == 1000 else f"{side} square"
@@ -232,7 +260,7 @@ def build_report(stats) -> str:
             rows[2].append(f"{k(best_peak.peak_cells)} SC/mm² · {pct(best_peak.peak_pct_of_buffer_max)} of max "
                            f"({link(best_peak)})")
             rows[3].append(f"{k(median)} SC/mm² · {pct(median / buffer_max if buffer_max else 0)} of max")
-        add(table(["Metric"] + [library_long_label(lib) for lib in compared], rows) + "\n")
+        add(table(["Metric"] + [lib_link(lib, long=True) for lib in compared], rows) + "\n")
         add("Differences between libraries here reflect which designs chose which library as much as the "
             "libraries themselves; the theoretical difference from row height alone is in the table above.\n")
 
@@ -241,7 +269,7 @@ def build_report(stats) -> str:
     totals = stats.cell_type_totals
     add("The 15 most-used logic cell types across all unique designs on the reticle:\n")
     add(table(["Cell Type", "Library", "Instances", "What it does"],
-              [[cell_type, library_label(lib), count(n), describe_cell(cell_type)]
+              [[cell_link(lib, cell_type), lib_link(lib), count(n), describe_cell(cell_type)]
                for (lib, cell_type), n in totals.most_common(15)]) + "\n")
     nand2 = sum(n for (_, ct), n in totals.items() if ct.startswith("nand2_"))
     flops = sum(n for (_, ct), n in totals.items() if FLIP_FLOP_RE.match(ct))
@@ -279,20 +307,20 @@ def build_report(stats) -> str:
         for label, _, pattern in REFERENCE_CELLS:
             cell = stats.reference_cell(lib, pattern)
             if cell:
-                rows.append([cell.cell_type, f"{cell.width_um:.2f} um", k(cell.per_mm2), cell.transistors,
+                rows.append([cell_link(lib, cell.cell_type), f"{cell.width_um:.2f} um", k(cell.per_mm2), cell.transistors,
                              f"{k(cell.transistors_per_mm2)}/mm²"])
                 if label == "Flip-flop" and (best_flop is None or cell.transistors_per_mm2 >
                                              best_flop.transistors_per_mm2):
                     best_flop = cell
         if rows:
-            add(table([f"Cell ({library_label(lib)})", "Width", "Cells/mm²", "Trans/cell",
+            add(table([f"Cell ({lib_link(lib)})", "Width", "Cells/mm²", "Trans/cell",
                        "Trans/mm² theoretical max"], rows) + "\n")
     flop_max = best_flop.transistors_per_mm2 if best_flop else 0
 
     if stats.macros:
         add("### SRAM Macros\n")
         add(table(["Macro", "Size", "Trans/mm²", "% of flip-flop max", "Placements"],
-                  [[f"`{m.name}`", f"{m.width_um:.0f} x {m.height_um:.0f} um", f"{k(m.transistors_per_mm2)}/mm²",
+                  [[macro_link(m.name), f"{m.width_um:.0f} x {m.height_um:.0f} um", f"{k(m.transistors_per_mm2)}/mm²",
                     pct(m.transistors_per_mm2 / flop_max if flop_max else 0), m.instances]
                    for m in sorted(stats.macros.values(), key=lambda m: -m.transistors_per_mm2)]) + "\n")
         add("The macro density includes the peripheral circuits (address decoders, sense amplifiers, I/O drivers) "
@@ -302,7 +330,7 @@ def build_report(stats) -> str:
     top_t = sorted((d for d in digital if d.peak_transistors), key=lambda d: -d.peak_transistors)[:8]
     add(table(["Design", "Peak 1mm² Trans/mm²", "% of flip-flop max", "Library"],
               [[link(d), f"{k(d.peak_transistors)}/mm²", pct(d.peak_transistors / flop_max if flop_max else 0),
-                d.library_label] for d in top_t]) + "\n")
+                design_lib(d)] for d in top_t]) + "\n")
     add("Infrastructure cells are excluded from logic cell counts but their transistors (decoupling capacitors in "
         "particular) are included in transistor counts.\n")
 
@@ -321,7 +349,7 @@ def build_report(stats) -> str:
             f"max), with a peak of **{k(top.peak_cells)} logic SC/mm²** in its densest 1mm² region.")
     if libs:
         findings.append("Standard cell libraries in use: " + ", ".join(
-            f"**{library_label(lib)}** ({pct(stats.library_logic_totals[lib] / logic_total)} of logic cells)"
+            f"**{lib_link(lib)}** ({pct(stats.library_logic_totals[lib] / logic_total)} of logic cells)"
             for lib in libs) + ".")
     densities = [d.core_density for d in digital if d.logic_cells >= MINIMAL_LOGIC_CELLS]
     if densities:
@@ -333,7 +361,7 @@ def build_report(stats) -> str:
         common = max(stats.macros.values(), key=lambda m: m.instances)
         findings.append(
             f"The best standard cell region reaches **{k(top_t[0].peak_transistors)} transistors/mm²** "
-            f"({link(top_t[0])}); the most used SRAM macro, `{common.name}`, is "
+            f"({link(top_t[0])}); the most used SRAM macro, {macro_link(common.name)}, is "
             f"{k(common.transistors_per_mm2)} transistors/mm².")
     findings.append(
         f"Infrastructure cells (fillers, taps, antenna diodes, ties) outnumber logic cells **{ratio:.1f} to 1** "
@@ -341,8 +369,8 @@ def build_report(stats) -> str:
         "these to avoid dramatically overstating actual logic content.")
     if totals:
         (lib, cell_type), n = totals.most_common(1)[0]
-        findings.append(f"The most common logic cell is **{cell_type}** ({count(n)} instances in "
-                        f"{library_label(lib)}).")
+        findings.append(f"The most common logic cell is **{cell_link(lib, cell_type)}** ({count(n)} instances in "
+                        f"{lib_link(lib)}).")
     for i, finding in enumerate(findings, 1):
         add(f"{i}. {finding}\n")
 
@@ -353,7 +381,7 @@ def build_report(stats) -> str:
          "SRAM", "Libraries"],
         [[link(d), f"`{d.cell_name}`", f"{d.width_mm:.2f} x {d.height_mm:.2f}", f"{d.core_area_mm2:.1f}",
           d.placements, d.pads, f"{d.logic_cells:,}", f"{d.fill_cells:,}", f"{d.transistors:,}", d.sram_label,
-          ", ".join(f"{lib}: {n:,}" for lib, n in sorted(d.libraries.items(), key=lambda kv: -kv[1])) or "—"]
+          ", ".join(f"{lib_link(lib)}: {n:,}" for lib, n in sorted(d.libraries.items(), key=lambda kv: -kv[1])) or "—"]
          for d in designs]) + "\n")
 
     # --- Methodology -------------------------------------------------------------
@@ -396,7 +424,7 @@ def build_report(stats) -> str:
         f"`{Path(run.layout['file']).name}` (md5 `{run.layout['md5']}`) in "
         f"[{run.repo}{'/' + run.path if run.path else ''}]({run.source_url}). Analysis method: " + links.markdown("KLayout", links.tool("KLayout")) + " boolean geometry operations on GDS layers. "
         f"Grid resolution: {side} x {side}. Density figures are rounded to the nearest 1k.*")
-    return "\n".join(out) + "\n"
+    return gds("\n".join(out) + "\n")
 
 
 def features_section(stats) -> str:

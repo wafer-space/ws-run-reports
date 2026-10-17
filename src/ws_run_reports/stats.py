@@ -335,7 +335,8 @@ class Design:
                 found[f"{volts:g} V"].append(f"{library_label(lib)} standard cells")
         for name in sorted(self.macros):
             family = Macro(name, 0, 0, 0, 0).family
-            if family in SRAM_FAMILY_VOLTAGE:
+            # Once per family, however many macro sizes the design uses.
+            if family in SRAM_FAMILY_VOLTAGE and f"{family} SRAM" not in found[SRAM_FAMILY_VOLTAGE[family]]:
                 found[SRAM_FAMILY_VOLTAGE[family]].append(f"{family} SRAM")
         for label, n in self.custom_gates.items():
             found[label].append(f"{n:,} custom transistor{'s' if n != 1 else ''}")

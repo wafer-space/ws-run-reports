@@ -140,3 +140,60 @@ def template_versions(repo_name: str, pins: dict) -> list:
 def open_pdks(commit: str) -> str:
     """open_pdks at a commit or tag."""
     return f"{tables()['open_pdks']['repo']}/tree/{commit}" if commit else tables()["open_pdks"]["repo"]
+
+
+# --- the PDK: libraries, cells, macros, layers; LibreLane steps -------------
+
+CELL_DOCS = Path(__file__).parent / "data" / "cell_docs.csv"
+
+
+@cache
+def _cell_docs() -> dict:
+    import csv
+    with open(CELL_DOCS, newline="") as f:
+        return {row["cell"]: row["url"] for row in csv.DictReader(f)}
+
+
+def full_library(library: str) -> str:
+    """The library column's name as the full library name: "mcu7t5v0" -> "gf180mcu_fd_sc_mcu7t5v0",
+    "as_sc_mcu7t3v3" -> "gf180mcu_as_sc_mcu7t3v3"; full names are returned as they are."""
+    if library.startswith("gf180mcu_"):
+        return library
+    return f"gf180mcu_{library}" if "_" in library else f"gf180mcu_fd_sc_{library}"
+
+
+def library(name: str) -> str:
+    """A standard cell, I/O or SRAM library's documentation."""
+    return tables().get("libraries", {}).get(full_library(name), "")
+
+
+def cell(library_name: str, cell_type: str) -> str:
+    """A standard cell's own documentation page (its datasheet page, for the OSU libraries),
+    or its library's when the cell has none."""
+    full = full_library(library_name)
+    return _cell_docs().get(f"{full}__{cell_type}") or library(full)
+
+
+def macro(name: str) -> str:
+    """An SRAM macro's or I/O cell's documentation, by its full cell name."""
+    name = name.split("$")[0]
+    if name in _cell_docs():
+        return _cell_docs()[name]
+    return library(name.split("__")[0]) if "__" in name else ""
+
+
+def layers() -> str:
+    """The PDK's table of GDS layer numbers."""
+    return tables()["pdk"]["layers"]
+
+
+def step(step_id: str) -> str:
+    """A LibreLane step's reference entry, e.g. "KLayout.DRC" -> ...#step-klayout-drc."""
+    return f"{tables()['librelane']['steps']['reference']}#step-{step_id.lower().replace('.', '-')}" if step_id else ""
+
+
+def pdk_pin(key: str, value: str) -> str:
+    """The PDK a Makefile pins: PDK_TAG is a wafer-space/gf180mcu tag, PDK_COMMIT an open_pdks commit."""
+    if key == "PDK_TAG":
+        return f"https://github.com/wafer-space/gf180mcu/tree/{value}"
+    return open_pdks(value) if key == "PDK_COMMIT" else ""

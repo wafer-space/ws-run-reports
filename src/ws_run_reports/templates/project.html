@@ -97,7 +97,7 @@
             {% if design.libraries %}
             <tr><th>Libraries</th><td>
               {% for lib, n in design.libraries | dictsort(by='value', reverse=true) %}
-              {{ lib | library_label }} <span class="text-muted">({{ n | count }})</span>{{ ', ' if not loop.last }}
+              {{ link(lib | library_label, links.library(lib)) }} <span class="text-muted">({{ n | count }})</span>{{ ', ' if not loop.last }}
               {% endfor %}</td></tr>
             {% endif %}
             <tr><th>SRAM</th><td>{{ design.sram_label }} {{ 'macros' if design.macros else 'layout' if design.has_sram else 'macros' }}{% if design.sram_bits %},
@@ -128,7 +128,7 @@
             <tr><th>Template</th><td>{{ link(tpl.repo, links.template(tpl.repo)) }} {% if tpl.versions %}
               {% for v in tpl.versions %}{{ link(v, links.template(tpl.repo, v)) }}{{ " or " if not loop.last }}{% endfor %}
               <br><span class="small text-muted">the release{{ "s" if tpl.versions | length > 1 }} whose Makefile pins the same PDK
-              ({{ tpl.pin.keys() | first }} {{ (tpl.pin.values() | first)[:12] }}) at the commit checked</span>{% else %}
+              ({% set pin_key, pin_value = (tpl.pin | dictsort | first) %}{{ pin_key }} {{ link(pin_value[:12], links.pdk_pin(pin_key, pin_value), mono=true) }}) at the commit checked</span>{% else %}
               <br><span class="small text-muted">from its README</span>{% endif %}</td></tr>
             {% endif %}
             {% set checks = info.checks or {} %}
@@ -168,7 +168,7 @@
               <span class="text-muted">({{ '{:,.0f}'.format(design.features[key][1]) }} µm²{% if key == "mim" and design.mim_levels %}, on {{ design.mim_levels | join(", ") }}{% endif %})</span></td></tr>
             {% endfor %}
             {% if design.io_libraries %}
-            <tr><th>I/O library</th><td>{% for lib, n in design.io_libraries.items() %}<span class="run-mono">{{ lib }}</span> <span class="text-muted">({{ n }} cells)</span>{{ ", " if not loop.last }}{% endfor %}</td></tr>
+            <tr><th>I/O library</th><td>{% for lib, n in design.io_libraries.items() %}{{ link(lib, links.library(lib), mono=true) }} <span class="text-muted">({{ n }} cells)</span>{{ ", " if not loop.last }}{% endfor %}</td></tr>
             {% endif %}
           </tbody>
         </table>
@@ -222,7 +222,7 @@
           <thead><tr><th>Cell</th><th>Library</th><th class="text-end">Instances</th><th>What it does</th></tr></thead>
           <tbody>
             {% for key, n in (design.cell_usage | dictsort(by='value', reverse=true))[:10] %}
-            <tr><td class="run-mono">{{ key[1] }}</td><td>{{ key[0] | library_label }}</td>
+            <tr><td>{{ link(key[1], links.cell(key[0], key[1]), mono=true) }}</td><td>{{ link(key[0] | library_label, links.library(key[0])) }}</td>
               <td class="text-end">{{ '{:,}'.format(n) }}</td><td class="text-muted">{{ key[1] | describe_cell }}</td></tr>
             {% endfor %}
           </tbody>
@@ -235,7 +235,7 @@
           <thead><tr><th>Macro</th><th class="text-end">Count</th><th class="text-end">Bits each</th></tr></thead>
           <tbody>
             {% for name, n in design.macros | dictsort %}
-            <tr><td class="run-mono">{{ name }}</td><td class="text-end">{{ n }}</td>
+            <tr><td>{{ link(name, links.macro(name), mono=true) }}</td><td class="text-end">{{ n }}</td>
               <td class="text-end">{{ '{:,}'.format(stats.macros[name].bits) }}</td></tr>
             {% endfor %}
           </tbody>
@@ -334,7 +334,7 @@
               LibreLane {{ link(runs.librelane[:7], runs.librelane_url, mono=true) }}{% endif %}{% endif %}</span></th>{% endfor %}</tr></thead>
           <tbody>
             {% for step, results in table.rows %}
-            <tr><td class="run-mono">{{ step }}</td>{% for result in results %}<td>{% if result == "passed" %}passed{% elif result == "warning" and step == "Checker.MagicDRC" %}<span class="text-muted">advisory warning</span>{% elif result == "warning" %}<span class="run-warn">warning</span>{% elif result %}<span class="run-warn">{{ result }}</span>{% elif result is none %}<span class="text-muted">not in this flow</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>{% endfor %}</tr>
+            <tr><td>{{ link(step, links.step(step), mono=true) }}</td>{% for result in results %}<td>{% if result == "passed" %}passed{% elif result == "warning" and step == "Checker.MagicDRC" %}<span class="text-muted">advisory warning</span>{% elif result == "warning" %}<span class="run-warn">warning</span>{% elif result %}<span class="run-warn">{{ result }}</span>{% elif result is none %}<span class="text-muted">not in this flow</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>{% endfor %}</tr>
             {% endfor %}
             <tr><th>KLayout DRC errors</th>{% for _, check in table.columns %}<td>{{ check.klayout_drc_errors if check.details else "" }}</td>{% endfor %}</tr>
             <tr><th>Magic DRC errors <span class="text-muted fw-normal">(advisory)</span></th>{% for _, check in table.columns %}<td>{{ '{:,}'.format(check.magic_drc_errors) if check.details else "" }}</td>{% endfor %}</tr>

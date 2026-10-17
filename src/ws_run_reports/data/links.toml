@@ -113,3 +113,27 @@ url = "https://github.com/wafer-space/gf180mcu-project-template"
 
 [templates."egorxe/gf180mcu-caravel-template"]
 url = "https://github.com/egorxe/gf180mcu-caravel-template"
+
+# Libraries, by full name: the documentation of the library as a whole.
+# Single cells and macros link to their own page (data/cell_docs.csv).
+[libraries]
+gf180mcu_fd_sc_mcu7t5v0 = "https://gf180mcu-pdk.readthedocs.io/en/latest/digital/standard_cells/gf180mcu_fd_sc_mcu7t5v0/index.html"
+gf180mcu_fd_sc_mcu9t5v0 = "https://gf180mcu-pdk.readthedocs.io/en/latest/digital/standard_cells/gf180mcu_fd_sc_mcu9t5v0/index.html"
+gf180mcu_osu_sc_gp9t3v3 = "https://github.com/stineje/globalfoundries-pdk-libs-gf180mcu_osu_sc/tree/main/gf180mcu_osu_sc_gp9t3v3"
+gf180mcu_osu_sc_gp12t3v3 = "https://github.com/stineje/globalfoundries-pdk-libs-gf180mcu_osu_sc/tree/main/gf180mcu_osu_sc_gp12t3v3"
+gf180mcu_as_sc_mcu7t3v3 = "https://github.com/AvalonSemiconductors/gf180mcu_as_sc_mcu7t3v3"
+gf180mcu_as_ex_mcu7t5v0 = "https://github.com/AvalonSemiconductors/gf180mcu_as_ex_mcu7t5v0"
+gf180mcu_fd_io = "https://gf180mcu-pdk.readthedocs.io/en/latest/IPs/IO/gf180mcu_fd_io/datasheet.html#cell-list"
+gf180mcu_ocd_io = "https://github.com/RTimothyEdwards/gf180mcu_ocd_io/blob/main/docs/datasheet.rst"
+gf180mcu_ws_io = "https://github.com/wafer-space/gf180mcu/tree/main/gf180mcuD/libs.ref/gf180mcu_fd_io"
+gf180mcu_fd_ip_sram = "https://github.com/google/globalfoundries-pdk-ip-gf180mcu_fd_ip_sram"
+gf180mcu_ocd_ip_sram = "https://github.com/RTimothyEdwards/gf180mcu_ocd_ip_sram"
+
+[pdk]
+docs = "https://gf180mcu-pdk.readthedocs.io/en/latest/"
+# The drawn layer table of the design rule manual (GDS layer/datatype numbers).
+layers = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_04_1.html#drawn-layer-definition-and-abbreviation"
+
+[librelane.steps]
+# A step's entry in the LibreLane reference: "#step-" + its id lowercased, "." -> "-".
+reference = "https://librelane.readthedocs.io/en/latest/reference/step_config_vars.html"
