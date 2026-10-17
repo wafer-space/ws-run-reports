@@ -188,14 +188,24 @@ def render_run(run, out_dir: Path, jobs=None, only=None) -> Path:
     # runs upwards, image y runs downwards.
     reticle_w_mm = reticle_box.width() * dbu / 1000
     reticle_h_mm = reticle_box.height() * dbu / 1000
-    overview = Image.new("RGB", (round(reticle_w_mm * RETICLE_PX_PER_MM), round(reticle_h_mm * RETICLE_PX_PER_MM)),
-                         (10, 12, 20))
+    reticle_px = (round(reticle_w_mm * RETICLE_PX_PER_MM), round(reticle_h_mm * RETICLE_PX_PER_MM))
+    # A run can draw a small reticle in the top left of a larger frame
+    # ([site] reticle_frame_mm), so that its dies appear at the same scale as
+    # other runs' do. The rest of the frame is transparent.
+    frame_w_mm, frame_h_mm = run.site.get("reticle_frame_mm", (reticle_w_mm, reticle_h_mm))
+    frame_w_mm, frame_h_mm = max(frame_w_mm, reticle_w_mm), max(frame_h_mm, reticle_h_mm)
+    if (frame_w_mm, frame_h_mm) == (reticle_w_mm, reticle_h_mm):
+        overview = Image.new("RGB", reticle_px, (10, 12, 20))
+    else:
+        overview = Image.new("RGBA", (round(frame_w_mm * RETICLE_PX_PER_MM), round(frame_h_mm * RETICLE_PX_PER_MM)),
+                             (0, 0, 0, 0))
+        overview.paste(Image.new("RGBA", reticle_px, (10, 12, 20, 255)), (0, 0))
     for p in placements:
         if p["code"] not in designs:
             continue
         tile = Image.open(renders_dir / f".{p['code']}_tile.png")
         x = round(p["x_mm"] * RETICLE_PX_PER_MM)
-        y = overview.height - round((p["y_mm"] + p["height_mm"]) * RETICLE_PX_PER_MM)
+        y = reticle_px[1] - round((p["y_mm"] + p["height_mm"]) * RETICLE_PX_PER_MM)
         overview.paste(tile, (x, y))
     overview.save(renders_dir / "reticle.webp", "WEBP", quality=85, method=6)
     for code in designs:
@@ -204,6 +214,7 @@ def render_run(run, out_dir: Path, jobs=None, only=None) -> Path:
     manifest = {
         "px_per_mm": PX_PER_MM,
         "reticle": {"file": "reticle.webp", "width_mm": reticle_w_mm, "height_mm": reticle_h_mm,
+                    "frame_width_mm": frame_w_mm, "frame_height_mm": frame_h_mm,
                     "width_px": overview.width, "height_px": overview.height},
         "styles": {key: label for key, (label, _) in STYLES.items()},
         "layers": {key: {"label": label, "colour": "#%02x%02x%02x" % colour}

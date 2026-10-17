@@ -10,6 +10,9 @@ md5 = "e65f93005a41a1c997298f8b4abfc07c"
 heading = ["MPW-18H1", "Google & Efabless", "GF180MCU Micro-Shuttle"]
 # The 2 x 2 arrangement is synthetic, so the slots get no row and column labels.
 slot_labels = false
+# Draw the 2 x 2 on a wafer.space-sized reticle frame, so the dies appear at the
+# same scale as on the ws-run1 and ws-run2 pages.
+reticle_frame_mm = [30.0, 23.379]
 
 [measure]
 # Count only each user_project_wrapper, not the pad frame, the Caravel harness

@@ -247,13 +247,19 @@ def build_context(run, out_dir: Path) -> dict:
     placements, slot_columns, slot_rows = [], [], []
     if renders:
         reticle_info = renders["reticle"]
-        width, height = reticle_info["width_mm"], reticle_info["height_mm"]
-        slots = [{}] * len(renders["placements"])
+        # Positions are fractions of the frame the reticle is drawn on, which is
+        # the reticle itself unless the run sets [site] reticle_frame_mm. The
+        # reticle sits in the frame's top left corner.
+        width = reticle_info.get("frame_width_mm", reticle_info["width_mm"])
+        height = reticle_info.get("frame_height_mm", reticle_info["height_mm"])
+        drop = height - reticle_info["height_mm"]
+        in_frame = [dict(p, y_mm=p["y_mm"] + drop) for p in renders["placements"]]
+        slots = [{}] * len(in_frame)
         if run.site.get("slot_labels", True):
             slots, slot_columns, slot_rows = reticle.slot_grid(
-                renders["placements"], width, height,
+                in_frame, width, height,
                 origin=run.site.get("slot_origin", "top-left"), letters=run.site.get("slot_letters", "columns"))
-        for p, slot in zip(renders["placements"], slots):
+        for p, slot in zip(in_frame, slots):
             placements.append({
                 "code": p["code"],
                 "left": p["x_mm"] / width,

@@ -91,7 +91,8 @@
             {% for r in slot_rows %}<span data-row="{{ loop.index0 }}" style="top: {{ '%.3f' | format(r.top * 100) }}%; height: {{ '%.3f' | format(r.height * 100) }}%">{{ r.label }}</span>{% endfor %}
           </div>
           {% endif %}
-          <div class="run-reticle shadow">
+          {% set framed = renders.reticle.frame_width_mm is defined and (renders.reticle.frame_width_mm, renders.reticle.frame_height_mm) != (renders.reticle.width_mm, renders.reticle.height_mm) %}
+          <div class="run-reticle{{ ' framed' if framed else ' shadow' }}">
             <img src="renders/{{ renders.reticle.file }}" alt="Render of the {{ run.shuttle }} reticle"
                  width="{{ renders.reticle.width_px }}" height="{{ renders.reticle.height_px }}">
             {% for p in placements %}
@@ -104,7 +105,8 @@
         </div>
         <p class="small text-muted mt-10 mb-0">Every design rendered from the layout at the same scale and placed where
           it sits on the {{ '%.0f' | format(renders.reticle.width_mm) }} × {{ '%.1f' | format(renders.reticle.height_mm) }} mm
-          reticle.{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}
+          reticle.{% if framed %} It is drawn on a {{ '%.0f' | format(renders.reticle.frame_width_mm) }} × {{ '%.1f' | format(renders.reticle.frame_height_mm) }} mm
+          frame, so that the dies appear at the same scale as on the other runs' pages.{% endif %}{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}
           Select a die for its details.</p>
         {% else %}
         <p class="text-muted">Renders have not been generated for this run yet.</p>
