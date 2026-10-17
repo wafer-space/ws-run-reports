@@ -174,11 +174,14 @@ class Design:
     project: Project
     width_mm: float
     height_mm: float
-    pads: int
+    pads: int                                           # bond + probe pads
     sram_blocks: int
     logic_cells: int
     transistors: int
     placements: int = 1
+    bond_pads: int = 0
+    probe_pads: int = 0
+    pad_labels: int = 0                                 # letters on the pad layer, under 20 um
     positions: list = field(default_factory=list)
     libraries: dict = field(default_factory=dict)       # library -> logic cell count
     fill_cells: int = 0
@@ -225,6 +228,10 @@ class Design:
     @property
     def has_sram(self) -> bool:
         return bool(self.macros) or self.sram_blocks > 0
+
+    @property
+    def pads_label(self) -> str:
+        return f"{self.bond_pads} + {self.probe_pads} probe" if self.probe_pads else str(self.bond_pads)
 
     @property
     def sram_label(self) -> str:
@@ -545,6 +552,9 @@ def load(run: Run, out_dir: Path) -> RunStats:
         designs[code] = Design(
             code=code, cell_name=r["cell_name"], project=projects.get(code, Project(code, code)),
             width_mm=float(r["width_mm"]), height_mm=float(r["height_mm"]), pads=int(r["pad_count"]),
+            # Outputs from before pads were counted by kind count every pad as a bond pad.
+            bond_pads=int(r.get("bond_pad_count") or r["pad_count"]), probe_pads=int(r.get("probe_pad_count") or 0),
+            pad_labels=int(r.get("pad_label_count") or 0),
             sram_blocks=int(r["sram_block_count"]), logic_cells=int(r["stdcell_count"]),
             transistors=int(r["transistor_count"]), positions=[position], window_mm=window_mm,
             pad_ring_mm=pad_ring_mm, page_url=f"{run.pages_url}projects/{code}.html")

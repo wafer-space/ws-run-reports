@@ -94,7 +94,9 @@
             {% else %}
             <tr><th>Core area</th><td>{{ '%.1f' | format(design.core_area_mm2) }} mm² inside the pad ring</td></tr>
             <tr><th>Placements</th><td>{{ design.placements }} on the reticle</td></tr>
-            <tr><th>Bond pads</th><td>{{ design.pads }}</td></tr>
+            <tr><th>Bond pads</th><td>{{ design.bond_pads }}</td></tr>
+            {% if design.probe_pads %}<tr><th>Probe pads</th><td>{{ design.probe_pads }}</td></tr>{% endif %}
+            {% if design.pad_labels %}<tr><th>Pad-layer labels</th><td>{{ '{:,}'.format(design.pad_labels) }} letters cut through the passivation</td></tr>{% endif %}
             {% endif %}
             <tr><th>Transistors</th><td>{{ '{:,}'.format(design.transistors) }}</td></tr>
             <tr><th>Logic cells</th><td>{{ '{:,}'.format(design.logic_cells) }}

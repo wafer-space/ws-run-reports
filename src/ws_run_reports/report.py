@@ -225,7 +225,7 @@ def build_report(stats) -> str:
         add("### Minimal (analog, custom or test structures)\n")
         add(f"These designs contain fewer than {MINIMAL_LOGIC_CELLS:,} logic standard cells:\n")
         add(table(["Design", "Logic SC", "Transistors", "SRAM", "Pads", "Project"],
-                  [[link(d), f"{d.logic_cells:,}", count(d.transistors), d.sram_label, d.pads, name(d)]
+                  [[link(d), f"{d.logic_cells:,}", count(d.transistors), d.sram_label, d.pads_label, name(d)]
                    for d in sorted(minimal, key=lambda d: d.code)]) + "\n")
 
     # --- Peak grid -----------------------------------------------------------
@@ -389,7 +389,7 @@ def build_report(stats) -> str:
         ["Design", "Cell", "Die (mm)", "Core mm²", "Placements", "Pads", "Logic SC", "Infra SC", "Transistors",
          "SRAM", "Libraries"],
         [[link(d), f"`{d.cell_name}`", f"{d.width_mm:.2f} x {d.height_mm:.2f}", f"{d.core_area_mm2:.1f}",
-          d.placements, d.pads, f"{d.logic_cells:,}", f"{d.fill_cells:,}", f"{d.transistors:,}", d.sram_label,
+          d.placements, d.pads_label, f"{d.logic_cells:,}", f"{d.fill_cells:,}", f"{d.transistors:,}", d.sram_label,
           ", ".join(f"{lib_link(lib)}: {n:,}" for lib, n in sorted(d.libraries.items(), key=lambda kv: -kv[1])) or "—"]
          for d in designs]) + "\n")
 
@@ -409,6 +409,9 @@ def build_report(stats) -> str:
         "- **Cell dimensions** are the width and height of each standard cell's placement boundary (GDS 0/0), "
         "measured from the cells present in this layout.\n"
         "- **Theoretical maximum** = (1000um / cell width) x (1000um / row height).\n"
+        "- **Pads** are openings on the pad layer (37/0) at least 20um across. Those in the pad ring (within "
+        "400um of the die edge) or in a second ring of pads inside it are bond pads; the others are probe pads, "
+        "shown as \"+ N probe\". Letters and logos on the pad layer are not pads.\n"
         + boundary_note(stats)
         + (f"- **Peak figures** are the densest {side} x {side} square anywhere inside each die, found by sliding the "
            f"square in {step} steps over the die and skipping positions that touch an SRAM macro. Logic cells are "
