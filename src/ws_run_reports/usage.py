@@ -302,11 +302,15 @@ def measure(layout, cell, run_selection: Selection, designer: Selection, metal_s
     for key, n in sorted(placements.items()):
         records.append({"scope": "library", "device": key, "unit": UNITS["cells"], **stats(n, 0.0)})
 
-    # Metal coverage by the designer, standard cells and SRAM.
-    metal = Measure(layout, cell, metal_selection)
+    # Metal coverage by the designer, standard cells and SRAM. Merged flat: in the
+    # deep shape store, merging routing over thousands of overlapping cell
+    # placements takes many times longer.
     metal_rows, highest = [], 0
     for i, layer in enumerate(METALS, start=1):
-        area = metal(layer).merged().area() * dbu2
+        index = layout.find_layer(kdb.LayerInfo(*LAYERS[layer]))
+        flat = kdb.Region(metal_selection.iterator(layout, cell, index)) if index is not None else kdb.Region()
+        flat.merge()
+        area = flat.area() * dbu2
         metal_rows.append({"layer": layer, "area_um2": round(area, 1), "share": round(area / die_area, 4) if die_area else 0})
         if area > 0:
             highest = i
