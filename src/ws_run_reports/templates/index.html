@@ -44,10 +44,9 @@
 {% endmacro %}
 
 {% block content %}
-<div class="wrapper image-wrapper bg-image page-title-wrapper inverse-text"
+<div class="wrapper image-wrapper bg-image page-title-wrapper run-hero inverse-text"
      data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
   <div class="container inner text-center">
-    <div class="space90"></div>
     <h1 class="page-title">{{ run.heading[0] }}{% for line in run.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
     {% if tt %}
     <p class="lead">{{ stats.designs | length }} projects{% if tt.parent.url %} · <a class="run-crumb" href="{{ tt.parent.url }}">{{ tt.parent.title or 'the run' }}</a>{% endif %}{% if tt.chip_url %}
@@ -59,7 +58,7 @@
 </div>
 
 <!-- Headline numbers -->
-<div class="wrapper light-wrapper">
+<div class="wrapper light-wrapper run-first">
   <div class="container inner">
     <h2 class="section-title mb-40 text-center">What was built</h2>
     <div class="row justify-content-center">

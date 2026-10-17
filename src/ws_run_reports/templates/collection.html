@@ -4,16 +4,15 @@
 {% block description %}{{ collection.intro or collection.title }}{% endblock %}
 
 {% block content %}
-<div class="wrapper image-wrapper bg-image page-title-wrapper inverse-text"
+<div class="wrapper image-wrapper bg-image page-title-wrapper run-hero inverse-text"
      data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
   <div class="container inner text-center">
-    <div class="space90"></div>
     <h1 class="page-title">{{ collection.heading[0] }}{% for line in collection.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
     <p class="lead">{{ entries | length }} dies · {{ entries | sum(attribute="projects") }} projects</p>
   </div>
 </div>
 
-<div class="wrapper light-wrapper">
+<div class="wrapper light-wrapper run-first">
   <div class="container inner">
     {% if collection.intro %}<p class="lead text-center mb-40">{{ collection.intro }}</p>{% endif %}
     <div class="row">
