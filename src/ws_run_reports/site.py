@@ -17,10 +17,10 @@ from pathlib import Path
 from jinja2 import Environment, PackageLoader, select_autoescape
 from markupsafe import Markup
 
-from . import external, links, projects, report, reticle
+from . import external, links, projects, report, reticle, tinytapeout
 from . import stats as stats_module
 from .classify import CATEGORY_ORDER
-from .config import SLOT_FRACTIONS
+from .config import SLOT_FRACTIONS, https_url
 from .features import FEATURE_LABELS
 from .stats import REFERENCE_CELLS, describe_cell, library_label
 
@@ -217,8 +217,11 @@ def _tiny_tapeout(run) -> dict | None:
     if run.site.get("kind") != "tiny-tapeout":
         return None
     chip = run.site.get("tt_chip", "")
+    index = tinytapeout.load_index(run.repo_dir) or {}
     return {"chip": chip, "chip_url": f"https://tinytapeout.com/chips/{chip}/" if chip else "",
-            "parent": run.site.get("parent", {})}
+            "parent": run.site.get("parent", {}),
+            # The shuttle repository at the tapeout release, which holds each project's docs and licence.
+            "repo": https_url(index.get("repo")), "commit": index.get("commit", ""), "name": index.get("name", "")}
 
 
 def build_context(run, out_dir: Path) -> dict:

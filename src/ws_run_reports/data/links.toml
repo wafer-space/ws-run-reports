@@ -24,6 +24,13 @@ package = "https://github.com/wafer-space/gf180mcu-precheck/pkgs/container/gf180
 "sha256:fe44a8d260dc38c54dab80a93f184c35054884fb38b6ade992e9a1e7721e6cd7" = "1.7.2"
 "sha256:7aa4baf798acbbfc21807c913dfa05c3ee9250401d332ad584fb21da89a090d0" = "1.7.1"
 "sha256:d28f6a50f7854865571b2161f7099dc1d2666237ffcc49cd143152f9e6aab14b" = "1.5.5"
+"sha256:c7dbe9dbc3849fa4c495acacaab44e23f00534c1246dfeac44417a50e10e6fb9" = "1.7.1"
+# Built from main at the 1.7.1 tag's commit, hours before the tag's own image.
+"sha256:7eb65f22575034af5d09ab143a3865f4eec5dde5543db6326279f09e17f9a49c" = "1.7.1"
+# Built from main two commits after 1.7.0 (label "main"); git describe of its revision.
+"sha256:d787f5d8e7f2cbc44e8b9a63682d2fb8ed40bfe754274f8dfc1f547aed8b876e" = "1.7.0-2-ga39b1e2"
+"sha256:4548ca1351d21cdd7e628e7f21d9567803d704784816e4fa69adcbd77073996f" = "1.5.3"
+"sha256:344919c644f3031315b338b83ecf841434e704e20da3959800b0438b379c0c79" = "1.5.2"
 
 # What each precheck release runs, from its Makefile (PDK) and flake.lock (LibreLane).
 [precheck.versions."1.7.3"]
@@ -38,13 +45,33 @@ librelane = "5fe3db1bbea68aa9973a9e7b045d24af1a089571"
 pdk = "open_pdks 1.0.604"
 pdk_url = "https://github.com/fossi-foundation/open-pdks/tree/1.0.604"
 librelane = "5fe3db1bbea68aa9973a9e7b045d24af1a089571"
+[precheck.versions."1.7.0"]
+pdk = "open_pdks 1.0.588"
+pdk_url = "https://github.com/fossi-foundation/open-pdks/tree/1.0.588"
+librelane = "5fe3db1bbea68aa9973a9e7b045d24af1a089571"
+[precheck.versions."1.7.0-2-ga39b1e2"]
+pdk = "open_pdks 1.0.588"
+pdk_url = "https://github.com/fossi-foundation/open-pdks/tree/1.0.588"
+librelane = "5fe3db1bbea68aa9973a9e7b045d24af1a089571"
 [precheck.versions."1.5.5"]
 pdk = "wafer-space/gf180mcu 1.6.6"
 pdk_url = "https://github.com/wafer-space/gf180mcu/tree/1.6.6"
 librelane = "e2f0b0e71f0394dc8e3e9b3376a3ceea41837d06"
 
+[precheck.versions."1.5.3"]
+pdk = "wafer-space/gf180mcu 1.6.5"
+pdk_url = "https://github.com/wafer-space/gf180mcu/tree/1.6.5"
+librelane = "e2f0b0e71f0394dc8e3e9b3376a3ceea41837d06"
+[precheck.versions."1.5.2"]
+pdk = "wafer-space/gf180mcu 1.6.4"
+pdk_url = "https://github.com/wafer-space/gf180mcu/tree/1.6.4"
+librelane = "e2f0b0e71f0394dc8e3e9b3376a3ceea41837d06"
+
 [librelane]
 repo = "https://github.com/librelane/librelane"
+
+[open_pdks]
+repo = "https://github.com/fossi-foundation/open-pdks"
 
 # Project templates, by repository; a template release is found by the PDK
 # its Makefile pins (PDK_TAG of wafer-space/gf180mcu up to 1.4.0, then

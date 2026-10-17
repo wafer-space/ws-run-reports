@@ -73,11 +73,19 @@
             {% endif %}
             {% if tt %}
             {% set x = design.project.extra %}
-            <tr><th>Macro</th><td class="run-mono">{{ design.project.top }}</td></tr>
+            {% set tt_files = links.repo_tree(tt.repo, tt.commit) ~ "/projects/" ~ design.project.top if tt.repo and tt.commit else "" %}
+            <tr><th>Macro</th><td>{{ link(design.project.top, tt.chip_url ~ design.project.top if tt.chip_url else tt_files, mono=true) }}</td></tr>
+            {% if tt.repo and tt.commit %}
+            <tr><th>Files</th><td>{{ link("documentation", links.repo_file(tt.repo, tt.commit, "projects/" ~ design.project.top ~ "/docs/info.md")) }}
+              · {{ link("licence", links.repo_file(tt.repo, tt.commit, "projects/" ~ design.project.top ~ "/LICENSE")) }}
+              · {{ link("layout and netlist", tt_files) }}
+              <span class="small text-muted">in {{ link(tt.name or "the shuttle repository", links.repo_tree(tt.repo, tt.commit)) }}</span></td></tr>
+            {% endif %}
             <tr><th>Tiles</th><td>{{ design.slot_label }}{% if x.TILE_X %} <span class="text-muted">at column {{ x.TILE_X }}, row {{ x.TILE_Y }} of the tile grid</span>{% endif %}</td></tr>
             <tr><th>Mux address</th><td>{{ x.MACRO_ADDRESS or design.code | int }}</td></tr>
             {% if x.LANGUAGE %}<tr><th>Language</th><td>{{ x.LANGUAGE }}</td></tr>{% endif %}
             {% if x.CLOCK_HZ and x.CLOCK_HZ != "0" %}<tr><th>Clock</th><td>{{ '{:,}'.format(x.CLOCK_HZ | int) }} Hz</td></tr>{% endif %}
+            {% if x.FLOW_VERSION or x.PDK_VERSION %}<tr><th>Built with</th><td>{% if x.FLOW_VERSION %}{{ link("LibreLane", links.tool("LibreLane")) }} {{ link(x.FLOW_VERSION, links.librelane(x.FLOW_VERSION)) }}{% endif %}{% if x.FLOW_VERSION and x.PDK_VERSION %}, {% endif %}{% if x.PDK_VERSION %}open_pdks {{ link(x.PDK_VERSION[:12], links.open_pdks(x.PDK_VERSION), mono=true) }}{% endif %}</td></tr>{% endif %}
             {% else %}
             <tr><th>Core area</th><td>{{ '%.1f' | format(design.core_area_mm2) }} mm² inside the pad ring</td></tr>
             <tr><th>Placements</th><td>{{ design.placements }} on the reticle</td></tr>

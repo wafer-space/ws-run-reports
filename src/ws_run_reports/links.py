@@ -95,9 +95,13 @@ def precheck_version(version: str, digest: str = "") -> str:
 
 
 def precheck(version: str) -> str:
-    """The precheck repository at a release tag, or the repository itself."""
+    """The precheck repository at a release tag (or, for a "1.7.0-2-ga39b1e2" build between
+    releases, at its commit), or the repository itself."""
     repo = tables()["precheck"]["repo"]
-    return f"{repo}/tree/{version}" if version else repo
+    if not version:
+        return repo
+    between = re.fullmatch(r".+-\d+-g([0-9a-f]+)", version)
+    return f"{repo}/tree/{between.group(1) if between else version}"
 
 
 def precheck_contents(version: str) -> dict:
@@ -131,3 +135,8 @@ def template_versions(repo_name: str, pins: dict) -> list:
         if pins.get(key) == value:
             found.append(version)
     return found
+
+
+def open_pdks(commit: str) -> str:
+    """open_pdks at a commit or tag."""
+    return f"{tables()['open_pdks']['repo']}/tree/{commit}" if commit else tables()["open_pdks"]["repo"]

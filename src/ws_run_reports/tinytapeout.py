@@ -24,12 +24,20 @@ import yaml
 from .config import https_url
 
 FIELDS = ["CODE", "PROJECT", "SLOT_SIZE", "VISIBILITY", "PROJECT_DETAILS", "REPOSITORY", "TOP",
-          "MACRO_ADDRESS", "TILE_X", "TILE_Y", "AUTHOR", "COMMIT", "LANGUAGE", "CLOCK_HZ"]
+          "MACRO_ADDRESS", "TILE_X", "TILE_Y", "AUTHOR", "COMMIT", "LANGUAGE", "CLOCK_HZ",
+          "FLOW_VERSION", "PDK_VERSION"]
 
 
 def code(address: int) -> str:
     """The project code: its mux address, as Tiny Tapeout numbers projects, padded to three digits."""
     return f"{int(address):03d}"
+
+
+def _pdk(tt_repo: Path, commit: str, macro: str) -> dict:
+    """``projects/<macro>/pdk.json`` at the release commit: the LibreLane and PDK the project was built with."""
+    result = subprocess.run(["git", "-C", str(tt_repo), "show", f"{commit}:projects/{macro}/pdk.json"],
+                            capture_output=True, text=True)
+    return json.loads(result.stdout) if result.returncode == 0 and result.stdout.strip() else {}
 
 
 def _info(tt_repo: Path, commit: str, macro: str) -> dict:
@@ -47,6 +55,7 @@ def manifest_rows(index: dict, tt_repo: Path) -> list[dict]:
     rows = []
     for project in sorted(index["projects"], key=lambda p: p["address"]):
         info = _info(tt_repo, index["commit"], project["macro"])
+        pdk = _pdk(tt_repo, index["commit"], project["macro"])
         rows.append({
             "CODE": code(project["address"]),
             "PROJECT": str(info.get("title") or project["macro"]).strip(),
@@ -62,6 +71,8 @@ def manifest_rows(index: dict, tt_repo: Path) -> list[dict]:
             "COMMIT": project.get("commit") or "",
             "LANGUAGE": str(info.get("language") or "").strip(),
             "CLOCK_HZ": info.get("clock_hz") if info.get("clock_hz") is not None else "",
+            "FLOW_VERSION": pdk.get("FLOW_VERSION") or "",
+            "PDK_VERSION": pdk.get("PDK_VERSION") or "",
         })
     return rows
 
