@@ -8,6 +8,7 @@ so that they follow its theme without copying it.
 
 import hashlib
 import json
+import re
 import shutil
 import statistics
 from collections import Counter
@@ -222,6 +223,10 @@ TERMS = {
 }
 
 
+# Timeline milestones about buying a slot, which link to the run's Crowd Supply campaign.
+CAMPAIGN_RE = re.compile(r"crowd ?supply|campaign|early bird|purchase", re.I)
+
+
 # The demo board render on a Tiny Tapeout die's pages, published as images/tt-demo-board.webp.
 TT_BOARD_IMAGE = Path(__file__).parent / "data" / "tt-demo-board.webp"
 
@@ -286,8 +291,12 @@ def build_context(run, out_dir: Path) -> dict:
     details = projects.load(out_dir)
 
     today = date.today().isoformat()
+    campaign = run.site.get("campaign_url", "")
     for item in timeline:
         item["done"] = item["date"] <= today
+        # The milestones of buying a slot happen on the run's Crowd Supply campaign.
+        if campaign and not item.get("url") and CAMPAIGN_RE.search(f"{item['title']} {item.get('description', '')}"):
+            item["url"] = campaign
 
     categories = sorted(stats.by_category.items(),
                         key=lambda kv: (-len(kv[1]), CATEGORY_ORDER.index(kv[0]) if kv[0] in CATEGORY_ORDER else 99))
@@ -350,6 +359,7 @@ def build_context(run, out_dir: Path) -> dict:
         "slot_rows": slot_rows,
         "slot_types": _slot_types(stats, renders),
         "timeline": timeline,
+        "today": {"date": today, "display": tinytapeout.display_date(today)},
         "cob": cob,
         "photos": photos,
         "package_photos": package_photos,
@@ -427,6 +437,31 @@ def _photo_credit(run, target=None) -> Markup:
     return credit
 
 
+def _parent_die(run, out_dir: Path, env) -> dict | None:
+    """A Tiny Tapeout die as its wafer.space run measured it: that run's page body for the die
+    (_design.html), linking into that run's pages, or None when that run has not been measured here."""
+    url = run.site.get("parent", {}).get("url", "")
+    for name in config.available_runs():
+        parent = config.load_run(name)
+        prefix = f"{parent.pages_url}projects/"
+        if parent.name == run.name or not url.startswith(prefix):
+            continue
+        parent_out = out_dir.parent / parent.name
+        if not (parent_out / f"{stats_module.OUTPUT_STEM}.csv").exists():
+            return None
+        context = build_context(parent, parent_out)
+        code = url[len(prefix):].removesuffix(".html")
+        design = next((d for d in context["stats"].designs if d.code == code), None)
+        if design is None:
+            return None
+        html = env.get_template("_design.html").render(
+            **context, design=design, root=parent.pages_url, id_prefix="die-",
+            related=lambda d: related.for_slot(parent, d.project),
+            photo_credit=lambda target=None: _photo_credit(parent, target))
+        return {"run": parent, "label": related.run_label(parent), "design": design, "html": Markup(html)}
+    return None
+
+
 def build_site(run, out_dir: Path) -> Path:
     """Render ``index.html`` and one page per project into ``out_dir/site``."""
     context = build_context(run, out_dir)
@@ -463,6 +498,7 @@ def build_site(run, out_dir: Path) -> Path:
     if precheck_dir.exists():
         shutil.copytree(precheck_dir, data_dir / projects.PRECHECK_DIR)
 
+    context["parent_die"] = _parent_die(run, out_dir, env) if context["tt"] else None
     (site_dir / "index.html").write_text(env.get_template("index.html").render(root="", **context))
     # A JavaScript-free strip of the designs for other pages to embed; dies with photographs first.
     embed_designs = sorted(stats.designs, key=lambda d: (d.code not in context["photos"], d.code))
@@ -472,9 +508,15 @@ def build_site(run, out_dir: Path) -> Path:
     projects_dir.mkdir(exist_ok=True)
     designs = stats.designs
     template = env.get_template("project.html")
+    redirect = env.get_template("redirect.html")
     for i, design in enumerate(designs):
-        page = template.render(root="../", design=design, previous=designs[i - 1],
-                               following=designs[(i + 1) % len(designs)], **context)
+        children = context["children"].get(design.code)
+        if children:
+            # The die has pages of its own, which show everything this page would and more.
+            page = redirect.render(title=f"{design.code} {design.name}", url=children[0].pages_url)
+        else:
+            page = template.render(root="../", design=design, previous=designs[i - 1],
+                                   following=designs[(i + 1) % len(designs)], **context)
         (projects_dir / f"{design.code}.html").write_text(page)
 
     static = Path(__file__).parent / "static"

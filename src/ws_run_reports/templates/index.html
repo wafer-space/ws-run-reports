@@ -138,6 +138,7 @@
           <tbody>
             {% for row in slot_types %}<tr><td>{{ row.label }}{% if tt %} tiles{% endif %}</td><td class="text-end">{{ row.dies }}</td></tr>{% endfor %}
           </tbody>
+          <tfoot><tr><th>Total</th><th class="text-end">{{ slot_types | sum(attribute="dies") }}</th></tr></tfoot>
         </table>
         {% endif %}
         <h2 id="status" class="section-title mb-20">Shuttle status{{ anchor("status") }}</h2>
@@ -149,7 +150,11 @@
           manufactures it on {{ runs_linked(tt.parent.title) if tt and tt.parent.title else "its run" }} and ships the parts.</p>
         {% endif %}
         <ul class="run-timeline">
+          {% set marker = namespace(shown=false) %}
           {% for item in timeline %}
+          {% if not item.done and not marker.shown %}{% set marker.shown = true %}
+          <li class="run-today"><span class="run-today-rocket" aria-hidden="true"></span>
+            <span class="run-timeline-date">Today, {{ today.display }}</span></li>{% endif %}
           <li class="{{ 'done' if item.done else 'pending' }} run-timeline-{{ item.status }}{% if owners | length > 1 %} run-timeline-{{ 'tt' if item.owner == 'Tiny Tapeout' else 'ws' }}{% endif %}">
             <span class="run-timeline-date">{% if owners | length > 1 %}<span class="run-owner run-owner-{{ 'tt' if item.owner == 'Tiny Tapeout' else 'ws' }}">{{ item.owner }}</span>
               {% endif %}{{ item.display_date or item.date }}</span>
@@ -157,6 +162,8 @@
             <span class="small text-muted">{{ item.description }}</span>
           </li>
           {% endfor %}
+          {% if not marker.shown %}<li class="run-today"><span class="run-today-rocket" aria-hidden="true"></span>
+            <span class="run-timeline-date">Today, {{ today.display }}</span></li>{% endif %}
         </ul>
         {% if run.site.timeline_source %}
         <p class="small text-muted mb-0">From {% if run.site.timeline_source_url %}<a href="{{ run.site.timeline_source_url }}">{{ run.site.timeline_source }}</a>{% else %}{{ run.site.timeline_source }}{% endif %}.</p>
@@ -280,6 +287,29 @@
           die has those. A single test structure counts the same as a large block.{% if stats.designs | selectattr("ip_sources") | list %}
           <span class="run-mono run-ip-only">Faded</span> codes have the device only inside a reused block; hover
           over one to see which.{% endif %}</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12 mb-30">
+        <h3 id="oxides" class="mb-10">Gate oxides{{ anchor("oxides") }}</h3>
+          <table class="table table-sm run-table bg-white mb-10">
+            {% set has_pads = stats.designs | selectattr("pad_voltages") | list | length > 0 %}
+            <thead><tr><th>Transistors</th><th class="text-end">{{ "Own design" if has_pads else "Designs" }}</th>{% if has_pads %}<th class="text-end">With the pad ring</th>{% endif %}<th>Which{{ " (own design)" if has_pads }}</th></tr></thead>
+            <tbody>
+              {% set own, padded = stats.voltage_groups(), stats.voltage_groups(true) %}
+              {% for group, users in own %}
+              {% set with_pads = padded[loop.index0][1] %}
+              <tr><td class="text-nowrap">{{ group }}</td>
+                <td class="text-end">{{ users | length }}</td>{% if has_pads %}<td class="text-end">{{ with_pads | length }}</td>{% endif %}
+                <td>{% for u in users %}<a class="run-mono" href="projects/{{ u.code }}.html">{{ u.code }}</a>{{ " " if not loop.last }}{% endfor %}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% set no_gates = stats.designs | rejectattr("voltage_group") | map(attribute="code") | list %}
+          <p class="small text-muted">3.3 V transistors have the thin gate oxide; 5 V and 6 V ones share the thick one.
+            {% if has_pads %}"Own design" counts the standard cells, SRAM and transistors the designer chose; "with the pad ring" adds
+            the transistors of the I/O pad cells, measured in each design's pad ring.{% endif %}{% if no_gates %} No transistors of their
+            own: {% for code in no_gates %}<a class="run-mono" href="projects/{{ code }}.html">{{ code }}</a>{{ ", " if not loop.last }}{% endfor %}.{% endif %}</p>
       </div>
     </div>
     {% endif %}
@@ -507,6 +537,17 @@
     <p class="small text-muted text-center mt-10 mb-0">Embedded from <a href="{{ run.site.cob_url }}/">{{ run.site.cob_url }}/</a></p>
   </div>
 </div>
+{% endif %}
+
+{% if parent_die %}
+<div id="die" class="wrapper dark-wrapper inverse-text">
+  <div class="container inner text-center">
+    <h2 class="section-title color-white mb-10">Die {{ parent_die.design.code }} on {{ runs_linked(parent_die.label) }}{{ anchor("die") }}</h2>
+    <p class="lead mb-0">The die as a whole, measured like every other design on its run: its size, pads, process
+      features, density, precheck and photographs. <a href="{{ parent_die.run.pages_url }}">All of {{ parent_die.run.short_title }}</a></p>
+  </div>
+</div>
+{{ parent_die.html }}
 {% endif %}
 
 <div id="data" class="wrapper gray-wrapper">

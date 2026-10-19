@@ -40,7 +40,7 @@ def _projects(run_name: str) -> dict:
         return {}
 
 
-def _run_label(run) -> str:
+def run_label(run) -> str:
     """The run as the pages name it: "wafer.space Run 2" for runs with pages listed in links.toml."""
     for name, url in links.tables().get("runs", {}).items():
         if url == run.pages_url:
@@ -65,7 +65,7 @@ def _slot(key: str, design: dict) -> dict | None:
     run, project = _runs().get(run_name), _projects(run_name).get(code)
     if not run or not project:
         return None
-    return {"key": key, "run": _run_label(run), "code": code, "name": project.name, "slot": project.slot_size,
+    return {"key": key, "run": run_label(run), "code": code, "name": project.name, "slot": project.slot_size,
             "url": f"{run.pages_url}projects/{code}.html", "note": design.get("notes", {}).get(key, "")}
 
 

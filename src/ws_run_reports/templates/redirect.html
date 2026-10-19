@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ title }}</title>
+  {# A slot whose die has pages of its own (a Tiny Tapeout chip): this address forwards there. #}
+  <meta http-equiv="refresh" content="0; url={{ url }}">
+  <link rel="canonical" href="{{ url }}">
+  <meta name="robots" content="noindex">
+</head>
+<body>
+  <p>{{ title }} has its own pages: <a href="{{ url }}">{{ url }}</a>.</p>
+</body>
+</html>
