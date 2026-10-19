@@ -449,7 +449,11 @@ def _parent_die(run, out_dir: Path, env) -> dict | None:
         parent_out = out_dir.parent / parent.name
         if not (parent_out / f"{stats_module.OUTPUT_STEM}.csv").exists():
             return None
-        context = build_context(parent, parent_out)
+        try:
+            context = build_context(parent, parent_out)
+        except FileNotFoundError as error:
+            print(f"  warning: {parent.name} is not checked out next to this repository, so its die is left out: {error}")
+            return None
         code = url[len(prefix):].removesuffix(".html")
         design = next((d for d in context["stats"].designs if d.code == code), None)
         if design is None:

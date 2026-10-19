@@ -173,6 +173,9 @@ def publish_collection(collection, site_dir: Path, out_dir: Path, push: bool = F
     for path in site_dir.iterdir():
         if path.is_file():
             shutil.copy(path, clone / path.name)
+    # The index page's own images; every other folder belongs to one of the runs.
+    if (site_dir / "images").is_dir():
+        shutil.copytree(site_dir / "images", clone / "images", dirs_exist_ok=True)
     committed = _commit(clone, f"Update the {collection.name} index page\n\n"
                                f"Generated with {GENERATOR_URL} {_generator_version()}.")
     if push and committed:
