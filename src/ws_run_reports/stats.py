@@ -64,6 +64,20 @@ CELL_DESCRIPTIONS = {
 # Supply voltage of the SRAM macro families: the foundry macros are 5 V, Open Circuit Design's 3.3 V.
 SRAM_FAMILY_VOLTAGE = {"fd": "5 V", "ocd": "3.3 V"}
 
+# Transistors (not MOS capacitors) in the pads scope of the usage output, and its voltage suffixes.
+PAD_GATE_RE = re.compile(r"[np]mos(?:_sab)?_(3v3|5v|6v)")
+USAGE_VOLTS = {"3v3": "3.3 V", "5v": "5 V", "6v": "6 V"}
+
+# The voltage groups, in display order: both gate oxides, the thin 3.3 V oxide only, the thick 5 V/6 V oxide only.
+VOLTAGE_GROUPS = ["3.3 V and 5 V/6 V", "3.3 V only", "5 V/6 V only"]
+
+
+def voltage_group(voltages) -> str:
+    """The group of a set of transistor voltages ("3.3 V", "5 V", "6 V"): one of VOLTAGE_GROUPS, or ""."""
+    thin = "3.3 V" in voltages
+    thick = bool({"5 V", "6 V"} & set(voltages))
+    return VOLTAGE_GROUPS[0] if thin and thick else VOLTAGE_GROUPS[1] if thin else VOLTAGE_GROUPS[2] if thick else ""
+
 FLIP_FLOP_RE = re.compile(r"^s?d(ff|f[a-z]*t)")
 SRAM_SIZE_RE = re.compile(r"sram(\d+)x(\d+)")
 
@@ -207,6 +221,7 @@ class Design:
     features: dict = field(default_factory=dict)        # feature -> (count, area_um2), designer-drawn only
     mim_top_levels: list = field(default_factory=list)  # from the usage output: e.g. ["Metal4-Metal5"]
     ip_sources: dict = field(default_factory=dict)      # feature -> {reused IP block: count} (usage provenance)
+    pad_voltages: set = field(default_factory=set)       # transistor voltages in the pad cells ("6 V"), from usage
     buffer_max_per_mm2: float = 0.0
     category: str = ""
     # Area of the run's core cell (e.g. a Caravel user_project_wrapper), when it names one.
@@ -359,6 +374,16 @@ class Design:
         return {v: found[v] for v in sorted(found, key=lambda v: float(v.split()[0]))}
 
     @property
+    def voltage_group(self) -> str:
+        """Which of the gate oxides the design's own logic and devices use (see :func:`voltage_group`)."""
+        return voltage_group(self.voltages)
+
+    @property
+    def voltage_group_with_pads(self) -> str:
+        """The same, counting the transistors of the pad ring too."""
+        return voltage_group(set(self.voltages) | self.pad_voltages)
+
+    @property
     def slot_label(self) -> str:
         size = self.project.slot_size
         known = {"1x1": "1 × 1", "1x0p5": "1 × ½", "0p5x1": "½ × 1", "0p5x0p5": "½ × ½"}
@@ -476,6 +501,11 @@ class RunStats:
     @property
     def voltage_levels(self) -> list:
         return sorted({v for d in self.designs for v in d.voltages}, key=lambda v: float(v.split()[0]))
+
+    def voltage_groups(self, with_pads: bool = False) -> list:
+        """(group, designs in it) for each of VOLTAGE_GROUPS, counting the pad ring's transistors or not."""
+        key = "voltage_group_with_pads" if with_pads else "voltage_group"
+        return [(group, [d for d in self.designs if getattr(d, key) == group]) for group in VOLTAGE_GROUPS]
 
     @property
     def feature_popularity(self) -> list:
@@ -624,6 +654,10 @@ def load(run: Run, out_dir: Path) -> RunStats:
     replaced = set()
     for r in usage_rows:
         d = first_cell.get(r["cell_name"])
+        if d is not None and r["scope"] == "pads" and int(r["count"]):
+            gate = PAD_GATE_RE.fullmatch(r["device"])
+            if gate:
+                d.pad_voltages.add(USAGE_VOLTS[gate.group(1)])
         if d is None or r["scope"] != "designer":
             continue
         if d.cell_name not in replaced:
