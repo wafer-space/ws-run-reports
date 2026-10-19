@@ -219,7 +219,7 @@
       </div>
     </div>
 
-    <h3 id="budget" class="mb-10">Area budget of every design{{ anchor("budget") }}</h3>
+    <h3 id="area" class="mb-10">Area budget of every design{{ anchor("area") }}</h3>
     <p class="text-muted small mb-20">Each bar is one {{ words.die }}, split the same way as above. Sorted by how much of the {{ words.die }} is logic.</p>
     <div class="run-rows">
       {% for d in stats.designs | sort(attribute='utilisation', reverse=true) %}
