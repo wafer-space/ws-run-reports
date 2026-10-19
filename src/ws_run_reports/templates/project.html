@@ -113,7 +113,7 @@
         </table>
 
         {% if info %}
-        <h4 class="mb-10">Submission</h4>
+        <h4 id="submission" class="mb-10">Submission{{ anchor("submission") }}</h4>
         <table class="table table-sm run-table">
           <tbody>
             {% set lic = info.licence %}
@@ -164,7 +164,7 @@
         {% endif %}
 
         {% if design.features or design.voltages %}
-        <h4 class="mb-10">Process features</h4>
+        <h4 id="features" class="mb-10">Process features{{ anchor("features") }}</h4>
         <table class="table table-sm run-table">
           <tbody>
             {% for volts, sources in design.voltages.items() %}
@@ -185,7 +185,7 @@
         {% endif %}
 
         {% if design.logic_cells %}
-        <h4 class="mb-10">Logic density</h4>
+        <h4 id="density" class="mb-10">Logic density{{ anchor("density") }}</h4>
         <table class="table table-sm run-table">
           <tbody>
             {# Units go in the headings, so that no value carries a ² that could read as a footnote. #}
@@ -210,7 +210,7 @@
   <div class="container inner">
     <div class="row gutter-50">
       <div class="col-lg-7 mb-30">
-        <h3 class="mb-10">Where the area went</h3>
+        <h3 id="area" class="mb-10">Where the area went{{ anchor("area") }}</h3>
         <div class="run-bar run-bar-large mb-10">
           {% for part in area_bar(design.area_breakdown) if part.share > 0.001 %}
           <div style="width: {{ '%.2f' | format(part.share * 100) }}%; background: {{ part.colour }}"
@@ -227,7 +227,7 @@
         </ul>
 
         {% if design.cell_usage %}
-        <h3 class="mt-30 mb-10">Most used cells</h3>
+        <h3 id="cells" class="mt-30 mb-10">Most used cells{{ anchor("cells") }}</h3>
         <table class="table table-sm run-table bg-white">
           <thead><tr><th>Cell</th><th>Library</th><th class="text-end">Instances</th><th>What it does</th></tr></thead>
           <tbody>
@@ -240,7 +240,7 @@
         {% endif %}
 
         {% if design.macros %}
-        <h3 class="mt-30 mb-10">SRAM macros</h3>
+        <h3 id="sram" class="mt-30 mb-10">SRAM macros{{ anchor("sram") }}</h3>
         <table class="table table-sm run-table bg-white">
           <thead><tr><th>Macro</th><th class="text-end">Count</th><th class="text-end">Bits each</th></tr></thead>
           <tbody>
@@ -255,7 +255,7 @@
 
       <div class="col-lg-5 mb-30">
         {% if map and design.logic_cells %}
-        <h3 class="mb-10">Logic density map</h3>
+        <h3 id="map" class="mb-10">Logic density map{{ anchor("map") }}</h3>
         {# Drawn in units of one map square, so strokes and labels suit any square size. #}
         {% set s = 1 / design.window_mm %}
         <svg class="run-heatmap" viewBox="0 0 {{ map.width * s }} {{ map.height * s }}" role="img"
@@ -294,7 +294,7 @@
 {% if photo %}
 <div id="photo" class="wrapper light-wrapper">
   <div class="container inner">
-    <h2 class="section-title mb-10 text-center">The fabricated die</h2>
+    <h2 class="section-title mb-10 text-center">The fabricated die{{ anchor("photo") }}</h2>
     <p class="lead text-center mb-30">Optical micrograph {{ photo_credit() }}</p>
     <div class="row">
       <div class="col-lg-8 offset-lg-2 text-center">
@@ -316,7 +316,7 @@
 {% if packed %}
 <div id="package" class="wrapper {{ 'gray-wrapper' if photo else 'light-wrapper' }}">
   <div class="container inner">
-    <h2 class="section-title mb-10 text-center">As shipped</h2>
+    <h2 class="section-title mb-10 text-center">As shipped{{ anchor("package") }}</h2>
     <p class="lead text-center mb-30">How the dies were packed, photographed {{ photo_credit() }}</p>
     <div class="row justify-content-center">
       {% for p in packed %}
@@ -334,7 +334,7 @@
 {% if cob_url %}
 <div id="bonding" class="wrapper {{ 'gray-wrapper' if photo else 'light-wrapper' }}">
   <div class="container inner">
-    <h2 class="section-title mb-10 text-center">Chip-on-board bonding</h2>
+    <h2 class="section-title mb-10 text-center">Chip-on-board bonding{{ anchor("bonding") }}</h2>
     <p class="lead text-center mb-30">Wire bonding results for {{ design.code }}</p>
     <div class="run-embed shadow">
       <iframe src="{{ cob_url }}" title="Chip-on-board bonding results for {{ design.code }}" loading="lazy"></iframe>
@@ -350,7 +350,7 @@
 {% set previous_gray = (cob_url and photo) or (not cob_url and not photo) %}
 <div id="precheck" class="wrapper {{ 'light-wrapper' if previous_gray else 'gray-wrapper' }}">
   <div class="container inner">
-    <h2 class="section-title mb-10 text-center">Precheck</h2>
+    <h2 class="section-title mb-10 text-center">Precheck{{ anchor("precheck") }}</h2>
     <p class="lead text-center mb-30">The platform precheck {{ design.code }} was accepted on{% if table.columns | length > 1 %}, and its latest re-run{% endif %}</p>
     <div class="row">
       <div class="col-lg-10 offset-lg-1">

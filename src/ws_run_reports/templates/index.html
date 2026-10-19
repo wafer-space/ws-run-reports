@@ -58,9 +58,9 @@
 </div>
 
 <!-- Headline numbers -->
-<div class="wrapper light-wrapper run-first">
+<div id="summary" class="wrapper light-wrapper run-first">
   <div class="container inner">
-    <h2 class="section-title mb-40 text-center">What was built</h2>
+    <h2 class="section-title mb-40 text-center">What was built{{ anchor("summary") }}</h2>
     <div class="row justify-content-center">
       {% if tt %}
       {{ stat(stats.designs | length, 'Projects', 'in the die') }}
@@ -90,7 +90,7 @@
   <div class="container inner">
     <div class="row gutter-50">
       <div class="col-lg-8 mb-30">
-        <h2 class="section-title mb-20">The {{ words.reticle }}</h2>
+        <h2 class="section-title mb-20">The {{ words.reticle }}{{ anchor("reticle") }}</h2>
         {% if renders %}
         <div class="run-reticle-frame{{ ' with-labels' if slot_columns else '' }}">
           {% if slot_columns %}
@@ -129,14 +129,14 @@
       </div>
       <div class="col-lg-4">
         {% if slot_types %}
-        <h2 class="section-title mb-20">{{ words.Slots }}</h2>
+        <h2 id="slots" class="section-title mb-20">{{ words.Slots }}{{ anchor("slots") }}</h2>
         <table class="table table-sm run-table bg-white mb-30">
           <tbody>
             {% for row in slot_types %}<tr><td>{{ row.label }}{% if tt %} tiles{% endif %}</td><td class="text-end">{{ row.dies }}</td></tr>{% endfor %}
           </tbody>
         </table>
         {% endif %}
-        <h2 class="section-title mb-20">Shuttle status</h2>
+        <h2 id="status" class="section-title mb-20">Shuttle status{{ anchor("status") }}</h2>
         {% if timeline %}
         {% set owners = timeline | map(attribute="owner") | select | unique | list %}
         {% if owners | length > 1 %}
@@ -174,7 +174,7 @@
 <!-- How the silicon was used -->
 <div id="usage" class="wrapper light-wrapper">
   <div class="container inner">
-    <h2 class="section-title mb-10 text-center">How people used their silicon</h2>
+    <h2 class="section-title mb-10 text-center">How people used their silicon{{ anchor("usage") }}</h2>
     <p class="lead text-center mb-40">Where the area of {{ stats.designs | length }} {{ words.dies }}
       ({{ '%.0f' | format(stats.die_area_mm2) }} mm² of silicon) actually went</p>
 
@@ -195,9 +195,9 @@
 
     <div class="row gutter-50">
       <div class="col-lg-6 mb-30">
-        <h3 class="mb-20">What people built</h3>
+        <h3 id="categories" class="mb-20">What people built{{ anchor("categories") }}</h3>
         {% for name, group in categories %}
-        <a class="run-category" href="#cat-{{ loop.index }}">
+        <a class="run-category" href="#{{ category_id(name) }}">
           <span class="run-category-name">{{ name }}</span>
           <span class="run-category-bar"><i style="width: {{ '%.1f' | format(group | length / (categories[0][1] | length) * 100) }}%; background: {{ category_colour[name] }}"></i></span>
           <span class="run-category-count">{{ group | length }}</span>
@@ -205,7 +205,7 @@
         {% endfor %}
       </div>
       <div class="col-lg-6 mb-30">
-        <h3 class="mb-20">Standard cell libraries</h3>
+        <h3 id="libraries" class="mb-20">Standard cell libraries{{ anchor("libraries") }}</h3>
         <table class="table table-sm run-table mb-0">
           <thead><tr><th>Standard cell library</th><th class="text-end">Logic cells</th><th class="text-end">Share</th></tr></thead>
           <tbody>
@@ -219,7 +219,7 @@
       </div>
     </div>
 
-    <h3 class="mb-10">Area budget of every design</h3>
+    <h3 id="budget" class="mb-10">Area budget of every design{{ anchor("budget") }}</h3>
     <p class="text-muted small mb-20">Each bar is one {{ words.die }}, split the same way as above. Sorted by how much of the {{ words.die }} is logic.</p>
     <div class="run-rows">
       {% for d in stats.designs | sort(attribute='utilisation', reverse=true) %}
@@ -241,12 +241,12 @@
 <!-- Process features -->
 <div id="features" class="wrapper gray-wrapper">
   <div class="container inner">
-    <h2 class="section-title mb-10 text-center">Which parts of the process were used</h2>
+    <h2 class="section-title mb-10 text-center">Which parts of the process were used{{ anchor("features") }}</h2>
     <p class="lead text-center mb-40">Transistor voltages and optional devices across the {{ stats.designs | length }} designs</p>
     {% if stats.has_features %}
     <div class="row gutter-50">
       <div class="col-lg-5 mb-30">
-        <h3 class="mb-20">Transistor voltages</h3>
+        <h3 id="voltages" class="mb-20">Transistor voltages{{ anchor("voltages") }}</h3>
         {% for volts in stats.voltage_levels %}
         {% set users = stats.voltage_users(volts) %}
         <div class="run-category">
@@ -259,7 +259,7 @@
           transistors use it. 5 V and 6 V transistors share the thick gate oxide; the V5_XTOR marker tells them apart.</p>
       </div>
       <div class="col-lg-7 mb-30">
-        <h3 class="mb-20">Optional devices drawn by designers</h3>
+        <h3 id="devices" class="mb-20">Optional devices drawn by designers{{ anchor("devices") }}</h3>
         <table class="table table-sm run-table bg-white">
           <thead><tr><th>Device</th><th class="text-end">Designs</th><th>Which</th></tr></thead>
           <tbody>
@@ -282,7 +282,7 @@
     {% if details %}
     <div class="row gutter-50">
       <div class="col-lg-6 mb-30">
-        <h3 class="mb-20">Licences</h3>
+        <h3 id="licences" class="mb-20">Licences{{ anchor("licences") }}</h3>
         <table class="table table-sm run-table bg-white mb-10">
           <thead><tr><th>Declared licence</th><th class="text-end">Designs</th></tr></thead>
           <tbody>
@@ -294,7 +294,7 @@
           ({{ status }}){{ ", " if not loop.last }}{% endfor %}.</p>{% endif %}
       </div>
       <div class="col-lg-6 mb-30">
-        <h3 class="mb-20">Packaging and precheck</h3>
+        <h3 id="precheck" class="mb-20">Packaging and precheck{{ anchor("precheck") }}</h3>
         <ul class="run-method">
           <li><strong>{{ cob_selected }}</strong> of {{ details | length }} designs selected chip-on-board packaging.</li>
           {% if precheck.imported %}
@@ -329,7 +329,7 @@
   <div class="container inner">
     <div class="row">
       <div class="col-lg-8 offset-lg-2 text-center">
-        <h2 class="title-color color-white">What fits on 1&nbsp;mm² of {{ run.process }} silicon?</h2>
+        <h2 class="title-color color-white">What fits on 1&nbsp;mm² of {{ run.process }} silicon?{{ anchor("density") }}</h2>
         <h3 class="display-3">Theoretical maximum against what designers achieved</h3>
         <p class="lead">The maximum packs one cell type edge to edge with no room for wiring. Real designs need
           the wiring.</p>
@@ -384,7 +384,7 @@
 
 <div id="guidance" class="wrapper gray-wrapper">
   <div class="container inner">
-    <h2 class="section-title mb-10 text-center">Sizing your own design</h2>
+    <h2 class="section-title mb-10 text-center">Sizing your own design{{ anchor("guidance") }}</h2>
     <p class="lead text-center mb-40">What each {{ 'tile size' if tt else 'slot size' }} held on this run, and what it would hold at this run's densities</p>
     <div class="table-responsive">
       <table class="table table-sm run-table run-guidance bg-white shadow">
@@ -429,7 +429,7 @@
       {{ link(maxima.library | library_label, links.library(maxima.library)) if maxima.library else "the main library" }}, the
       library most used on this run, edge to edge with no routing.</p>
 
-    <h3 class="mb-10">Logic density of every digital design</h3>
+    <h3 id="densities" class="mb-10">Logic density of every digital design{{ anchor("densities") }}</h3>
     <p class="text-muted small mb-20">Solid bar: average over the core. Outlined bar: the densest single mm² outside SRAM (a dash where memory covers most of the die). The scale
       ends at the buffer theoretical maximum ({{ scale_max | k }} cells/mm²).</p>
     <div class="run-rows">
@@ -450,13 +450,13 @@
 <!-- Projects -->
 <div id="projects" class="wrapper light-wrapper">
   <div class="container inner">
-    <h2 class="section-title mb-10 text-center">The projects</h2>
+    <h2 class="section-title mb-10 text-center">The projects{{ anchor("projects") }}</h2>
     <p class="lead text-center mb-40">Grouped by what they are. Each links to renders, measurements and any photographs
       or bonding results.</p>
     {% for name, group in categories %}
-    <h3 id="cat-{{ loop.index }}" class="run-category-title">
+    <h3 id="{{ category_id(name) }}" class="run-category-title">
       <i style="background: {{ category_colour[name] }}"></i>{{ name }}
-      <span class="text-muted">{{ group | length }}</span>
+      <span class="text-muted">{{ group | length }}</span>{{ anchor(category_id(name)) }}
     </h3>
     <div class="row">
       {% for d in group | sort(attribute='code') %}{{ project_card(d) }}{% endfor %}
@@ -468,7 +468,7 @@
 {% if photos %}
 <div id="photos" class="wrapper gray-wrapper">
   <div class="container inner">
-    <h2 class="section-title mb-10 text-center">The real silicon</h2>
+    <h2 class="section-title mb-10 text-center">The real silicon{{ anchor("photos") }}</h2>
     <p class="lead text-center mb-40">Optical micrographs of the fabricated dies {{ photo_credit() }}</p>
     <div class="row">
       {% for code, photo in photos | dictsort %}
@@ -490,7 +490,7 @@
 {% if cob %}
 <div id="bonding" class="wrapper {{ 'light-wrapper' if photos else 'gray-wrapper' }}">
   <div class="container inner">
-    <h2 class="section-title mb-10 text-center">Chip-on-board bonding</h2>
+    <h2 class="section-title mb-10 text-center">Chip-on-board bonding{{ anchor("bonding") }}</h2>
     <p class="lead text-center mb-30">Wire bonding results for the dies packaged directly onto PCBs</p>
     <div class="text-center mb-30">
       {% for code, url in cob | dictsort %}
@@ -507,7 +507,7 @@
 
 <div id="data" class="wrapper gray-wrapper">
   <div class="container inner">
-    <h2 class="section-title mb-10 text-center">Data and method</h2>
+    <h2 class="section-title mb-10 text-center">Data and method{{ anchor("data") }}</h2>
     <p class="lead text-center mb-30">Everything on this page is measured from the public reticle layout</p>
     <div class="row">
       <div class="col-lg-6 mb-30">

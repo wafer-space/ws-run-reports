@@ -19,7 +19,7 @@ from markupsafe import Markup
 
 from . import config, external, links, projects, report, reticle, tinytapeout
 from . import stats as stats_module
-from .classify import CATEGORY_ORDER
+from .classify import CATEGORY_ORDER, category_id
 from .config import SLOT_FRACTIONS, https_url
 from .features import FEATURE_LABELS
 from .stats import REFERENCE_CELLS, describe_cell, library_label
@@ -377,6 +377,21 @@ def build_context(run, out_dir: Path) -> dict:
     }
 
 
+# GitHub's "link" octicon (MIT licence), as on the headings of its rendered Markdown.
+_LINK_ICON = Markup('<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 '
+                    '4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 '
+                    '1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042'
+                    '-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 '
+                    '1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 '
+                    '4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a'
+                    '1.998 1.998 0 0 0 0 2.83Z"/></svg>')
+
+
+def _anchor(target: str) -> Markup:
+    """The link to section ``target`` that run.css shows beside a heading while it is hovered."""
+    return Markup('<a class="run-anchor" href="#{}" aria-label="Link to this section">{}</a>').format(target, _LINK_ICON)
+
+
 def _photo_credit(run, target=None) -> Markup:
     """Copyright line for the die photographs: "© 2026 Name, Licence", linked where the run gives URLs."""
     def linked(text, url):
@@ -411,7 +426,7 @@ def build_site(run, out_dir: Path) -> Path:
     digest = hashlib.sha256(b"".join(path.read_bytes() for path in sorted(static.iterdir())))
     env.globals.update(static_version=digest.hexdigest()[:10])
     env.globals.update(area_bar=_area_bar, heatmap=_heatmap, photo_credit=lambda target=None: _photo_credit(run, target))
-    env.globals.update(links=links, link=links.html)
+    env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id)
 
     # The data behind the page, so every figure on it can be checked.
     data_dir = site_dir / "data"

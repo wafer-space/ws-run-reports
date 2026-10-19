@@ -39,6 +39,27 @@ FALLBACK_UNKNOWN = "Uncategorised"
 # Order used when listing categories that have the same number of projects.
 CATEGORY_ORDER = [category for category, _ in RULES] + [FALLBACK_DIGITAL, FALLBACK_UNKNOWN]
 
+# One-word page anchors for the categories, so links to them survive a rewording of the name.
+CATEGORY_IDS = {
+    "Multi-project die": "multiproject",
+    "Art and logos": "art",
+    "FPGA": "fpga",
+    "Security": "security",
+    "Memory test chip": "memory",
+    "Analog and mixed-signal": "analog",
+    "Test structures": "test",
+    "Retro computing": "retro",
+    "Accelerators": "accelerators",
+    "RISC-V and CPUs": "cpus",
+    FALLBACK_DIGITAL: "digital",
+    FALLBACK_UNKNOWN: "uncategorised",
+}
+
+
+def category_id(category: str) -> str:
+    """The page anchor for ``category``; a category named in a run configuration gets its name squashed."""
+    return CATEGORY_IDS.get(category) or re.sub(r"[^a-z0-9]+", "", category.lower())
+
 
 def classify(design, overrides=None) -> str:
     """Return the category name for a :class:`~ws_run_reports.stats.Design`.
