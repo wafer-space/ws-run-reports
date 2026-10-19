@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_tinytapeout.html" as tiny with context %}
 {% set short_title = run.short_title %}
 {% block title %}{{ short_title }} — wafer.space{% endblock %}
 
@@ -49,8 +50,11 @@
   <div class="container inner text-center">
     <h1 class="page-title">{{ run.heading[0] }}{% for line in run.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
     {% if tt %}
-    <p class="lead">{{ stats.designs | length }} projects{% if tt.parent.url %} · <a class="run-crumb" href="{{ tt.parent.url }}">{{ tt.parent.title or 'the run' }}</a>{% endif %}{% if tt.chip_url %}
-      · <a class="run-crumb" href="{{ tt.chip_url }}">{{ tt.chip }} on tinytapeout.com</a>{% endif %}</p>
+    <p class="lead">{{ stats.designs | length }} projects{% if tt.parent.title %} · <span class="run-crumb">{{ runs_linked(tt.parent.title) }}</span>{% endif %}{% if tt.parent.url %}
+      · <a class="run-crumb" href="{{ tt.parent.url }}">die {{ run.shuttle }} there</a>{% endif %}{% if tt.chip_url %}
+      · <a class="run-crumb" href="{{ tt.chip_url }}">{{ tt.chip }} on tinytapeout.com</a>{% endif %}
+      · <a class="run-crumb" href="{{ tt.store_url }}">{{ "buy this chip" if tt.store_own_page else "Tiny Tapeout store" }}</a>{% if tt.fpgas_url %}
+      · <a class="run-crumb" href="{{ tt.fpgas_url }}">try it online</a>{% endif %}</p>
     {% else %}
     <p class="lead">Shuttle {{ run.shuttle }} · {{ stats.designs | length }} public designs on one reticle</p>
     {% endif %}
@@ -142,7 +146,7 @@
         {% if owners | length > 1 %}
         <p class="small text-muted mb-15">Two schedules meet here: <span class="run-owner run-owner-tt">Tiny Tapeout</span>
           collects the projects and builds the die, then <span class="run-owner run-owner-ws">wafer.space</span>
-          manufactures it on {{ tt.parent.title if tt and tt.parent.title else "its run" }} and ships the parts.</p>
+          manufactures it on {{ runs_linked(tt.parent.title) if tt and tt.parent.title else "its run" }} and ships the parts.</p>
         {% endif %}
         <ul class="run-timeline">
           {% for item in timeline %}
@@ -542,4 +546,22 @@
     </div>
   </div>
 </div>
+{% if tt %}
+<div class="wrapper light-wrapper">
+  <div class="container inner">
+    <div class="row gutter-50">
+      <div class="col-lg-7 mb-30">
+        {{ tiny.about() }}
+        {{ tiny.independent() }}
+      </div>
+      <div class="col-lg-5">
+        <h2 id="board" class="section-title mb-20">Get this chip{{ anchor("board") }}</h2>
+        {{ tiny.board(tt, "") }}
+        <p class="mt-20">{{ tiny.chip_links(tt) }}</p>
+        {{ tiny.upsell() }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

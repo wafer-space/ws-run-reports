@@ -18,8 +18,9 @@ from types import SimpleNamespace
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from . import config, external, links, tinytapeout
+from . import site as site_module
 from . import stats as stats_module
-from .site import WEBSITE
+from .site import TT_BOARD_IMAGE, WEBSITE, tt_chip_links
 
 COLLECTIONS_DIR = config.RUNS_DIR / "collections"
 
@@ -29,7 +30,8 @@ def load(name: str) -> SimpleNamespace:
     repo_name = data["repo"].split("/")[-1]
     return SimpleNamespace(
         name=name, title=data["title"], repo=data["repo"], heading=list(data.get("heading") or [data["title"]]),
-        intro=" ".join(data.get("intro", "").split()), site={},
+        intro=" ".join(data.get("intro", "").split()), site={"kind": data.get("kind", "")},
+        other=[{**item, "description": " ".join(item.get("description", "").split())} for item in data.get("other", [])],
         short_title=" · ".join([data["heading"][0], " ".join(data["heading"][1:])]) if data.get("heading") else data["title"],
         github_url=f"https://github.com/{data['repo']}", source_url=f"https://github.com/{data['repo']}",
         report_url=f"https://github.com/{data['repo']}/tree/density-report", pages_url=f"https://wafer.space/{repo_name}/")
@@ -39,6 +41,27 @@ def members(collection) -> list:
     """The runs in the collection's repository, by run then path."""
     runs = [config.load_run(name) for name in config.available_runs()]
     return sorted((r for r in runs if r.repo == collection.repo and r.path), key=lambda r: r.path)
+
+
+def tt_chips(collection, measured: set) -> tuple[list, list]:
+    """The GF180MCU Tiny Tapeout chips of tinytapeout.com/chips that have no pages here yet.
+
+    Returns (coming, other): the chips open for projects, planned, or on a wafer.space run but not yet
+    measured; and those made elsewhere, with the collection's own ``[[other]]`` chips.
+    """
+    tiles = external.tt_tiles()
+    coming, other = [], []
+    for chip in tinytapeout.gf_chips(external.tt_chips()):
+        if chip["chip"] in measured:
+            continue
+        ws_run = links.run_alias(chip.get("shuttle", ""))
+        dates = {key: tinytapeout.display_date(chip.get(key, "")) for key in
+                 ("closes", "closed", "submission deadline", "chips expected", "estimated shipping date")}
+        item = {**chip, "ws_run": ws_run, "dates": dates, "tiles": tiles.get(chip["chip"], {})}
+        (coming if ws_run or chip["section"] != "past" else other).append(item)
+    known = {item["chip"] for item in other}
+    other += [item for item in collection.other if item["chip"] not in known | measured]
+    return coming, other
 
 
 def build(name: str, out: Path) -> Path:
@@ -58,19 +81,25 @@ def build(name: str, out: Path) -> Path:
         entries.append({"run": run, "renders": renders, "stats": stats,
                         "status": reached[-1] if reached else None, "next": upcoming[0] if upcoming else None,
                         "projects": len(run.projects()), "parent": run.site.get("parent", {}),
-                        "chip": run.site.get("tt_chip", ""),
+                        "chip": run.site.get("tt_chip", ""), "links": tt_chip_links(run.site),
                         "chip_url": f"https://tinytapeout.com/chips/{run.site['tt_chip']}/" if run.site.get("tt_chip") else ""})
+    coming, other = tt_chips(collection, {entry["chip"] for entry in entries}) if collection.site["kind"] == "tiny-tapeout" else ([], [])
     env = Environment(loader=PackageLoader("ws_run_reports", "templates"),
                       autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
     static = Path(__file__).parent / "static"
     digest = hashlib.sha256(b"".join(path.read_bytes() for path in sorted(static.iterdir())))
-    env.globals.update(static_version=digest.hexdigest()[:10], links=links, link=links.html)
+    env.globals.update(static_version=digest.hexdigest()[:10], links=links, link=links.html,
+                       anchor=site_module._anchor, runs_linked=links.runs_linked)
     site_dir = out / name / "site"
     site_dir.mkdir(parents=True, exist_ok=True)
     (site_dir / "index.html").write_text(env.get_template("collection.html").render(
-        run=collection, collection=collection, entries=entries, root="", website=WEBSITE, renders=None,
+        run=collection, collection=collection, entries=entries, coming=coming, other=other,
+        tt=collection.site["kind"] == "tiny-tapeout", root="", website=WEBSITE, renders=None,
         generated=date.today().isoformat()))
     for path in static.iterdir():
         shutil.copy(path, site_dir / path.name)
+    if collection.site["kind"] == "tiny-tapeout":
+        (site_dir / "images").mkdir(exist_ok=True)
+        shutil.copy(TT_BOARD_IMAGE, site_dir / "images" / TT_BOARD_IMAGE.name)
     (site_dir / ".nojekyll").write_text("")
     return site_dir / "index.html"

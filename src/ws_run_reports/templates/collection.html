@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_tinytapeout.html" as tiny with context %}
 {% set short_title = collection.short_title %}
 {% block title %}{{ collection.title }} — wafer.space{% endblock %}
 {% block description %}{{ collection.intro or collection.title }}{% endblock %}
@@ -8,12 +9,32 @@
      data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
   <div class="container inner text-center">
     <h1 class="page-title">{{ collection.heading[0] }}{% for line in collection.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
-    <p class="lead">{{ entries | length }} dies · {{ entries | sum(attribute="projects") }} projects</p>
+    <p class="lead">{{ entries | length }} dies · {{ entries | sum(attribute="projects") }} projects{% if tt %}
+      · <a class="run-crumb" href="{{ links.tinytapeout('home') }}">tinytapeout.com</a>
+      · <a class="run-crumb" href="{{ links.tinytapeout('store') }}">Tiny Tapeout store</a>{% endif %}</p>
   </div>
 </div>
 
+{% if tt %}
 <div class="wrapper light-wrapper run-first">
   <div class="container inner">
+    <div class="row gutter-50">
+      <div class="col-lg-7 mb-30">
+        {{ tiny.about() }}
+        {{ tiny.independent() }}
+      </div>
+      <div class="col-lg-5">
+        {{ tiny.upsell() }}
+        <div class="mt-30">{{ tiny.board({"store_url": links.tinytapeout("kits"), "store_own_page": false}, "") }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div id="dies" class="wrapper {{ 'gray-wrapper' if tt else 'light-wrapper run-first' }}">
+  <div class="container inner">
+    {% if tt %}<h2 class="section-title mb-10 text-center">On wafer.space runs{{ anchor("dies") }}</h2>{% endif %}
     {% if collection.intro %}<p class="lead text-center mb-40">{{ collection.intro }}</p>{% endif %}
     <div class="row">
       {% for e in entries %}
@@ -34,12 +55,73 @@
           </div>
         </a>
         <p class="small text-muted mt-10 mb-0">
-          {% if e.parent.url %}{{ link(e.parent.title or "on its run", e.parent.url) }}{% endif %}
+          {% if e.parent.title %}{{ runs_linked(e.parent.title) }}{% if e.parent.url %} (<a href="{{ e.parent.url }}">die {{ r.shuttle }}</a>){% endif %}{% endif %}
           {% if e.chip_url %} · {{ link(e.chip ~ " on tinytapeout.com", e.chip_url) }}{% endif %}
+          {% if tt %} · <a href="{{ e.links.store_url }}">{{ "buy this chip" if e.links.store_own_page else "store" }}</a>{% if e.links.fpgas_url %}
+          · <a href="{{ e.links.fpgas_url }}">try it online</a>{% endif %}{% endif %}
           · {{ link("files", r.source_url) }}</p>
       </div>
       {% endfor %}
     </div>
   </div>
 </div>
+
+{% if coming %}
+<div id="coming" class="wrapper light-wrapper">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">Coming on wafer.space runs{{ anchor("coming") }}</h2>
+    <p class="lead text-center mb-40">Tiny Tapeout GF180MCU chips that have not been manufactured yet, from
+      {{ link("tinytapeout.com/chips", links.tinytapeout("chips")) }}. Each gets its pages here once it has been made.</p>
+    <div class="row">
+      {% for c in coming %}
+      <div class="col-sm-6 col-lg-4 mb-30">
+        <div class="box bg-white shadow p-30 h-100 run-coming">
+          <p class="mb-5"><span class="run-status run-status-{{ c.section }}">{{ {"open": "Open for projects", "future": "Planned", "past": "Taped out"}[c.section] }}</span></p>
+          <h5 class="post-title mb-5">{{ link(c.run, c.url) }}</h5>
+          <p class="mb-10 small">{% if c.ws_run %}On {{ runs_linked(c.ws_run) }}{% else %}<span class="text-muted">wafer.space run not yet announced</span>{% endif %}</p>
+          <ul class="run-method small mb-10">
+            {% if c.section == "open" %}<li>Projects close <strong>{{ c.dates.closes }}</strong></li>
+            {% if c.tiles.tiles_total %}<li><strong>{{ c.tiles.tiles_used }}</strong> of {{ c.tiles.tiles_total }} tiles taken{% if c.tiles.tiles_reserved %},
+              {{ c.tiles.tiles_reserved }} reserved{% endif %}</li>{% endif %}
+            {% elif c.section == "future" %}<li>Projects close <strong>{{ c.dates["submission deadline"] }}</strong> (estimated)</li>{% endif %}
+            {% if c.dates["chips expected"] %}<li>Chips expected {{ c.dates["chips expected"] }}</li>{% endif %}
+            {% if c.dates["estimated shipping date"] %}<li>Shipping {{ c.dates["estimated shipping date"] }} (estimated)</li>{% endif %}
+          </ul>
+          {% if c.note %}<p class="small text-muted">Tiny Tapeout has reserved tiles on this chip; see
+            {{ link("tinytapeout.com/chips", links.tinytapeout("chips")) }}.</p>{% endif %}
+          {% if c.section == "open" %}<p class="mb-0">
+            <a class="btn btn-default btn-sm mb-5" href="{{ c.url or links.tinytapeout('create') }}">Submit a project</a>
+            <a class="btn btn-outline-primary btn-sm mb-5" href="{{ links.tinytapeout('prepurchase') }}">Prepurchase tiles and boards</a></p>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="small text-muted text-center mb-0">Dates and tile counts are Tiny Tapeout's, from
+      {{ link("tinytapeout.com/chips", links.tinytapeout("chips")) }} and {{ link("app.tinytapeout.com", links.tinytapeout("prepurchase")) }},
+      as of {{ generated }}.</p>
+  </div>
+</div>
+{% endif %}
+
+{% if other %}
+<div id="other" class="wrapper {{ 'gray-wrapper' if coming else 'light-wrapper' }}">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">Other GF180MCU Tiny Tapeout chips{{ anchor("other") }}</h2>
+    <p class="lead text-center mb-40">Tiny Tapeout chips on the GF180MCU process that were not made on a wafer.space run,
+      so they are not measured here</p>
+    <div class="row justify-content-center">
+      {% for c in other %}
+      <div class="col-sm-6 col-lg-4 mb-30">
+        <div class="box bg-white shadow p-30 h-100">
+          <h5 class="post-title mb-5">{{ link(c.name or c.run, c.url or c.repo) }}</h5>
+          {% if c.projects or c.designs %}<p class="mb-10 small text-muted">{{ c.projects or c.designs }} projects</p>{% endif %}
+          {% if c.description %}<p class="small">{{ c.description }}</p>{% endif %}
+          <p class="mb-0 small">{% if c.repo %}{{ link("Shuttle repository", c.repo) }}{% endif %}{% if c.url and c.repo %} · {% endif %}{% if c.url %}{{ link("on tinytapeout.com", c.url) }}{% endif %}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

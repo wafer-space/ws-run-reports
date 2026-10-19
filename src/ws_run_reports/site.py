@@ -222,13 +222,30 @@ TERMS = {
 }
 
 
+# The demo board render on a Tiny Tapeout die's pages, published as images/tt-demo-board.webp.
+TT_BOARD_IMAGE = Path(__file__).parent / "data" / "tt-demo-board.webp"
+
+
+def tt_chip_links(site: dict) -> dict:
+    """Where a Tiny Tapeout chip is described, sold and driven, from its run's ``[site]``.
+
+    ``tt_store_url`` names the chip's own page in the Tiny Tapeout store; without one the store's
+    development kits are linked. The chip's fpgas.online board is linked only once its page is up.
+    """
+    chip = site.get("tt_chip", "")
+    fpgas = links.fpgas_online(chip)
+    return {"chip": chip, "chip_url": f"https://tinytapeout.com/chips/{chip}/" if chip else "",
+            "store_url": site.get("tt_store_url") or links.tinytapeout("kits"),
+            "store_own_page": bool(site.get("tt_store_url")),
+            "fpgas_url": fpgas if fpgas and external.available(fpgas) else ""}
+
+
 def _tiny_tapeout(run) -> dict | None:
     """Links for a Tiny Tapeout die's pages: the chip on tinytapeout.com and the die on its wafer.space run."""
     if run.site.get("kind") != "tiny-tapeout":
         return None
-    chip = run.site.get("tt_chip", "")
     index = tinytapeout.load_index(run.repo_dir) or {}
-    return {"chip": chip, "chip_url": f"https://tinytapeout.com/chips/{chip}/" if chip else "",
+    return {**tt_chip_links(run.site),
             "parent": run.site.get("parent", {}),
             # The shuttle repository at the tapeout release, which holds each project's docs and licence.
             "repo": https_url(index.get("repo")), "commit": index.get("commit", ""), "name": index.get("name", "")}
@@ -426,7 +443,8 @@ def build_site(run, out_dir: Path) -> Path:
     digest = hashlib.sha256(b"".join(path.read_bytes() for path in sorted(static.iterdir())))
     env.globals.update(static_version=digest.hexdigest()[:10])
     env.globals.update(area_bar=_area_bar, heatmap=_heatmap, photo_credit=lambda target=None: _photo_credit(run, target))
-    env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id)
+    env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id,
+                       runs_linked=links.runs_linked)
 
     # The data behind the page, so every figure on it can be checked.
     data_dir = site_dir / "data"
@@ -461,5 +479,8 @@ def build_site(run, out_dir: Path) -> Path:
     static = Path(__file__).parent / "static"
     for path in static.iterdir():
         shutil.copy(path, site_dir / path.name)
+    if context["tt"]:
+        (site_dir / "images").mkdir(exist_ok=True)
+        shutil.copy(TT_BOARD_IMAGE, site_dir / "images" / TT_BOARD_IMAGE.name)
     (site_dir / ".nojekyll").write_text("")
     return site_dir / "index.html"

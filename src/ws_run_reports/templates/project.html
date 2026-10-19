@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_tinytapeout.html" as tiny with context %}
 {% set short_title = run.short_title %}
 {% set render = renders.designs[design.code] if renders and design.code in renders.designs else none %}
 {% set photo = photos[design.code] if design.code in photos else none %}
@@ -57,6 +58,8 @@
           <a class="btn btn-default btn-sm mb-10" href="{{ design.project.repository }}{% if tt and design.project.extra.COMMIT and design.project.repository.startswith("https://github.com/") %}/tree/{{ design.project.extra.COMMIT }}{% endif %}">Source repository</a>
           {% endif %}
           {% if tt and tt.chip_url %}<a class="btn btn-outline-primary btn-sm mb-10" href="{{ tt.chip_url }}{{ design.project.top }}">On tinytapeout.com</a>{% endif %}
+          {% if tt %}<a class="btn btn-outline-primary btn-sm mb-10" href="{{ tt.store_url }}">{{ "Buy this chip" if tt.store_own_page else "Tiny Tapeout store" }}</a>
+          {% if tt.fpgas_url %}<a class="btn btn-outline-primary btn-sm mb-10" href="{{ tt.fpgas_url }}">Try it online</a>{% endif %}{% endif %}
           {% for child in children.get(design.code, []) %}<a class="btn btn-outline-primary btn-sm mb-10" href="{{ child.pages_url }}">{{ child.heading[0] }} projects</a>{% endfor %}
           {% if photo %}<a class="btn btn-outline-primary btn-sm mb-10" href="#photo">Die photograph</a>{% endif %}
           {% if packed %}<a class="btn btn-outline-primary btn-sm mb-10" href="#package">As shipped</a>{% endif %}
@@ -228,6 +231,7 @@
 
         {% if design.cell_usage %}
         <h3 id="cells" class="mt-30 mb-10">Most used cells{{ anchor("cells") }}</h3>
+        <div class="table-responsive">
         <table class="table table-sm run-table bg-white">
           <thead><tr><th>Cell</th><th>Library</th><th class="text-end">Instances</th><th>What it does</th></tr></thead>
           <tbody>
@@ -237,10 +241,12 @@
             {% endfor %}
           </tbody>
         </table>
+        </div>
         {% endif %}
 
         {% if design.macros %}
         <h3 id="sram" class="mt-30 mb-10">SRAM macros{{ anchor("sram") }}</h3>
+        <div class="table-responsive">
         <table class="table table-sm run-table bg-white">
           <thead><tr><th>Macro</th><th class="text-end">Count</th><th class="text-end">Bits each</th></tr></thead>
           <tbody>
@@ -250,6 +256,7 @@
             {% endfor %}
           </tbody>
         </table>
+        </div>
         {% endif %}
       </div>
 
@@ -385,6 +392,11 @@
 {% endif %}
 
 
+{% if tt %}
+<div class="wrapper light-wrapper">
+  <div class="container inner run-inner-slim">{{ tiny.upsell(compact=true) }}</div>
+</div>
+{% endif %}
 <div class="wrapper dark-wrapper inverse-text">
   <div class="container inner run-pager">
     <a href="{{ previous.code }}.html">← {{ previous.code }} <span>{{ previous.name }}</span></a>
