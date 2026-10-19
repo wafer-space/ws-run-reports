@@ -134,6 +134,36 @@ docs = "https://gf180mcu-pdk.readthedocs.io/en/latest/"
 # The drawn layer table of the design rule manual (GDS layer/datatype numbers).
 layers = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_04_1.html#drawn-layer-definition-and-abbreviation"
 
+# Each process feature of features.py: the most detailed section of the PDK documentation about it.
+# The electrical specification for the transistor voltages; the design rule manual's own section where a
+# device has one (the rules for drawing it, with a figure); the SPICE model reference otherwise. The
+# Zener diode and the inductor appear only in the drawn layer table.
+[pdk.features]
+gates_3v3 = "https://gf180mcu-pdk.readthedocs.io/en/latest/analog/spice/elec_specs/elec_specs_1.html"
+gates_5v = "https://gf180mcu-pdk.readthedocs.io/en/latest/analog/spice/elec_specs/elec_specs_3.html"
+gates_6v = "https://gf180mcu-pdk.readthedocs.io/en/latest/analog/spice/elec_specs/elec_specs_2.html"
+gates_native = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_10_05.html"
+# 10.12 itself is only a list of the LDNMOS and LDPMOS sections; the LDNMOS one is the fuller.
+gates_ldmos = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_10_12_1.html"
+# Option B, between the top two metals: where most designs put theirs (Metal4 of the five).
+mim = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_10_4_2.html"
+moscap = "https://gf180mcu-pdk.readthedocs.io/en/latest/analog/model_parameters/LV/LV_6.html"
+res_poly_high = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_10_03.html"
+res_poly_unsalicided = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_10_01.html"
+res_poly_salicided = "https://gf180mcu-pdk.readthedocs.io/en/latest/analog/model_parameters/LV/LV_4.html"
+res_diffusion = "https://gf180mcu-pdk.readthedocs.io/en/latest/analog/model_parameters/LV/LV_4.html"
+res_nwell = "https://gf180mcu-pdk.readthedocs.io/en/latest/analog/model_parameters/LV/LV_4.html"
+res_metal = "https://gf180mcu-pdk.readthedocs.io/en/latest/analog/model_parameters/LV/LV_4.html"
+diode = "https://gf180mcu-pdk.readthedocs.io/en/latest/analog/model_parameters/LV/LV_3.html"
+well_diode = "https://gf180mcu-pdk.readthedocs.io/en/latest/analog/model_parameters/LV/LV_3.html"
+dnwell = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_07_03.html"
+bjt = "https://gf180mcu-pdk.readthedocs.io/en/latest/analog/model_parameters/LV/LV_5.html"
+schottky = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_10_14.html"
+zener = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_04_1.html"
+efuse = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_10_11.html"
+otp = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_10_10.html"
+inductor = "https://gf180mcu-pdk.readthedocs.io/en/latest/physical_verification/design_manual/drm_04_1.html"
+
 [librelane.steps]
 # A step's entry in the LibreLane reference: "#step-" + its id lowercased, "." -> "-".
 reference = "https://librelane.readthedocs.io/en/latest/reference/step_config_vars.html"

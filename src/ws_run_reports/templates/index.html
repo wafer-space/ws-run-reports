@@ -250,7 +250,7 @@
         {% for volts in stats.voltage_levels %}
         {% set users = stats.voltage_users(volts) %}
         <div class="run-category">
-          <span class="run-category-name">{{ volts }}</span>
+          <span class="run-category-name">{{ link(volts, links.voltage(volts)) }}</span>
           <span class="run-category-bar"><i style="width: {{ '%.1f' | format(users | length / stats.designs | length * 100) }}%; background: #5ca7db"></i></span>
           <span class="run-category-count">{{ users | length }}</span>
         </div>
@@ -264,14 +264,14 @@
           <thead><tr><th>Device</th><th class="text-end">Designs</th><th>Which</th></tr></thead>
           <tbody>
             {% for key, label, users in stats.feature_popularity if users %}
-            <tr><td>{{ label }}</td><td class="text-end">{{ users | length }}</td>
+            <tr><td>{{ link(label, links.feature(key)) }}</td><td class="text-end">{{ users | length }}</td>
               <td>{% for u in users %}{% if u.ip_only(key) %}<a class="run-mono run-ip-only" href="projects/{{ u.code }}.html"
                 title="Only inside reused {{ u.ip_sources[key] | join(', ') }}">{{ u.code }}</a>{% else %}<a class="run-mono" href="projects/{{ u.code }}.html">{{ u.code }}</a>{% endif %}{{ " " if not loop.last }}{% endfor %}</td></tr>
             {% endfor %}
           </tbody>
         </table>
-        {% set unused = stats.feature_popularity | selectattr(2, "equalto", []) | map(attribute=1) | list %}
-        {% if unused %}<p class="small text-muted mb-0">Not drawn by any design: {{ unused | join(", ") }}.</p>{% endif %}
+        {% set unused = stats.feature_popularity | selectattr(2, "equalto", []) | list %}
+        {% if unused %}<p class="small text-muted mb-0">Not drawn by any design: {% for key, label, _ in unused %}{{ link(label, links.feature(key)) }}{{ ", " if not loop.last }}{% endfor %}.</p>{% endif %}
         <p class="small text-muted">Only devices outside standard cells, SRAM macros and I/O pads count, since every
           die has those. A single test structure counts the same as a large block.{% if stats.designs | selectattr("ip_sources") | list %}
           <span class="run-mono run-ip-only">Faded</span> codes have the device only inside a reused block; hover

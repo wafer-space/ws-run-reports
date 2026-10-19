@@ -448,11 +448,11 @@ def features_section(stats) -> str:
            "SRAM) and transistors the designer drew. Devices count only what the designer drew: standard cells, "
            "SRAM macros, I/O pads and fill are left out, because every die has them. A single test structure "
            "counts the same as a large block.\n"]
-    rows = [[v, f"{len(stats.voltage_users(v))} of {len(designs)}",
+    rows = [[links.markdown(v, links.voltage(v)), f"{len(stats.voltage_users(v))} of {len(designs)}",
              ", ".join(link(d) for d in stats.voltage_users(v))] for v in stats.voltage_levels]
     out.append(table(["Transistor voltage", "Designs", "Which"], rows) + "\n")
-    rows = [[label, f"{len(users)} of {len(designs)}", ", ".join(link(d) for d in users) or "—"]
-            for _, label, users in stats.feature_popularity]
+    rows = [[links.markdown(label, links.feature(key)), f"{len(users)} of {len(designs)}", ", ".join(link(d) for d in users) or "—"]
+            for key, label, users in stats.feature_popularity]
     out.append(table(["Device", "Designs drawing it", "Which"], rows) + "\n")
     rows = []
     for d in designs:

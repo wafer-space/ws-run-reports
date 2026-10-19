@@ -40,3 +40,11 @@ def test_report_links_layer_numbers():
 def test_html_link_escapes():
     assert str(links.html("a<b", "https://x/?a=1&b=2")) == '<a href="https://x/?a=1&amp;b=2">a&lt;b</a>'
     assert str(links.html("plain", "")) == "plain"
+
+
+def test_every_process_feature_links_to_the_pdk_documentation():
+    from ws_run_reports.features import FEATURES
+    for key, _, _ in FEATURES:
+        assert links.feature(key).startswith("https://gf180mcu-pdk.readthedocs.io/en/latest/"), key
+    assert links.voltage("5 V") == links.feature("gates_5v")
+    assert links.voltage("10 V") == links.feature("unknown") == ""

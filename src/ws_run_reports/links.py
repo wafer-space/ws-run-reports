@@ -197,6 +197,20 @@ def layers() -> str:
     return tables()["pdk"]["layers"]
 
 
+def feature(key: str) -> str:
+    """The PDK documentation of a process feature, by its key in features.py ("mim", "gates_5v", ...)."""
+    return tables()["pdk"].get("features", {}).get(key, "")
+
+
+# The transistor voltages as the pages name them, and their features.
+_VOLTAGE_FEATURES = {"3.3 V": "gates_3v3", "5 V": "gates_5v", "6 V": "gates_6v"}
+
+
+def voltage(label: str) -> str:
+    """The PDK documentation of the transistors of a voltage, "3.3 V", "5 V" or "6 V"."""
+    return feature(_VOLTAGE_FEATURES.get(label, ""))
+
+
 def step(step_id: str) -> str:
     """A LibreLane step's reference entry, e.g. "KLayout.DRC" -> ...#step-klayout-drc."""
     return f"{tables()['librelane']['steps']['reference']}#step-{step_id.lower().replace('.', '-')}" if step_id else ""

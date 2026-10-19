@@ -168,10 +168,10 @@
         <table class="table table-sm run-table">
           <tbody>
             {% for volts, sources in design.voltages.items() %}
-            <tr><th>{{ volts }}</th><td>{{ sources | join(", ") }}</td></tr>
+            <tr><th>{{ link(volts, links.voltage(volts)) }}</th><td>{{ sources | join(", ") }}</td></tr>
             {% endfor %}
             {% for key in design.device_features %}
-            <tr><th>{{ feature_labels[key] }}</th><td>{{ '{:,}'.format(design.features[key][0]) }}
+            <tr><th>{{ link(feature_labels[key], links.feature(key)) }}</th><td>{{ '{:,}'.format(design.features[key][0]) }}
               <span class="text-muted">({{ '{:,.0f}'.format(design.features[key][1]) }} µm²{% if key == "mim" and design.mim_levels %}, between {{ design.mim_levels | join(", ") | replace("-", " and ") }}{% endif %})</span>
               {% if design.ip_sources.get(key) %}<br><span class="small text-muted">{{ "all" if design.ip_only(key) else "of which" }}
                 {% for ip, n in design.ip_sources[key].items() %}{{ '{:,}'.format(n) if not design.ip_only(key) or design.ip_sources[key] | length > 1 }} in reused <span class="run-mono">{{ ip }}</span>{{ ", " if not loop.last }}{% endfor %}</span>{% endif %}</td></tr>
