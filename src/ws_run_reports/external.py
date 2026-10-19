@@ -36,6 +36,8 @@ def _try(label, function, default):
 def timeline(run) -> list:
     """Milestones for this run from the wafer.space website's ``_data/runs.yml``.
 
+    A milestone's optional ``done`` says whether it has happened (see ``site.milestone_done``).
+
     ``runs_yml_path`` reads a file in the same format from the run repository
     instead, for shuttles that are not on the wafer.space schedule.
     """
@@ -53,7 +55,7 @@ def timeline(run) -> list:
         entry = data["runs"][key]
         return [
             {"title": item["title"], "date": str(item["date"]), "display_date": item.get("display_date", ""),
-             "description": item.get("description", ""), "status": item.get("status", "")}
+             "description": item.get("description", ""), "status": item.get("status", ""), "done": item.get("done")}
             for item in entry.get("timeline", [])
         ]
 

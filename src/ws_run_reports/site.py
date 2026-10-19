@@ -225,6 +225,21 @@ TERMS = {
 
 # Timeline milestones about buying a slot, which link to the run's Crowd Supply campaign.
 CAMPAIGN_RE = re.compile(r"crowd ?supply|campaign|early bird|purchase", re.I)
+# A milestone whose shown date names a day ("28 April 2026") rather than a rough time ("Early Q4 2026").
+EXACT_DATE_RE = re.compile(r"\b\d{1,2} (January|February|March|April|May|June|July|August|September|October|"
+                           r"November|December) \d{4}\b")
+
+
+def milestone_done(item: dict, today: str) -> bool:
+    """Whether a timeline milestone has happened: as its ``done`` says, else once its date has passed.
+
+    An estimated date ("Early Q4 2026") passing does not mean the milestone happened, so such a milestone
+    is done only when marked so.
+    """
+    if item.get("done") is not None:
+        return bool(item["done"])
+    shown = item.get("display_date") or item["date"]
+    return item["date"] <= today and bool(EXACT_DATE_RE.search(shown) or shown == item["date"])
 
 
 # The demo board render on a Tiny Tapeout die's pages, published as images/tt-demo-board.webp.
@@ -293,7 +308,7 @@ def build_context(run, out_dir: Path) -> dict:
     today = date.today().isoformat()
     campaign = run.site.get("campaign_url", "")
     for item in timeline:
-        item["done"] = item["date"] <= today
+        item["done"] = milestone_done(item, today)
         # The milestones of buying a slot happen on the run's Crowd Supply campaign.
         if campaign and not item.get("url") and CAMPAIGN_RE.search(f"{item['title']} {item.get('description', '')}"):
             item["url"] = campaign

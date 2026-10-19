@@ -79,6 +79,10 @@ Everything else is optional:
 | `[report.notes]` | Extra Markdown sections for the density report, `"Heading" = """text"""` | None |
 | `[categories]` | `CODE = "Category"` overrides for the classifier | |
 
+A timeline milestone counts as done (and "today" is drawn after it) once its date has passed, unless
+its `display_date` is an estimate such as "Early Q4 2026": then only `done: true` on the milestone marks it
+done. `done: false` keeps any milestone pending.
+
 `slots` is the number of slots on the shuttle, whatever their arrangement; dies
 may sit anywhere on the reticle and positions may be empty. Slot sizes are
 taken from the manifest; sizes other than wafer.space's four are shown as
