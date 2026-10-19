@@ -48,3 +48,11 @@ def test_every_process_feature_links_to_the_pdk_documentation():
         assert links.feature(key).startswith("https://gf180mcu-pdk.readthedocs.io/en/latest/"), key
     assert links.voltage("5 V") == links.feature("gates_5v")
     assert links.voltage("10 V") == links.feature("unknown") == ""
+
+
+def test_run_names_link_to_their_pages():
+    assert links.runs_linked("Die T0P3 on wafer.space Run 2 (G802)") == (
+        'Die T0P3 on <a href="https://wafer.space/ws-run2/">wafer.space Run 2</a> (G802)')
+    assert "<a " not in links.runs_linked("wafer.space Run 20 & more")
+    assert "&amp;" in links.runs_linked("wafer.space Run 1 & Run 2")
+    assert links.tinytapeout("store").startswith("https://store.tinytapeout.com/")

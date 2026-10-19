@@ -92,6 +92,35 @@ def site(name: str) -> str:
     return tables().get("sites", {}).get(name, "")
 
 
+def tinytapeout(page: str) -> str:
+    """A page of the Tiny Tapeout website, by its name in links.toml ("home", "faq", ...)."""
+    return tables()["tinytapeout"][page]
+
+
+def run_alias(name: str) -> str:
+    """The wafer.space run that Tiny Tapeout calls ``name`` ("WS-2606" -> "wafer.space Run 2"), or ""."""
+    return tables().get("run_aliases", {}).get((name or "").strip(), "")
+
+
+def fpgas_online(chip: str) -> str:
+    """Where a Tiny Tapeout chip's board would be at fpgas.online (check that it is up before linking)."""
+    return tables()["tinytapeout"]["fpgas_online"].format(chip=chip) if chip else ""
+
+
+def runs_linked(text: str, cls: str = "") -> Markup:
+    """``text``, escaped, with each wafer.space run it names ("wafer.space Run 2") linked to that run's pages."""
+    runs = tables().get("runs", {})
+    if not runs:
+        return escape(text)
+    pattern = re.compile("|".join(re.escape(name) for name in sorted(runs, key=len, reverse=True)) + r"(?!\d)")
+    attrs = Markup(' class="{}"').format(cls) if cls else Markup("")
+    out, last = Markup(""), 0
+    for m in pattern.finditer(text or ""):
+        out += escape(text[last:m.start()]) + Markup('<a href="{}"{}>{}</a>').format(runs[m.group(0)], attrs, m.group(0))
+        last = m.end()
+    return out + escape((text or "")[last:])
+
+
 def tool(name: str) -> str:
     """A tool's home page: KLayout, Magic, LibreLane..."""
     return tables().get("tools", {}).get(name, "")

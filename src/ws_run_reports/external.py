@@ -5,6 +5,7 @@ Each source is optional and configured per run in the ``[site]`` table of
 skipped, so a new run can be published before any of this exists for it.
 """
 
+import functools
 import io
 import json
 import re
@@ -57,6 +58,39 @@ def timeline(run) -> list:
         ]
 
     return _try("shuttle timeline", load, [])
+
+
+@functools.cache
+def available(url: str) -> bool:
+    """Whether ``url`` answers with a page (not a 404): for links to pages that may not exist yet."""
+    def load():
+        request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return response.status == 200
+    try:
+        return load()
+    except urllib.error.HTTPError:
+        return False
+    except (urllib.error.URLError, OSError, ValueError) as error:
+        print(f"  warning: {url} unavailable: {error}")
+        return False
+
+
+@functools.cache
+def tt_chips() -> list:
+    """Every chip on tinytapeout.com/chips (tinytapeout.parse_chips), or [] when it cannot be read."""
+    from . import links, tinytapeout
+    return _try("Tiny Tapeout chips", lambda: tinytapeout.parse_chips(
+        fetch(links.tinytapeout("chips_source")).decode()), [])
+
+
+@functools.cache
+def tt_tiles() -> dict:
+    """Tiles used and in total of each open Tiny Tapeout shuttle, by chip ("ttgf26c")."""
+    def load():
+        data = json.loads(fetch("https://app.tinytapeout.com/api/shuttles/submission-stats"))
+        return {s["slug"]: s for s in data.get("shuttles", [])}
+    return _try("Tiny Tapeout tile counts", load, {})
 
 
 def cob_pages(run) -> dict:

@@ -11,6 +11,46 @@ KLayout = "https://www.klayout.de/"
 Magic = "http://opencircuitdesign.com/magic/"
 LibreLane = "https://librelane.readthedocs.io/"
 
+# Tiny Tapeout's own pages, linked from the pages of the Tiny Tapeout dies (all from its sitemap).
+[tinytapeout]
+home = "https://tinytapeout.com/"
+digital_design = "https://tinytapeout.com/digital_design/"
+hdl = "https://tinytapeout.com/hdl/"
+specs = "https://tinytapeout.com/specs/"
+chips = "https://tinytapeout.com/chips/"
+silicon_proven = "https://tinytapeout.com/chips/silicon-proven/"
+demoboard = "https://tinytapeout.com/guides/get-started-demoboard-etr/"
+workshops = "https://tinytapeout.com/workshops/"
+teaching = "https://tinytapeout.com/teaching/"
+faq = "https://tinytapeout.com/faq/"
+contact = "https://tinytapeout.com/contact/"
+partnership = "https://tinytapeout.com/news/wafer-space-partnership/"
+store = "https://store.tinytapeout.com/"
+# The store's chips come as development kits, listed here; a die whose kit has its own page names it
+# with tt_store_url in its run configuration.
+kits = "https://store.tinytapeout.com/products/Development-Kits-c198115270"
+create = "https://app.tinytapeout.com/projects/create"
+prepurchase = "https://app.tinytapeout.com/prepurchase"
+# The source of tinytapeout.com/chips: its tables of open, future and past chips.
+chips_source = "https://raw.githubusercontent.com/TinyTapeout/tinytapeout_www/main/content/chips/_index.md"
+# A chip's board at fpgas.online ({chip} is e.g. "ttgf0p3"); linked only once the page is up.
+fpgas_online = "https://tinytapeout.fpgas.online/board/{chip}/"
+# The demo board render shown on the die pages (data/tt-demo-board.webp, from this file at 3b125feeac2b).
+board_image = "https://github.com/TinyTapeout/tt-demo-pcb/blob/main/doc/img/tt-etr-dbv3p2-render.png"
+board_licence = "https://github.com/TinyTapeout/tt-demo-pcb/blob/main/LICENSE"
+
+# wafer.space runs that have pages, by the name the pages use for them: where a page names one, it links it.
+[runs]
+"wafer.space Run 1" = "https://wafer.space/ws-run1/"
+"wafer.space Run 2" = "https://wafer.space/ws-run2/"
+
+# What Tiny Tapeout's chips page calls the wafer.space runs (its "Shuttle" column). Until the website keeps
+# this mapping (wafer-space/wafer-space.github.io#134).
+[run_aliases]
+"WS-2512" = "wafer.space Run 1"
+"WS-2606" = "wafer.space Run 2"
+"w.s Run #3" = "wafer.space Run 3"
+
 [precheck]
 # wafer.space's precheck: tags are plain versions ("1.7.3"); the image is
 # ghcr.io/wafer-space/gf180mcu-precheck.

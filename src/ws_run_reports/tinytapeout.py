@@ -15,6 +15,7 @@ release commit of the Tiny Tapeout shuttle repository.
 """
 
 import csv
+import re
 import json
 import subprocess
 from pathlib import Path
@@ -147,6 +148,12 @@ def _display_date(iso: str) -> str:
     return f"{day.day} {day:%B %Y}"
 
 
+def display_date(text: str) -> str:
+    """A date from tinytapeout.com/chips as the pages write it: ISO dates in words, anything else
+    ("April 2027", "None - test shuttle") as it is."""
+    return _display_date(text) if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text or "") else (text or "")
+
+
 def timeline_items(shuttle: dict) -> list:
     """The shuttle's milestones in the format of the run timeline (external.timeline)."""
     items = []
@@ -164,3 +171,46 @@ def timeline_items(shuttle: dict) -> list:
                       "description": f"Tiny Tapeout publishes the die's layout ({release['tag']}) and sends it to wafer.space",
                       "status": "milestone", "url": release["url"]})
     return items
+
+
+# --- the chips on tinytapeout.com/chips --------------------------------------
+
+# The tables of tinytapeout.com/chips, under these headings of its source.
+CHIP_SECTIONS = {"Open for Submission": "open", "Future Chips": "future", "Past Chips": "past"}
+
+
+def parse_chips(markdown: str) -> list[dict]:
+    """The rows of the chip tables in the source of tinytapeout.com/chips, in page order.
+
+    Each row is a dict of the table's columns by lower-cased header ("run", "closes", "shuttle", ...) plus
+    ``section`` ("open", "future" or "past"), ``chip`` (the run lower-cased, "ttgf26c") and ``url`` (the run's
+    link, made absolute).
+    """
+    rows, section, headers = [], None, None
+    for line in markdown.splitlines():
+        heading = re.match(r"#+\s*(.+?)\s*$", line)
+        if heading:
+            section, headers = CHIP_SECTIONS.get(heading.group(1)), None
+            continue
+        if not section or not line.lstrip().startswith("|"):
+            headers = None if not line.strip() else headers
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if headers is None:
+            headers = [cell.lower() for cell in cells]
+            continue
+        if all(re.fullmatch(r":?-+:?", cell) for cell in cells):
+            continue
+        row = dict(zip(headers, (cell.replace("\\#", "#") for cell in cells)))
+        link = re.match(r"\[([^\]]+)\]\(([^)]+)\)\s*(.*)", row.get("run", ""))
+        name = link.group(1) if link else row.get("run", "").rstrip("†* ")
+        url = link.group(2) if link else ""
+        rows.append({**row, "section": section, "run": name, "chip": name.lower(),
+                     "url": f"https://tinytapeout.com{url}" if url.startswith("/") else url,
+                     "note": "†" in row.get("run", "")})
+    return rows
+
+
+def gf_chips(rows: list[dict]) -> list[dict]:
+    """The GF180MCU chips (TTGF...) of :func:`parse_chips`."""
+    return [row for row in rows if row["chip"].startswith("ttgf")]
