@@ -200,3 +200,6 @@
   padding: 2px 8px; border-radius: 3px; color: #fff; background: var(--run-muted); }
 .run-status-open { background: var(--run-tt); }
 [data-theme="dark"] .run-coming.bg-white, [data-theme="dark"] #other .box.bg-white { background: var(--run-surface) !important; }
+.run-related { list-style: none; padding: 0; margin: 0; }
+.run-related li { padding: 6px 0; border-bottom: 1px solid var(--run-line); }
+.run-related li:last-child { border-bottom: 0; }

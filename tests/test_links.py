@@ -56,3 +56,12 @@ def test_run_names_link_to_their_pages():
     assert "<a " not in links.runs_linked("wafer.space Run 20 & more")
     assert "&amp;" in links.runs_linked("wafer.space Run 1 & Run 2")
     assert links.tinytapeout("store").startswith("https://store.tinytapeout.com/")
+
+
+def test_related_designs_are_well_formed():
+    from ws_run_reports import related
+    for design in related.designs():
+        assert design["name"] and (design["wafer_space"] or design["tiny_tapeout"])
+        for key in design["wafer_space"] + design["tiny_tapeout"]:
+            assert key.count("/") == 1 and all(key.split("/")), key
+        assert set(design["notes"]) <= set(design["wafer_space"] + design["tiny_tapeout"])

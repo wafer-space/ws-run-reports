@@ -1,0 +1,90 @@
+# Designs with history on more than one chip: the same design on several wafer.space runs, or one that was
+# also made on Tiny Tapeout chips. Every wafer.space slot and Tiny Tapeout project listed in a [[design]]
+# shows the others on its page.
+#
+#   wafer_space   "<run>/<code>" of each slot, as in runs/<run>.toml and its manifest
+#   tiny_tapeout  "<chip>/<macro>" of each Tiny Tapeout project (the chip as on tinytapeout.com/chips, the
+#                 project's tt_um_ macro); its title and author come from index.tinytapeout.com
+#   notes         a few words on how one of them differs, by the same key
+#   started_on_tiny_tapeout
+#                 true when the design was on Tiny Tapeout chips before it had a wafer.space slot
+#
+# Slots on different wafer.space runs with the same repository are related without being listed here.
+# The relations below were found by matching the repositories and titles of the slots against every
+# Tiny Tapeout shuttle's project index, then checked by hand.
+
+[[design]]
+name = "KianV RISC-V Linux SoC"
+started_on_tiny_tapeout = true
+wafer_space = ["ws-run1/KIAN", "ws-run2/KIAN"]
+tiny_tapeout = ["tt05/tt_um_kianV_rv32ima_uLinux_SoC", "tt06/tt_um_kianV_rv32ima_uLinux_SoC",
+                "tt07/tt_um_kianv_bare_metal", "ttihp0p2/tt_um_kianv_bare_metal", "ttihp26a/tt_um_kianv_sv32_soc"]
+[design.notes]
+"ws-run1/KIAN" = "5 V standard cells and SRAM"
+"ws-run2/KIAN" = "3.3 V standard cells and SRAM"
+"tt07/tt_um_kianv_bare_metal" = "RV32E bare-metal version"
+"ttihp0p2/tt_um_kianv_bare_metal" = "RV32E bare-metal version"
+
+[[design]]
+name = "TinyQV RISC-V SoC"
+started_on_tiny_tapeout = true
+wafer_space = ["ws-run1/TQVA", "ws-run1/TQVB", "ws-run1/TQVC", "ws-run2/TQVA", "ws-run2/TQVC", "ws-run2/TQVD",
+               "ws-run2/TQVE"]
+tiny_tapeout = ["tt06/tt_um_MichaelBell_tinyQV", "ttihp0p2/tt_um_MichaelBell_tinyQV", "ttihp25a/tt_um_MichaelBell_tinyQV",
+                "ttgf0p2/tt_um_MichaelBell_tinyQV", "ttihp25b/tt_um_tt_tinyQV"]
+[design.notes]
+"ttihp25b/tt_um_tt_tinyQV" = "with the peripherals of Tiny Tapeout's RISC-V competition"
+
+[[design]]
+name = "Open-source Z80"
+started_on_tiny_tapeout = true
+wafer_space = ["ws-run1/HZ80", "ws-run1/RZ80", "ws-run2/HZ80", "ws-run2/QZ80"]
+tiny_tapeout = ["tt07/tt_um_rejunity_z80", "tt09/tt_um_rejunity_z80", "ttihp0p2/tt_um_rejunity_z80",
+                "ttihp25a/tt_um_rejunity_z80", "ttgf0p2/tt_um_rejunity_z80"]
+
+[[design]]
+name = "raybox-zero"
+started_on_tiny_tapeout = true
+wafer_space = ["ws-run2/AMM1"]
+tiny_tapeout = ["tt04/tt_um_algofoogle_raybox_zero", "tt07/tt_um_algofoogle_raybox_zero",
+                "ttihp0p2/tt_um_algofoogle_raybox_zero", "ttgf0p2/tt_um_algofoogle_raybox_zero",
+                "ttihp0p4/tt_um_algofoogle_raybox_zero"]
+
+[[design]]
+name = "FazyRV"
+started_on_tiny_tapeout = true
+wafer_space = ["ws-run1/CAFE"]
+tiny_tapeout = ["tt06/tt_um_meiniKi_tt06_fazyrv_exotiny", "ttihp0p2/tt_um_meiniKi_ttihp_fazyrv_exotiny"]
+[design.notes]
+"ws-run1/CAFE" = "FazyRV Hachure"
+"tt06/tt_um_meiniKi_tt06_fazyrv_exotiny" = "FazyRV-ExoTiny"
+"ttihp0p2/tt_um_meiniKi_ttihp_fazyrv_exotiny" = "FazyRV-ExoTiny"
+
+[[design]]
+name = "Chess move generator"
+started_on_tiny_tapeout = true
+wafer_space = ["ws-run1/CHES"]
+tiny_tapeout = ["tt07/tt_um_chess", "ttihp0p2/tt_um_ravenslofty_chess"]
+
+[[design]]
+name = "FABulous FPGA"
+wafer_space = ["ws-run1/MOLE", "ws-run2/MOLE"]
+tiny_tapeout = ["ttgf0p3/tt_um_fabulous_gf_0p3", "ttgf0p3/tt_um_fabulous_gf_0p3_3v3", "ttihp26a/tt_um_fabulous_ihp_26a",
+                "ttihp26b/tt_um_fabulous_ihp_26b", "ttsky26a/tt_um_fabulous_sky_26a", "ttsky26b/tt_um_fabulous_sky_26b",
+                "ttsky26c/tt_um_fabulous_sky_26c"]
+[design.notes]
+"ttgf0p3/tt_um_fabulous_gf_0p3_3v3" = "3.3 V version"
+
+[[design]]
+name = "Expresso Ethernet switch"
+wafer_space = ["ws-run2/CAFE"]
+tiny_tapeout = ["ttgf0p3/tt_um_coldbrew", "ttgf26b/tt_um_coffeepot", "ttgf26b/tt_um_teapot"]
+[design.notes]
+"ttgf0p3/tt_um_coldbrew" = "the heat death of the universe beacon"
+
+[[design]]
+name = "TinyWhisper"
+wafer_space = ["ws-run1/JKU1"]
+tiny_tapeout = ["ttsky25b/tt_um_TinyWhisper"]
+[design.notes]
+"ws-run1/JKU1" = "one of the JKU projects on this die"

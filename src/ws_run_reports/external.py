@@ -85,6 +85,16 @@ def tt_chips() -> list:
 
 
 @functools.cache
+def tt_index(chip: str) -> dict:
+    """A Tiny Tapeout chip's project index from index.tinytapeout.com: {"name", "projects": {macro: {...}}},
+    or {} when it cannot be read."""
+    def load():
+        data = json.loads(fetch(f"https://index.tinytapeout.com/{chip}.json?fields=macro&fields=title&fields=author"))
+        return {"name": data.get("name", ""), "projects": {p["macro"]: p for p in data.get("projects", [])}}
+    return _try(f"Tiny Tapeout index of {chip}", load, {})
+
+
+@functools.cache
 def tt_tiles() -> dict:
     """Tiles used and in total of each open Tiny Tapeout shuttle, by chip ("ttgf26c")."""
     def load():

@@ -179,6 +179,7 @@ the "reticle" and its projects are the "slots". To add one:
    | `[measure] pad_ring_um = 0` | Each project's core is its whole area |
    | `[site] kind = "tiny-tapeout"`, `tt_chip` | Die/project/tiles wording, project details and tinytapeout.com links |
    | `[site.parent] title`, `url` | Link back to the die on its wafer.space run |
+   | `[site] tt_store_url` | The chip's page in the Tiny Tapeout store, when it has one (otherwise the store's kits are linked) |
    | `[site.render]` | Design, thumbnail and die scales (`design_px_per_mm`, `design_max_px`, `thumb_px_per_mm`, `thumb_max_px`, `reticle_px_per_mm`), and `reticle_background = true` to draw the whole die under the projects |
 
 3. Run `ws-run-reports all <run>` as for any run.
@@ -194,6 +195,20 @@ the index page at the root, which lists every run in the repository:
 uv run ws-run-reports collection tinytapeouts             # build out/tinytapeouts/site/index.html
 uv run ws-run-reports collection tinytapeouts --publish --push
 ```
+
+With `kind = "tiny-tapeout"`, the index page also lists the GF180MCU chips that are still to come on wafer.space
+runs, read at build time from the source of [tinytapeout.com/chips](https://tinytapeout.com/chips/) (which
+names the runs as in `[run_aliases]` of `data/links.toml`), and the GF180MCU chips made elsewhere (from
+tinytapeout.com/chips and the collection's `[[other]]` entries). A chip's board on
+[tinytapeout.fpgas.online](https://tinytapeout.fpgas.online/) is linked only once its page is up.
+
+### Related tapeouts
+
+`runs/related/designs.toml` lists designs made more than once: on several wafer.space runs, or also on Tiny
+Tapeout chips. Each `[[design]]` names its wafer.space slots (`"<run>/<code>"`) and Tiny Tapeout projects
+(`"<chip>/<macro>"`), with optional `notes` and `started_on_tiny_tapeout`. Every slot listed shows the others
+under "Related tapeouts" on its page, with a Tiny Tapeout callout. Slots on different runs with the same
+repository are related without being listed.
 
 ## What is measured
 

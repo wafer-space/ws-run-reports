@@ -17,7 +17,7 @@ from pathlib import Path
 from jinja2 import Environment, PackageLoader, select_autoescape
 from markupsafe import Markup
 
-from . import config, external, links, projects, report, reticle, tinytapeout
+from . import config, external, links, projects, related, report, reticle, tinytapeout
 from . import stats as stats_module
 from .classify import CATEGORY_ORDER, category_id
 from .config import SLOT_FRACTIONS, https_url
@@ -443,6 +443,7 @@ def build_site(run, out_dir: Path) -> Path:
     digest = hashlib.sha256(b"".join(path.read_bytes() for path in sorted(static.iterdir())))
     env.globals.update(static_version=digest.hexdigest()[:10])
     env.globals.update(area_bar=_area_bar, heatmap=_heatmap, photo_credit=lambda target=None: _photo_credit(run, target))
+    env.globals.update(related=lambda design: related.for_slot(run, design.project))
     env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id,
                        runs_linked=links.runs_linked)
 

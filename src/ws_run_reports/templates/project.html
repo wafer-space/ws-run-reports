@@ -295,6 +295,60 @@
         {% endif %}
       </div>
     </div>
+    {% set rel = related(design) %}
+    {% if rel %}
+    <h3 id="related" class="mt-20 mb-10">Related tapeouts{{ anchor("related") }}</h3>
+    <p class="mb-20">{{ rel.name }}{% if rel.here %} ({{ rel.here }}){% endif %} has also been made
+      {%- if rel.wafer_space %} on {{ "another wafer.space slot" if rel.wafer_space | length == 1 else rel.wafer_space | length ~ " other wafer.space slots" }}{% endif %}
+      {%- if rel.wafer_space and rel.tiny_tapeout %} and{% endif %}
+      {%- if rel.tiny_tapeout %} on {{ "a Tiny Tapeout chip" if rel.tiny_tapeout | length == 1 else rel.tiny_tapeout | length ~ " Tiny Tapeout chips" }}{% endif %}.</p>
+    <div class="row gutter-50">
+      {% if rel.wafer_space %}
+      <div class="col-md-6 mb-20">
+        <h4 class="mb-10">On wafer.space runs</h4>
+        <ul class="run-related">
+          {% for s in rel.wafer_space %}<li><a href="{{ s.url }}"><strong>{{ s.code }}</strong> {{ s.name }}</a>
+            <span class="text-muted">— {{ runs_linked(s.run) }}{% if s.slot %}, {{ s.slot | replace("p", ".") }} slot{% endif %}{% if s.note %}, {{ s.note }}{% endif %}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% if rel.tiny_tapeout %}
+      <div class="col-md-6 mb-20">
+        <h4 class="mb-10">On Tiny Tapeout chips</h4>
+        <ul class="run-related">
+          {% for p in rel.tiny_tapeout %}<li><a href="{{ p.url }}">{{ p.title }}</a>
+            <span class="text-muted">— <a href="{{ p.chip_url }}">{{ p.shuttle }}</a>{% if p.author %}, by {{ p.author }}{% endif %}{% if p.note %}, {{ p.note }}{% endif %}</span>
+            {% if p.here %}<a class="small" href="{{ p.here }}">measured here</a>{% endif %}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+    {% if rel.tiny_tapeout and not tt %}
+    <div class="run-callout run-callout-tt">
+      {% set first = rel.tiny_tapeout[0] %}
+      {% if rel.started_on_tiny_tapeout %}
+      <h4 class="mb-10">This design started on Tiny Tapeout. You can too!</h4>
+      <p>{{ rel.name }} was made on <a href="{{ first.chip_url }}">{{ first.shuttle }}</a> before it had a slot of
+        its own on a wafer.space run. Tiny Tapeout puts many small designs on one chip, so a first version costs a
+        fraction of a whole die: try the idea on a Tiny Tapeout tile, then bring it to wafer.space when it needs the room.</p>
+      {% else %}
+      <h4 class="mb-10">Parts of this design are on Tiny Tapeout chips too</h4>
+      <p>Tiny Tapeout puts many small designs on one chip, so trying out a block costs a fraction of a whole die.
+        It is a cheap and easy way to get a first design made, or to test one piece of a bigger one.</p>
+      {% endif %}
+      <p class="mb-0"><a class="btn btn-default btn-sm mb-5" href="{{ links.tinytapeout('home') }}">Get started at tinytapeout.com</a>
+        <a class="btn btn-outline-primary btn-sm mb-5" href="{{ website }}/tinytapeouts/">Tiny Tapeout chips on wafer.space</a></p>
+    </div>
+    {% elif tt and rel.wafer_space %}
+    <div class="run-callout run-callout-tt">
+      <h4 class="mb-10">From a Tiny Tapeout tile to a whole die</h4>
+      <p class="mb-0">{{ rel.name }} went on to a slot of its own on a wafer.space run. When a design outgrows its
+        tiles, a whole die on a <a href="{{ website }}/">wafer.space</a> run is the next step.</p>
+    </div>
+    {% endif %}
+    {% endif %}
   </div>
 </div>
 
