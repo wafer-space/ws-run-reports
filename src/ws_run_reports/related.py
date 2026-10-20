@@ -92,18 +92,37 @@ def _slot(key: str, design: dict) -> dict | None:
             "url": f"{run.pages_url}projects/{code}.html", "note": design.get("notes", {}).get(key, "")}
 
 
+@cache
+def _shared_block_dies() -> dict:
+    """Tiny Tapeout chip -> (its run, the release date) for the dies whose projects share one block (GF 0.1):
+    tinytapeout.com has no pages for them, and their projects have no tiles."""
+    from . import tinytapeout
+    found = {}
+    for run in _runs().values():
+        if run.site.get("kind") == "tiny-tapeout" and tinytapeout.load_projects(run.repo_dir):
+            release = tinytapeout.load_shuttle(run.repo_dir).get("release", {})
+            found[run.site.get("tt_chip", "")] = (run, release.get("date", ""))
+    return found
+
+
 def _tt(key: str, design: dict) -> dict:
     chip, _, macro = key.partition("/")
     index = external.tt_index(chip)
     project = index.get("projects", {}).get(macro, {})
     # "Tiny Tapeout GF 0p3" as "Tiny Tapeout GF 0.3", like the index's other test chips.
     shuttle = re.sub(r"(\d)p(\d)", r"\1.\2", index.get("name") or chip)
-    return {"key": key, "kind": "tiny_tapeout", "chip": chip, "macro": macro, "shuttle": shuttle,
+    step = {"key": key, "kind": "tiny_tapeout", "chip": chip, "macro": macro, "shuttle": shuttle,
             "chip_url": f"https://tinytapeout.com/chips/{chip}/",
             "title": project.get("title") or macro, "author": project.get("author", ""),
             "tiles": project.get("tiles", ""), "date": _tt_closed().get(chip, ""),
             "url": f"https://tinytapeout.com/chips/{chip}/{macro}", "here": _tt_dies().get((chip, macro), ""),
             "note": design.get("notes", {}).get(key, "")}
+    if chip in _shared_block_dies():
+        # The project's row in the die's table of projects, dated by the release that taped the die out.
+        run, released = _shared_block_dies()[chip]
+        row = f"{run.pages_url}#p{int(project.get('address', 0)):03d}" if project else run.pages_url
+        step.update(chip_url=run.pages_url, url=row, here=row, tiles="", shared=True, date=released)
+    return step
 
 
 def _key(run, project) -> tuple[str, str]:
@@ -182,6 +201,8 @@ def graduated() -> list:
 
 def _size(step: dict) -> str:
     """"1×1 tile", "8×2 tiles" or "1×0.5 slot"; "" when not known."""
+    if step.get("shared"):
+        return "in a shared block"
     if step["kind"] == "tiny_tapeout":
         tiles = step.get("tiles", "")
         return f"{tiles.replace('x', '×')} tile{'' if tiles == '1x1' else 's'}" if tiles else ""
@@ -191,8 +212,13 @@ def _size(step: dict) -> str:
     return f"{slot.replace('x', '×')} slot" if slot else ""
 
 
+# Each kind's class suffix on the pages. Not "wafer-space": the theme's plugins.css styles every class containing
+# "space" ([class*="space"] { width: 100%; display: block }).
+KIND_CSS = {"tiny_tapeout": "tt", "other_shuttles": "google", "wafer_space": "ws"}
+
+
 def stages(steps: list) -> list:
-    """Steps grouped by shuttle, in order: [{"shuttle", "url", "kind", "date", "when": "Dec 2022", "steps"}],
+    """Steps grouped by shuttle, in order: [{"shuttle", "url", "kind", "css", "date", "when": "Dec 2022", "steps"}],
     each step with its "size"."""
     found = []
     for step in steps:
@@ -200,6 +226,7 @@ def stages(steps: list) -> list:
         if not found or found[-1]["shuttle"] != shuttle:
             when = datetime.date.fromisoformat(step["date"]).strftime("%b %Y") if step["date"] else ""
             found.append({"shuttle": shuttle, "url": step.get("chip_url") or step["run_url"], "kind": step["kind"],
+                          "css": KIND_CSS[step["kind"]],
                           "date": step["date"], "when": when, "steps": []})
         found[-1]["steps"].append(step | {"size": _size(step)})
     return found

@@ -1,0 +1,53 @@
+# Tiny Tapeout GF 0.1: made on a GlobalFoundries private MPW run, in wafer-space/tinytapeouts. The layout is
+# the release's own (v23), not a cut from a wafer.space reticle. Its projects were synthesised together as one
+# block, so its slots are the blocks: the shared project block, eight standard cell tests and the pad test
+# buffer; data/projects.csv measures each project from the shared block's netlist.
+title = "Tiny Tapeout GF 0.1 on a GlobalFoundries private MPW run"
+shuttle = "T0P1"
+slots = 10
+repo = "wafer-space/tinytapeouts"
+path = "ttgf0p1/gf-mpw-t0p1"
+
+[layout]
+md5 = "1064ed9cfa033b91c1a45309a916fa83"
+slots = "manifest"
+
+[measure]
+# Blocks are 0.2 to 1.6 mm across: map them in 0.1 mm squares and slide the densest window in 20 µm steps.
+grid_um = 100
+bin_um = 20
+pad_ring_um = 0
+# Cell tests 2 and 3 are the foundry's 5 V cells renamed gf180mcu_hfd_ once their thick-oxide layers were removed.
+stdcell_prefixes = ["gf180mcu_hfd_sc_"]
+
+[site]
+kind = "tiny-tapeout"
+tt_chip = "ttgf0p1"
+# tinytapeout.com has no page for this chip: link its shuttle repository instead.
+tt_chip_url = "https://github.com/TinyTapeout/tinytapeout-gf-0p1"
+# An experimental chip, not sold.
+tt_for_sale = false
+heading = ["Tiny Tapeout GF 0.1", "Made on a GlobalFoundries private MPW run"]
+slot_labels = false
+# The pages' words for this die's slots, which are blocks rather than projects.
+terms = { die = "block", dies = "blocks", Die = "Size", slot = "", Slots = "Block sizes" }
+
+[site.render]
+design_px_per_mm = 3000
+design_max_px = 1600
+thumb_px_per_mm = 600
+thumb_max_px = 400
+reticle_px_per_mm = 400
+reticle_background = true
+
+[categories]
+MAIN = "Multi-project die"
+CEL0 = "Test structures"
+CEL1 = "Test structures"
+CEL2 = "Test structures"
+CEL3 = "Test structures"
+CEL4 = "Test structures"
+CEL5 = "Test structures"
+CEL6 = "Test structures"
+CEL7 = "Test structures"
+BUFR = "Test structures"

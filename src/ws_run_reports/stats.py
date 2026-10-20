@@ -83,23 +83,30 @@ SRAM_SIZE_RE = re.compile(r"sram(\d+)x(\d+)")
 
 
 # Library name prefixes (see analyze.library_name) and how they are labelled.
-LIBRARY_VENDORS = {"": "", "as_sc_": "AS ", "as_ex_": "AS extra ", "osu_sc_": "OSU "}
-LIBRARY_RE = re.compile(r"(?P<vendor>(?:as_sc_|as_ex_|osu_sc_)?)(?:mcu|gp|hd)?(?P<tracks>\d+)t(?P<volts>\d)v(?P<tenths>\d)")
+LIBRARY_VENDORS = {"": "", "as_sc_": "AS ", "as_ex_": "AS extra ", "osu_sc_": "OSU ", "hfd_sc_": ""}
+LIBRARY_RE = re.compile(r"(?P<vendor>(?:as_sc_|as_ex_|osu_sc_|hfd_sc_)?)(?:mcu|gp|hd)?(?P<tracks>\d+)t(?P<volts>\d)v(?P<tenths>\d)")
+# The foundry's 5 V cells with the thick-oxide layers removed (gf180mcu_hfd_sc_, on Tiny Tapeout GF 0.1's cell
+# tests): drawn as 5 V cells, made as 3.3 V transistors.
+THIN_OXIDE = "hfd_sc_"
 
 
 def library_voltage(library: str) -> float:
     """Supply voltage a library is characterised for: 'mcu7t5v0' -> 5.0, 'osu_sc_gp9t3v3' -> 3.3."""
     m = LIBRARY_RE.fullmatch(library)
+    if m and m["vendor"] == THIN_OXIDE:
+        return 3.3
     return int(m["volts"]) + int(m["tenths"]) / 10 if m else 0.0
 
 
 def library_label(library: str) -> str:
-    """'mcu7t5v0' -> '7t-5V', 'as_sc_mcu7t3v3' -> 'AS 7t-3.3V', 'osu_sc_gp9t3v3' -> 'OSU 9t-3.3V'."""
+    """'mcu7t5v0' -> '7t-5V', 'as_sc_mcu7t3v3' -> 'AS 7t-3.3V', 'osu_sc_gp9t3v3' -> 'OSU 9t-3.3V',
+    'hfd_sc_mcu7t5v0' -> '7t-5V as 3.3V'."""
     m = LIBRARY_RE.fullmatch(library)
     if not m:
         return library
     volts = m["volts"] if m["tenths"] == "0" else f"{m['volts']}.{m['tenths']}"
-    return f"{LIBRARY_VENDORS[m['vendor']]}{m['tracks']}t-{volts}V"
+    label = f"{LIBRARY_VENDORS[m['vendor']]}{m['tracks']}t-{volts}V"
+    return f"{label} as 3.3V" if m["vendor"] == THIN_OXIDE else label
 
 
 def library_long_label(library: str) -> str:
@@ -107,6 +114,8 @@ def library_long_label(library: str) -> str:
     if not m:
         return library
     volts = m["volts"] if m["tenths"] == "0" else f"{m['volts']}.{m['tenths']}"
+    if m["vendor"] == THIN_OXIDE:
+        return f"{library} ({m['tracks']}-track {volts}V cells made as 3.3V transistors)"
     return f"{library} ({LIBRARY_VENDORS[m['vendor']]}{m['tracks']}-track, {volts}V)"
 
 
@@ -387,7 +396,8 @@ class Design:
     def slot_label(self) -> str:
         size = self.project.slot_size
         known = {"1x1": "1 × 1", "1x0p5": "1 × ½", "0p5x1": "½ × 1", "0p5x0p5": "½ × ½"}
-        return known.get(size) or re.sub(r"^(\d+)x(\d+)$", r"\1 × \2", size)
+        # A block's size in mm ("1.6x1.6mm") on a die whose slots are blocks.
+        return known.get(size) or re.sub(r"^([\d.]+)x([\d.]+)(mm)?$", lambda m: f"{m[1]} × {m[2]}" + (" mm" if m[3] else ""), size)
 
 
 @dataclass

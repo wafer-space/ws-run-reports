@@ -113,6 +113,7 @@ def load_index(repo_dir: Path) -> dict | None:
 
 
 SHUTTLE_NAME = "tt_shuttle.json"
+PROJECTS_NAME = "projects.csv"
 
 
 def shuttle_info(index: dict, tt_repo: Path, release_tag: str = "") -> dict:
@@ -136,6 +137,25 @@ def shuttle_info(index: dict, tt_repo: Path, release_tag: str = "") -> dict:
     return info
 
 
+def load_projects(repo_dir: Path) -> list[dict]:
+    """The Tiny Tapeout projects of a die whose slots are blocks (GF 0.1), from ``data/projects.csv``: one row
+    per project, measured from the shared block's netlist, without the ``shared`` row. [] for other dies."""
+    path = Path(repo_dir) / "data" / PROJECTS_NAME
+    if not path.exists():
+        return []
+    with open(path) as f:
+        return [row for row in csv.DictReader(f) if row["CODE"] != "shared"]
+
+
+def shared_cells(repo_dir: Path) -> dict:
+    """The ``shared`` row of ``data/projects.csv``: the shared block's own logic, or {}."""
+    path = Path(repo_dir) / "data" / PROJECTS_NAME
+    if not path.exists():
+        return {}
+    with open(path) as f:
+        return next((row for row in csv.DictReader(f) if row["CODE"] == "shared"), {})
+
+
 def load_shuttle(repo_dir: Path) -> dict:
     path = Path(repo_dir) / "data" / SHUTTLE_NAME
     return json.loads(path.read_text()) if path.exists() else {}
@@ -157,7 +177,8 @@ def display_date(text: str) -> str:
 def timeline_items(shuttle: dict) -> list:
     """The shuttle's milestones in the format of the run timeline (external.timeline)."""
     items = []
-    name = shuttle.get("name") or "Tiny Tapeout"
+    # "Tiny Tapeout GF 0p3" as "Tiny Tapeout GF 0.3", as the chip is named everywhere else on the pages.
+    name = re.sub(r"(\d)p(\d)", r"\1.\2", shuttle.get("name") or "Tiny Tapeout")
     if shuttle.get("end_date"):
         items.append({"owner": "Tiny Tapeout", "title": f"{name} submissions close", "date": shuttle["end_date"],
                       "display_date": _display_date(shuttle["end_date"]),
@@ -168,7 +189,8 @@ def timeline_items(shuttle: dict) -> list:
         release = shuttle["release"]
         items.append({"owner": "Tiny Tapeout", "title": f"{name} tapeout release", "date": release["date"],
                       "display_date": _display_date(release["date"]),
-                      "description": f"Tiny Tapeout publishes the die's layout ({release['tag']}) and sends it to wafer.space",
+                      "description": release.get("description") or
+                                     f"Tiny Tapeout publishes the die's layout ({release['tag']}) and sends it to wafer.space",
                       "status": "milestone", "url": release["url"]})
     return items
 
@@ -214,3 +236,25 @@ def parse_chips(markdown: str) -> list[dict]:
 def gf_chips(rows: list[dict]) -> list[dict]:
     """The GF180MCU chips (TTGF...) of :func:`parse_chips`."""
     return [row for row in rows if row["chip"].startswith("ttgf")]
+
+
+def chip_name(run: str) -> str:
+    """A chip's name as the pages write it: 'TTGF26c' -> 'Tiny Tapeout GF 26c', 'TTGF0p2' -> 'Tiny Tapeout GF 0.2',
+    'TTSKY26d' -> 'Tiny Tapeout SKY 26d', 'TT10' -> 'Tiny Tapeout 10'."""
+    m = re.fullmatch(r"TT(GF|SKY|IHP)?(\w+)", run or "", re.I)
+    if not m:
+        return run
+    process, number = m.groups()
+    number = re.sub(r"(\d)p(\d)", r"\1.\2", number)
+    return f"Tiny Tapeout {process.upper() + ' ' if process else ''}{number}"
+
+
+def next_shuttles(rows: list[dict]) -> list[dict]:
+    """The GF180MCU chips still taking projects, the soonest to close first: each with its "name", "url", the
+    "closes" date in words and the wafer.space run it will be made on."""
+    from . import links
+    open_rows = sorted((row for row in gf_chips(rows) if row["section"] == "open" and row.get("closes")),
+                       key=lambda row: (row["closes"], row["run"]))
+    return [{"name": chip_name(row["run"]), "chip": row["chip"], "url": row.get("url", ""),
+             "closes": display_date(row["closes"]), "closes_iso": row["closes"],
+             "ws_run": links.run_alias(row.get("shuttle", ""))} for row in open_rows]

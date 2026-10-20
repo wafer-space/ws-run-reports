@@ -19,7 +19,9 @@ def cmd_assemble(args, run):
 def cmd_analyze(args, run):
     from . import analyze
     layout = run.assemble_layout()
-    analyze.analyze(layout, out_dir(args, run) / f"{OUTPUT_STEM}.csv", jobs=args.jobs,
+    # [measure] stdcell_prefixes adds libraries a run renamed, e.g. Tiny Tapeout GF 0.1's thin-oxide copies.
+    prefixes = analyze.DEFAULT_STDCELL_PREFIXES + tuple(run.measure.get("stdcell_prefixes", []))
+    analyze.analyze(layout, out_dir(args, run) / f"{OUTPUT_STEM}.csv", stdcell_prefixes=prefixes, jobs=args.jobs,
                     qualified_libraries=run.measure.get("library_names", "qualified") != "short",
                     measure=run.measure, slot_cells=run.slot_cells())
 
