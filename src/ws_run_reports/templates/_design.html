@@ -327,15 +327,15 @@
       {% endif %}
     </div>
     {% if rel.tiny_tapeout and not tt %}
-    <div class="run-callout run-callout-tt">
+    <div class="alert alert-primary">
       {% set first = rel.tiny_tapeout[0] %}
       {% if rel.started_on_tiny_tapeout %}
-      <h4 class="mb-10">This design started on Tiny Tapeout. You can too!</h4>
+      <h4 class="alert-heading mb-10">This design started on Tiny Tapeout. You can too!</h4>
       <p>{{ rel.name }} was made on <a href="{{ first.chip_url }}">{{ first.shuttle }}</a> before it had a slot of
         its own on a wafer.space run. Tiny Tapeout puts many small designs on one chip, so a first version costs a
         fraction of a whole die: try the idea on a Tiny Tapeout tile, then bring it to wafer.space when it needs the room.</p>
       {% else %}
-      <h4 class="mb-10">Parts of this design are on Tiny Tapeout chips too</h4>
+      <h4 class="alert-heading mb-10">Parts of this design are on Tiny Tapeout chips too</h4>
       <p>Tiny Tapeout puts many small designs on one chip, so trying out a block costs a fraction of a whole die.
         It is a cheap and easy way to get a first design made, or to test one piece of a bigger one.</p>
       {% endif %}
@@ -343,8 +343,8 @@
         <a class="btn btn-outline-primary btn-sm mb-5" href="{{ website }}/tinytapeouts/">Tiny Tapeout chips on wafer.space</a></p>
     </div>
     {% elif tt and rel.wafer_space %}
-    <div class="run-callout run-callout-tt">
-      <h4 class="mb-10">From a Tiny Tapeout tile to a whole die</h4>
+    <div class="alert alert-primary">
+      <h4 class="alert-heading mb-10">From a Tiny Tapeout tile to a whole die</h4>
       <p class="mb-0">{{ rel.name }} went on to a slot of its own on a wafer.space run. When a design outgrows its
         tiles, a whole die on a <a href="{{ website }}/">wafer.space</a> run is the next step.</p>
     </div>

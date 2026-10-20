@@ -17,7 +17,7 @@
 {% endmacro %}
 
 {% macro independent() %}
-<div class="run-callout run-callout-note">
+<div class="alert alert-secondary">
   <p class="mb-10"><strong>Tiny Tapeout and wafer.space are independent companies that work together.</strong>
     Tiny Tapeout runs its own shuttles: it takes the projects, builds the die, and sells and supports the chips and
     boards. wafer.space has the die manufactured as one of the designs on its GF180MCU runs, and these pages are
@@ -52,13 +52,13 @@
 {# compact: one line, for the foot of a project page. #}
 {% macro upsell(compact=false) %}
 {% if compact %}
-<div class="run-callout run-callout-tt text-center">
+<div class="alert alert-primary text-center mb-0">
   <p class="mb-0"><strong>Want your own design on a chip like this one?</strong>
     {{ tt("home", "Tiny Tapeout") }} is a cheap and easy way to get started: see {{ tt("home", "tinytapeout.com") }}.</p>
 </div>
 {% else %}
-<div class="run-callout run-callout-tt">
-  <h3 class="mb-10">Not ready to make your own chip?</h3>
+<div class="alert alert-primary">
+  <h3 class="alert-heading mb-10">Not ready to make your own chip?</h3>
   <p>Tiny Tapeout offers a cheap and easy way to get started. Put a small design on a shared Tiny Tapeout chip,
     from a few logic gates drawn in your browser to your own Verilog, and get it back on a board you can plug in.
     When your design outgrows a few tiles, a whole die on a <a href="{{ website }}/">wafer.space</a> run is the
