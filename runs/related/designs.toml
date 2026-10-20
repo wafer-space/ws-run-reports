@@ -106,11 +106,13 @@ tiny_tapeout = ["tt07/tt_um_chess", "ttihp0p2/tt_um_ravenslofty_chess"]
 [[design]]
 name = "FABulous FPGA"
 wafer_space = ["ws-run1/MOLE", "ws-run2/MOLE"]
+other_shuttles = ["google-gf180mcu-mpw0/56C6"]
 tiny_tapeout = ["ttgf0p3/tt_um_fabulous_gf_0p3", "ttgf0p3/tt_um_fabulous_gf_0p3_3v3", "ttihp26a/tt_um_fabulous_ihp_26a",
                 "ttihp26b/tt_um_fabulous_ihp_26b", "ttsky26a/tt_um_fabulous_sky_26a", "ttsky26b/tt_um_fabulous_sky_26b",
                 "ttsky26c/tt_um_fabulous_sky_26c"]
 [design.notes]
 "ttgf0p3/tt_um_fabulous_gf_0p3_3v3" = "3.3 V version"
+"google-gf180mcu-mpw0/56C6" = "a one-hot FPGA built with the FABulous framework"
 
 [[design]]
 name = "Expresso Ethernet switch"

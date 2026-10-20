@@ -143,8 +143,24 @@ def for_slot(run, project) -> dict | None:
     # Undated steps last; a run's slots stay in their listed order.
     steps.sort(key=lambda s: s["date"] or "9999")
     return {"name": design["name"], "started_on_tiny_tapeout": design.get("started_on_tiny_tapeout", False),
+            "tiny_tapeout_lead": tiny_tapeout_lead(steps),
             "here": design["notes"].get(key, ""), "wafer_space": slots, "other_shuttles": others, "tiny_tapeout": tt,
             "steps": steps, "stages": stages(steps)}
+
+
+# A Tiny Tapeout version this long before the first full-size one counts as where the design started.
+TINY_TAPEOUT_LEAD_DAYS = 90
+
+
+def tiny_tapeout_lead(steps: list) -> bool:
+    """True when the first Tiny Tapeout version was submitted well before any version on a die of its own;
+    False when they were made at about the same time (TT02 and GFMPW-0 closed three days apart)."""
+    tt = [s["date"] for s in steps if s["kind"] == "tiny_tapeout" and s["date"]]
+    whole = [s["date"] for s in steps if s["kind"] != "tiny_tapeout" and s["date"]]
+    if not tt or not whole:
+        return bool(tt)
+    lead = datetime.date.fromisoformat(min(whole)) - datetime.date.fromisoformat(min(tt))
+    return lead.days >= TINY_TAPEOUT_LEAD_DAYS
 
 
 def graduated() -> list:
