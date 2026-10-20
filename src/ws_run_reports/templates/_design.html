@@ -298,50 +298,28 @@
     </div>
     {% set rel = related(design) %}
     {% if rel %}
-    <h3 id="{{ idp }}related" class="mt-20 mb-10">Related tapeouts{{ anchor(idp ~ "related") }}</h3>
-    {% set made = [] %}
-    {% if rel.wafer_space %}{% set _ = made.append("another wafer.space slot" if rel.wafer_space | length == 1 else rel.wafer_space | length ~ " other wafer.space slots") %}{% endif %}
-    {% if rel.other_shuttles %}{% set _ = made.append("a Google shuttle" if rel.other_shuttles | length == 1 else rel.other_shuttles | length ~ " Google shuttle slots") %}{% endif %}
-    {% set chips = rel.tiny_tapeout | map(attribute="chip") | unique | list | length %}
-    {% if chips %}{% set _ = made.append("a Tiny Tapeout chip" if chips == 1 else chips ~ " Tiny Tapeout chips") %}{% endif %}
-    <p class="mb-20">{{ rel.name }}{% if rel.here %} ({{ rel.here }}){% endif %} has also been made on
-      {{ made[:-1] | join(", ") ~ " and " ~ made[-1] if made | length > 1 else made[0] }}.</p>
-    <div class="row gutter-50">
-      {% if rel.wafer_space or rel.other_shuttles %}
-      <div class="col-md-6 mb-20">
-        {% if rel.wafer_space %}
-        <h4 class="mb-10">On wafer.space runs</h4>
-        <ul class="run-related">
-          {% for s in rel.wafer_space %}<li><a href="{{ s.url }}"><strong>{{ s.code }}</strong> {{ s.name }}</a>
-            <span class="text-muted">— {{ runs_linked(s.run) }}{% if s.slot %}, {{ s.slot | replace("p", ".") }} slot{% endif %}{% if s.note %}, {{ s.note }}{% endif %}</span></li>
-          {% endfor %}
-        </ul>
-        {% endif %}
-        {% if rel.other_shuttles %}
-        <h4 class="mb-10{{ ' mt-20' if rel.wafer_space }}">On Google GF180MCU shuttles</h4>
-        <ul class="run-related">
-          {% for s in rel.other_shuttles %}<li><a href="{{ s.url }}"><strong>{{ s.code }}</strong> {{ s.name }}</a>
-            <span class="text-muted">— {{ runs_linked(s.run) }}{% if s.note %}, {{ s.note }}{% endif %}</span></li>
-          {% endfor %}
-        </ul>
-        {% endif %}
-      </div>
-      {% endif %}
-      {% if rel.tiny_tapeout %}
-      <div class="col-md-6 mb-20">
-        <h4 class="mb-10">On Tiny Tapeout chips</h4>
-        <ul class="run-related">
-          {% for p in rel.tiny_tapeout %}<li><a href="{{ p.url }}">{{ p.title }}</a>
-            <span class="text-muted">— <a href="{{ p.chip_url }}">{{ p.shuttle }}</a>{% if p.author %}, by {{ p.author }}{% endif %}{% if p.note %}, {{ p.note }}{% endif %}</span>
-            {% if p.here %}<a class="small" href="{{ p.here }}">measured here</a>{% endif %}</li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
-    </div>
+    <h3 id="{{ idp }}related" class="mt-20 mb-10">How this design grew{{ anchor(idp ~ "related") }}</h3>
+    {% set first = rel.stages[0] %}
+    <p class="mb-20">{{ rel.name }} has been made on {{ rel.stages | length }} shuttles{% if first.when %} since
+      {{ first.when }}{% endif %}. Every version, oldest first, with this one in bold:</p>
+    <ol class="run-timeline run-history">
+      {% for stage in rel.stages %}
+      <li class="run-history-{{ stage.kind | replace('_', '-') }}">
+        <span class="run-timeline-date">{{ stage.when or "Date unknown" }} · <a href="{{ stage.url }}">{{ stage.shuttle }}</a></span>
+        {% for s in stage.steps %}
+        <span class="run-history-step{{ ' run-history-current' if s.current }}">
+          {%- if s.current %}<strong>{{ s.title or (s.code ~ " " ~ s.name) }}</strong>{% else %}<a href="{{ s.here or s.url }}">{{ s.title or (s.code ~ " " ~ s.name) }}</a>{% endif %}
+          {%- if s.size or s.note %} <span class="text-muted">— {{ [s.size, s.note] | select | join(", ") }}</span>{% endif %}</span>
+        {% endfor %}
+      </li>
+      {% endfor %}
+    </ol>
+    <p class="small text-muted mb-20 run-history-key"><span class="run-history-key-tiny-tapeout">Tiny Tapeout tile</span>
+      <span class="run-history-key-other-shuttles">Google shuttle</span>
+      <span class="run-history-key-wafer-space">wafer.space die</span></p>
     {% if rel.tiny_tapeout and not tt %}
     <div class="alert alert-primary">
-      {% set first = rel.tiny_tapeout[0] %}
+      {% set first = rel.steps | selectattr("kind", "equalto", "tiny_tapeout") | first %}
       {% if rel.started_on_tiny_tapeout %}
       <h4 class="alert-heading mb-10">This design started on Tiny Tapeout. You can too!</h4>
       <p>{{ rel.name }} was made on <a class="alert-link" href="{{ first.chip_url }}">{{ first.shuttle }}</a> before it had a slot of

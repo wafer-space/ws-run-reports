@@ -489,6 +489,33 @@
     <h2 class="section-title mb-10 text-center">The projects{{ anchor("projects") }}</h2>
     <p class="lead text-center mb-40">Grouped by what they are. Each links to renders, measurements and any photographs
       or bonding results.</p>
+    {% if histories %}
+    <h3 id="grew" class="run-category-title">Designs that grew{{ anchor("grew") }}</h3>
+    <p class="mb-20">{% if tt %}These projects have been made on other chips too, many of them on Tiny Tapeout
+      first and then on a whole die of their own.{% else %}These designs were made before, as a Tiny Tapeout tile or on a
+      Google shuttle, or have been made again since. Start small, then come back bigger.{% endif %}
+      Oldest version first; this {{ 'chip' if tt else 'run' }} in bold.</p>
+    <ul class="run-grew">
+      {% for h in histories %}
+      {% set d = h.designs[0] %}
+      <li>
+        <a class="run-grew-name" href="projects/{{ d.code }}.html#related">{{ h.rel.name }}</a>
+        <span class="text-muted small">{{ h.designs | map(attribute="code") | join(", ") }}</span>
+        <ol class="run-grew-stages">
+          {% for stage in h.rel.stages %}
+          {% set here = stage.steps | selectattr("current") | list %}
+          <li class="run-history-{{ stage.kind | replace('_', '-') }}">{% if here %}<strong class="run-grew-label">{{ stage.shuttle }}</strong>{% else %}<span class="run-grew-label">{{ stage.shuttle }}</span>{% endif %}
+            {%- set sizes = stage.steps | map(attribute="size") | select | unique | list %}
+            {%- if sizes %} <span class="text-muted">{{ sizes | join(", ") }}</span>{% endif %}</li>
+          {% endfor %}
+        </ol>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="small text-muted mb-40 run-history-key"><span class="run-history-key-tiny-tapeout">Tiny Tapeout tile</span>
+      <span class="run-history-key-other-shuttles">Google shuttle</span>
+      <span class="run-history-key-wafer-space">wafer.space die</span></p>
+    {% endif %}
     {% for name, group in categories %}
     <h3 id="{{ category_id(name) }}" class="run-category-title">
       <i style="background: {{ category_colour[name] }}"></i>{{ name }}

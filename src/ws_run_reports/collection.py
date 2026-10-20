@@ -17,7 +17,7 @@ from types import SimpleNamespace
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from . import config, external, links, tinytapeout
+from . import config, external, links, related, tinytapeout
 from . import site as site_module
 from . import stats as stats_module
 from .site import TT_BOARD_IMAGE, WEBSITE, tt_chip_links
@@ -94,6 +94,7 @@ def build(name: str, out: Path) -> Path:
     site_dir.mkdir(parents=True, exist_ok=True)
     (site_dir / "index.html").write_text(env.get_template("collection.html").render(
         run=collection, collection=collection, entries=entries, coming=coming, other=other,
+        graduated=related.graduated() if collection.site["kind"] == "tiny-tapeout" else [],
         tt=collection.site["kind"] == "tiny-tapeout", root="", website=WEBSITE, renders=None,
         generated=date.today().isoformat()))
     for path in static.iterdir():

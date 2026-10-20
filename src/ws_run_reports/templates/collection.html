@@ -62,6 +62,28 @@
       </div>
       {% endfor %}
     </div>
+    {% if graduated %}
+    <h3 id="grew" class="mt-20 mb-10">From a Tiny Tapeout tile to a die of their own{{ anchor("grew") }}</h3>
+    <p class="mb-20">These designs were first made on Tiny Tapeout tiles, then came back as whole dies on
+      wafer.space runs. Oldest version first.</p>
+    <ul class="run-grew">
+      {% for g in graduated %}
+      <li>
+        <a class="run-grew-name" href="{{ g.url }}#related">{{ g.name }}</a>
+        <ol class="run-grew-stages">
+          {% for stage in g.stages %}
+          <li class="run-history-{{ stage.kind | replace('_', '-') }}"><span class="run-grew-label">{{ stage.shuttle }}</span>
+            {%- set sizes = stage.steps | map(attribute="size") | select | unique | list %}
+            {%- if sizes %} <span class="text-muted">{{ sizes | join(", ") }}</span>{% endif %}</li>
+          {% endfor %}
+        </ol>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="small text-muted mb-0 run-history-key"><span class="run-history-key-tiny-tapeout">Tiny Tapeout tile</span>
+      <span class="run-history-key-other-shuttles">Google shuttle</span>
+      <span class="run-history-key-wafer-space">wafer.space die</span></p>
+    {% endif %}
   </div>
 </div>
 

@@ -518,6 +518,14 @@ def build_site(run, out_dir: Path) -> Path:
         shutil.copytree(precheck_dir, data_dir / projects.PRECHECK_DIR)
 
     context["parent_die"] = _parent_die(run, out_dir, env) if context["tt"] else None
+    # Designs on this run that were made before or since, each once however many slots it has here; the
+    # longest histories first.
+    histories = {}
+    for design in stats.designs:
+        rel = related.for_slot(run, design.project)
+        if rel and len(rel["stages"]) > 1:
+            histories.setdefault(rel["name"], {"rel": rel, "designs": []})["designs"].append(design)
+    context["histories"] = sorted(histories.values(), key=lambda h: -len(h["rel"]["stages"]))
     (site_dir / "index.html").write_text(env.get_template("index.html").render(root="", **context))
     # A JavaScript-free strip of the designs for other pages to embed; dies with photographs first.
     embed_designs = sorted(stats.designs, key=lambda d: (d.code not in context["photos"], d.code))
