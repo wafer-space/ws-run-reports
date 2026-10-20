@@ -304,7 +304,7 @@
       {{ first.when }}{% endif %}. Every version, oldest first, with this one in bold:</p>
     <ol class="run-timeline run-history">
       {% for stage in rel.stages %}
-      <li class="run-history-{{ stage.kind | replace('_', '-') }}">
+      <li class="run-history-{{ stage.css }}">
         <span class="run-timeline-date">{{ stage.when or "Date unknown" }} · <a href="{{ stage.url }}">{{ stage.shuttle }}</a></span>
         {% for s in stage.steps %}
         <span class="run-history-step{{ ' run-history-current' if s.current }}">
@@ -314,9 +314,9 @@
       </li>
       {% endfor %}
     </ol>
-    <p class="small text-muted mb-20 run-history-key"><span class="run-history-key-tiny-tapeout">Tiny Tapeout tile</span>
-      <span class="run-history-key-other-shuttles">Google shuttle</span>
-      <span class="run-history-key-wafer-space">wafer.space die</span></p>
+    <p class="small text-muted mb-20 run-history-key"><span class="run-history-key-tt">Tiny Tapeout tile</span>
+      <span class="run-history-key-google">Google shuttle</span>
+      <span class="run-history-key-ws">wafer.space die</span></p>
     {% if rel.tiny_tapeout and not tt %}
     <div class="alert alert-primary">
       {% set first = rel.steps | selectattr("kind", "equalto", "tiny_tapeout") | first %}

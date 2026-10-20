@@ -5,74 +5,140 @@
 {% block description %}{{ collection.intro or collection.title }}{% endblock %}
 
 {% block content %}
+{# The two GF 0.2 editions are one chip with the same projects: count each chip's projects once. #}
+{% set chips = entries | unique(attribute="chip") | list %}
 <div class="wrapper image-wrapper bg-image page-title-wrapper run-hero inverse-text"
      data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
   <div class="container inner text-center">
     <h1 class="page-title">{{ collection.heading[0] }}{% for line in collection.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
-    <p class="lead">{{ entries | length }} dies · {{ entries | sum(attribute="projects") }} projects{% if tt %}
-      · <a class="run-crumb" href="{{ links.tinytapeout('home') }}">tinytapeout.com</a>
-      · <a class="run-crumb" href="{{ links.tinytapeout('store') }}">Tiny Tapeout store</a>{% endif %}</p>
+    <p class="lead">{{ chips | length }} chips · {{ chips | sum(attribute="projects") }} projects</p>
+    {% if tt %}
+    <p class="mb-0 run-hero-actions">
+      {% if next_tt %}<a class="btn btn-s" href="{{ next_tt[0].url }}">Submit your design by {{ next_tt[0].closes }}</a>{% endif %}
+      <a class="btn btn-s btn-white" href="{{ links.tinytapeout('kits') }}">Buy a chip and board</a>
+      <a class="btn btn-s btn-white" href="#tinytapeout">What is Tiny Tapeout?</a></p>
+    {% endif %}
   </div>
 </div>
 
 {% if tt %}
-<div class="wrapper light-wrapper run-first">
+<div id="next" class="wrapper light-wrapper run-first">
   <div class="container inner">
-    <div class="row gutter-50">
-      <div class="col-lg-7 mb-30">
-        {{ tiny.about() }}
-      </div>
-      <div class="col-lg-5">
-        {{ tiny.upsell() }}
-        <div class="mt-30">{{ tiny.board({"store_url": links.tinytapeout("kits"), "store_own_page": false}, "") }}</div>
-      </div>
-    </div>
+    <h2 class="section-title mb-10 text-center">Start with Tiny Tapeout, then make your own chip{{ anchor("next") }}</h2>
+    <p class="lead text-center mb-40 run-measure">Tiny Tapeout puts many small designs on one chip, so a first design
+      costs a fraction of a whole die. Many designers start with a few tiles and come back with a die of their own.</p>
+    {{ tiny.next_steps() }}
   </div>
 </div>
 {% endif %}
 
-<div id="dies" class="wrapper {{ 'gray-wrapper' if tt else 'light-wrapper run-first' }}">
+{% if coming %}
+{% set open_chips = coming | selectattr("section", "equalto", "open") | sort(attribute="run") | list %}
+{% set planned = coming | rejectattr("section", "equalto", "open") | list %}
+<div id="coming" class="wrapper gray-wrapper">
   <div class="container inner">
-    {% if tt %}<h2 class="section-title mb-10 text-center">On wafer.space runs{{ anchor("dies") }}</h2>{% endif %}
-    {% if collection.intro %}<p class="lead text-center mb-40">{{ collection.intro }}</p>{% endif %}
+    <h2 class="section-title mb-10 text-center">Your chance to be on the next one{{ anchor("coming") }}</h2>
+    <p class="lead text-center mb-40 run-measure">These Tiny Tapeout chips are still taking projects, or are planned.
+      Each will be made on a wafer.space run. Submit your design before its deadline, then find it here once the chip
+      is made.</p>
+    {% if open_chips %}
+    <div class="row justify-content-center">
+      {% for c in open_chips %}
+      {% set open_tiles = (c.tiles.tiles_total or 0) - (c.tiles.tiles_used or 0) - (c.tiles.tiles_reserved or 0) %}
+      <div class="col-md-6 col-lg-5 mb-30">
+        <div class="box bg-white shadow p-30 h-100 run-coming">
+          <p class="mb-5"><span class="run-status run-status-open">Taking projects</span></p>
+          <h4 class="mb-5">{{ link(tiny_name(c.run), c.url) }}</h4>
+          <p class="mb-15 small">{% if c.ws_run %}To be made on {{ runs_linked(c.ws_run) }}{% else %}<span class="text-muted">wafer.space run not yet announced</span>{% endif %}</p>
+          <ul class="run-method small mb-20">
+            <li>Projects close <strong>{{ c.dates.closes }}</strong></li>
+            {% if c.tiles.tiles_total and open_tiles > 0 %}<li><strong>{{ open_tiles }} tiles still open</strong> of {{ c.tiles.tiles_total }}</li>{% endif %}
+            {% if c.dates["chips expected"] %}<li>Chips expected {{ c.dates["chips expected"] }}</li>{% endif %}
+            {% if c.dates["estimated shipping date"] %}<li>Shipping {{ c.dates["estimated shipping date"] }} (estimated)</li>{% endif %}
+          </ul>
+          <p class="mb-0"><a class="btn btn-s me-10" href="{{ c.url or links.tinytapeout('create') }}">Submit a project</a>
+            <a href="{{ links.tinytapeout('prepurchase') }}">Prepurchase tiles and boards</a></p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if planned %}
+    <h3 class="mt-20 mb-15 text-center">Planned</h3>
+    <div class="table-responsive run-planned">
+    <table class="table run-table bg-white">
+      <thead><tr><th>Chip</th><th>Projects close</th><th>Shipping</th><th>Made on</th></tr></thead>
+      <tbody>
+      {% for c in planned %}
+      <tr><td>{{ link(tiny_name(c.run), c.url) }}</td>
+        <td>{{ c.dates.closes or c.dates["submission deadline"] }}{% if c.section == "future" %} <span class="text-muted">(estimated)</span>{% endif %}</td>
+        <td>{{ c.dates["estimated shipping date"] or c.dates["chips expected"] }}</td>
+        <td>{% if c.ws_run %}{{ runs_linked(c.ws_run) }}{% else %}<span class="text-muted">not yet announced</span>{% endif %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
+    <p class="small text-muted text-center mb-0">Dates and tile counts come from Tiny Tapeout and were last updated
+      {{ generated }}. For the latest, see {{ tiny.tt("chips", "Tiny Tapeout's chip schedule") }}.</p>
+  </div>
+</div>
+{% endif %}
+
+<div id="dies" class="wrapper {{ 'light-wrapper' if tt else 'light-wrapper run-first' }}">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">Chips made so far{{ anchor("dies") }}</h2>
+    {% if collection.intro %}<p class="lead text-center mb-40 run-measure">{{ collection.intro }}</p>{% endif %}
     <div class="row">
       {% for e in entries %}
       {% set r = e.run %}
       <div class="col-sm-6 col-lg-4 mb-30">
-        <a class="run-card box bg-white shadow" href="{{ r.path }}/index.html">
-          <figure class="run-card-image">
-            {% if e.renders %}<img src="{{ r.path }}/renders/{{ e.renders.reticle.file }}" alt="Render of die {{ r.shuttle }}" loading="lazy">{% endif %}
-            <span class="run-code">{{ r.shuttle }}</span>
-          </figure>
+        <div class="run-card box bg-white shadow h-100">
+          <a class="run-card-image-link" href="{{ r.path }}/index.html">
+            <figure class="run-card-image">
+              {% if e.renders %}<img src="{{ r.path }}/renders/{{ e.renders.reticle.file }}" alt="Render of die {{ r.shuttle }}" loading="lazy">{% endif %}
+              <span class="run-code">{{ r.shuttle }}</span>
+            </figure>
+          </a>
           <div class="run-card-body">
-            <h5 class="post-title mb-5">{{ r.heading[0] }}</h5>
-            <p class="mb-0 text-muted small">{{ r.heading[1:] | join(" ") }}</p>
-            <p class="mb-0 text-muted small">{{ e.projects }} projects{% if e.stats %} · {{ '{:,}'.format(e.stats.logic_cells) }} logic cells{% endif %}</p>
-            {% if e.status %}<p class="mb-0 small mt-5"><span class="text-muted">Status:</span> {{ e.status.title }}
-              <span class="text-muted">({{ e.status.display_date or e.status.date }})</span>{% if e.next %}<br><span class="text-muted">Next:</span>
-              {{ e.next.title }} <span class="text-muted">({{ e.next.display_date or e.next.date }})</span>{% endif %}</p>{% endif %}
+            <h5 class="post-title mb-5"><a href="{{ r.path }}/index.html">{{ r.heading[0] }}</a></h5>
+            <p class="mb-5 text-muted small">{{ r.heading[1:] | join(" ") }}</p>
+            <p class="mb-5 text-muted small">{{ e.projects }} projects{% if e.stats %} · {{ '{:,}'.format(e.stats.logic_cells) }} logic cells{% endif %}</p>
+            {% if e.next %}<p class="mb-0 small"><span class="text-muted">Next:</span> {{ e.next.title }}
+              <span class="text-muted">({{ e.next.display_date or e.next.date }})</span></p>
+            {% elif e.status %}<p class="mb-0 small"><span class="text-muted">Latest:</span> {{ e.status.title }}
+              <span class="text-muted">({{ e.status.display_date or e.status.date }})</span></p>{% endif %}
           </div>
-        </a>
-        <p class="small text-muted mt-10 mb-0">
-          {% if e.parent.title %}{{ runs_linked(e.parent.title) }}{% if e.parent.url %} (<a href="{{ e.parent.url }}">die {{ r.shuttle }}</a>){% endif %}{% endif %}
-          {% if e.chip_url %} · {{ link(e.chip ~ " on tinytapeout.com", e.chip_url) }}{% endif %}
-          {% if tt %} · <a href="{{ e.links.store_url }}">{{ "buy this chip" if e.links.store_own_page else "store" }}</a>{% if e.links.fpgas_url %}
-          · <a href="{{ e.links.fpgas_url }}">try it online</a>{% endif %}{% endif %}
-          · {{ link("files", r.source_url) }}</p>
+          <div class="run-card-actions">
+            {% if e.links.for_sale and e.links.store_own_page %}<a class="btn btn-s" href="{{ e.links.store_url }}">Buy this chip</a>
+            {% else %}<a class="btn btn-s" href="{{ r.path }}/index.html">See every project</a>{% endif %}
+            {% if e.links.fpgas_url %}<a href="{{ e.links.fpgas_url }}">Try it online</a>{% endif %}
+            <a href="{{ r.source_url }}">Layout files</a>
+          </div>
+        </div>
       </div>
       {% endfor %}
     </div>
-    {% if graduated %}
-    <h3 id="grew" class="mt-20 mb-10">From a Tiny Tapeout tile to a die of their own{{ anchor("grew") }}</h3>
-    <p class="mb-20">These designs were made on Tiny Tapeout tiles, most of them long before they had whole dies of
-      their own on wafer.space runs. Oldest version first.</p>
+  </div>
+</div>
+
+{% if graduated %}
+<div id="grew" class="wrapper gray-wrapper">
+  <div class="container inner">
+    <h2 class="section-title mb-10 text-center">From a few tiles to a die of their own{{ anchor("grew") }}</h2>
+    <p class="lead text-center mb-40 run-measure">Many designers start with a few tiles on a Tiny Tapeout chip, then
+      come back with a whole die. These designs did exactly that. Each row runs from its first version to its latest;
+      select one for the full story.</p>
     <ul class="run-grew">
       {% for g in graduated %}
+      {% set first = g.stages[0] %}{% set last = g.stages[-1] %}
       <li>
         <a class="run-grew-name" href="{{ g.url }}#related">{{ g.name }}</a>
+        <span class="small text-muted">First made on {{ first.shuttle }}{% if first.when %} ({{ first.when }}){% endif %};
+          latest on {{ last.shuttle }}.</span>
         <ol class="run-grew-stages">
           {% for stage in g.stages %}
-          <li class="run-history-{{ stage.kind | replace('_', '-') }}"><span class="run-grew-label">{{ stage.shuttle }}</span>
+          <li class="run-history-{{ stage.css }}"><span class="run-grew-label">{{ stage.shuttle }}</span>
             {%- set sizes = stage.steps | map(attribute="size") | select | unique | list %}
             {%- if sizes %} <span class="text-muted">{{ sizes | join(", ") }}</span>{% endif %}</li>
           {% endfor %}
@@ -80,75 +146,25 @@
       </li>
       {% endfor %}
     </ul>
-    <p class="small text-muted mb-0 run-history-key"><span class="run-history-key-tiny-tapeout">Tiny Tapeout tile</span>
-      <span class="run-history-key-other-shuttles">Google shuttle</span>
-      <span class="run-history-key-wafer-space">wafer.space die</span></p>
-    {% endif %}
-  </div>
-</div>
-
-{% if coming %}
-<div id="coming" class="wrapper light-wrapper">
-  <div class="container inner">
-    <h2 class="section-title mb-10 text-center">Coming on wafer.space runs{{ anchor("coming") }}</h2>
-    <p class="lead text-center mb-40">Tiny Tapeout GF180MCU chips that have not been manufactured yet, from
-      {{ link("tinytapeout.com/chips", links.tinytapeout("chips")) }}. Each gets its pages here once it has been made.</p>
-    <div class="row">
-      {% for c in coming %}
-      <div class="col-sm-6 col-lg-4 mb-30">
-        <div class="box bg-white shadow p-30 h-100 run-coming">
-          <p class="mb-5"><span class="run-status run-status-{{ c.section }}">{{ {"open": "Open for projects", "future": "Planned", "past": "Taped out"}[c.section] }}</span></p>
-          <h5 class="post-title mb-5">{{ link(c.run, c.url) }}</h5>
-          <p class="mb-10 small">{% if c.ws_run %}On {{ runs_linked(c.ws_run) }}{% else %}<span class="text-muted">wafer.space run not yet announced</span>{% endif %}</p>
-          <ul class="run-method small mb-10">
-            {% if c.section == "open" %}<li>Projects close <strong>{{ c.dates.closes }}</strong></li>
-            {% if c.tiles.tiles_total %}<li><strong>{{ c.tiles.tiles_used }}</strong> of {{ c.tiles.tiles_total }} tiles taken{% if c.tiles.tiles_reserved %},
-              {{ c.tiles.tiles_reserved }} reserved{% endif %}</li>{% endif %}
-            {% elif c.section == "future" %}<li>Projects close <strong>{{ c.dates["submission deadline"] }}</strong> (estimated)</li>{% endif %}
-            {% if c.dates["chips expected"] %}<li>Chips expected {{ c.dates["chips expected"] }}</li>{% endif %}
-            {% if c.dates["estimated shipping date"] %}<li>Shipping {{ c.dates["estimated shipping date"] }} (estimated)</li>{% endif %}
-          </ul>
-          {% if c.note %}<p class="small text-muted">Tiny Tapeout has reserved tiles on this chip; see
-            {{ link("tinytapeout.com/chips", links.tinytapeout("chips")) }}.</p>{% endif %}
-          {% if c.section == "open" %}<p class="mb-0">
-            <a class="btn btn-default btn-sm mb-5" href="{{ c.url or links.tinytapeout('create') }}">Submit a project</a>
-            <a class="btn btn-outline-primary btn-sm mb-5" href="{{ links.tinytapeout('prepurchase') }}">Prepurchase tiles and boards</a></p>{% endif %}
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-    <p class="small text-muted text-center mb-0">Dates and tile counts are Tiny Tapeout's, from
-      {{ link("tinytapeout.com/chips", links.tinytapeout("chips")) }} and {{ link("app.tinytapeout.com", links.tinytapeout("prepurchase")) }},
-      as of {{ generated }}.</p>
-  </div>
-</div>
-{% endif %}
-
-{% if other %}
-<div id="other" class="wrapper {{ 'gray-wrapper' if coming else 'light-wrapper' }}">
-  <div class="container inner">
-    <h2 class="section-title mb-10 text-center">Other GF180MCU Tiny Tapeout chips{{ anchor("other") }}</h2>
-    <p class="lead text-center mb-40">Tiny Tapeout chips on the GF180MCU process that were not made on a wafer.space run,
-      so they are not measured here</p>
-    <div class="row justify-content-center">
-      {% for c in other %}
-      <div class="col-sm-6 col-lg-4 mb-30">
-        <div class="box bg-white shadow p-30 h-100">
-          <h5 class="post-title mb-5">{{ link(c.name or c.run, c.url or c.repo) }}</h5>
-          {% if c.projects or c.designs %}<p class="mb-10 small text-muted">{{ c.projects or c.designs }} projects</p>{% endif %}
-          {% if c.description %}<p class="small">{{ c.description }}</p>{% endif %}
-          <p class="mb-0 small">{% if c.repo %}{{ link("Shuttle repository", c.repo) }}{% endif %}{% if c.url and c.repo %} · {% endif %}{% if c.url %}{{ link("on tinytapeout.com", c.url) }}{% endif %}</p>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
+    <p class="small text-muted mb-30 run-history-key"><span class="run-history-key-tt">Tiny Tapeout tile</span>
+      <span class="run-history-key-google">Google shuttle</span>
+      <span class="run-history-key-ws">wafer.space die</span></p>
+    {% if next_ws %}<p class="text-center mb-0"><a class="btn btn-s" href="{{ next_ws.url }}">Reserve a slot on {{ next_ws.name }}</a></p>{% endif %}
   </div>
 </div>
 {% endif %}
 
 {% if tt %}
 <div class="wrapper light-wrapper">
-  <div class="container inner run-inner-slim">{{ tiny.independent() }}</div>
+  <div class="container inner">
+    <div class="row gutter-50 align-items-center">
+      <div class="col-lg-7 mb-30">{{ tiny.about() }}</div>
+      <div class="col-lg-5 mb-30">{{ tiny.board({"store_url": links.tinytapeout("kits"), "store_own_page": false}, "") }}</div>
+    </div>
+    {% if other %}<p class="small text-muted mt-20">{% for c in other %}{{ link(c.name or c.run, c.url or c.repo) }}{% if c.description %}:
+      {{ c.description }}{% endif %}{{ " " }}{% endfor %}</p>{% endif %}
+    <div class="mt-30">{{ tiny.independent() }}</div>
+  </div>
 </div>
 {% endif %}
 {% endblock %}

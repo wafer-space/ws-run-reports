@@ -1,19 +1,12 @@
-# The index page of wafer-space/tinytapeouts: every run in that repository.
+# The index page of wafer-space/tinytapeouts: every die in that repository.
 title = "Tiny Tapeout on wafer.space"
 repo = "wafer-space/tinytapeouts"
-heading = ["Tiny Tapeout", "chips on wafer.space runs"]
-intro = """Tiny Tapeout puts many small designs on one die. These are the Tiny Tapeout dies made on wafer.space
-runs, each measured project by project from the layout as manufactured."""
-# The Tiny Tapeout pieces of the page: what Tiny Tapeout is, the chips still to come on wafer.space runs
-# (from tinytapeout.com/chips) and the GF180MCU chips made elsewhere.
+heading = ["Tiny Tapeout", "GF180MCU chips, measured project by project"]
+intro = """Every Tiny Tapeout GF180MCU chip made so far. Open one to see each project on it: where it sits on the die,
+how big it is and how much logic it packs. Use them to size your own design."""
+# The Tiny Tapeout pieces of the page: what Tiny Tapeout is, the chips still to come (from tinytapeout.com/chips)
+# and any GF180MCU chips that have no pages here.
 kind = "tiny-tapeout"
 
-# GF180MCU Tiny Tapeout chips that were not made on a wafer.space run and that tinytapeout.com/chips does
-# not list. Tiny Tapeout chips it lists on other shuttles are added from there.
-[[other]]
-chip = "ttgf0p1"
-name = "Tiny Tapeout GF 0.1"
-repo = "https://github.com/TinyTapeout/tinytapeout-gf-0p1"
-projects = 24
-description = """Tiny Tapeout's first, experimental GF180MCU chip. It was not made on a wafer.space run. Its
-projects are designs from earlier Tiny Tapeout chips."""
+# GF180MCU Tiny Tapeout chips that have no pages here and that tinytapeout.com/chips does not list, as
+# [[other]] tables (chip, name, repo, projects, description). Tiny Tapeout GF 0.1 was one until it was measured.

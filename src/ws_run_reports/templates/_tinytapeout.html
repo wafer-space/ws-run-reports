@@ -1,35 +1,37 @@
-{# What Tiny Tapeout is, how it and wafer.space relate, and the way in for a first chip: shared by the
-   Tiny Tapeout collection page and the pages of each Tiny Tapeout die. #}
+{# What Tiny Tapeout is, how it and wafer.space relate, and the ways in for a first chip: shared by the Tiny Tapeout
+   collection page, the pages of each Tiny Tapeout die and the wafer.space run pages. #}
 {% macro tt(page, text, cls="") %}{{ link(text, links.tinytapeout(page), cls=cls) }}{% endmacro %}
 
 {% macro about() %}
 <h2 id="tinytapeout" class="section-title mb-20">What is Tiny Tapeout?{{ anchor("tinytapeout") }}</h2>
-<p class="lead">{{ tt("home", "Tiny Tapeout") }} makes it quicker, easier and cheaper than ever to get your own
-  design made on a real chip.</p>
-<p>Many designs share one Tiny Tapeout die. Each project gets one or more small {{ tt("specs", "tiles") }}, and a
-  multiplexer on the chip connects the one you select to the pins. You can draw your first design in the browser,
-  with no previous experience, by following the {{ tt("digital_design", "digital design guide") }}, or write it in
-  {{ tt("hdl", "Verilog or another HDL") }}. Tiny Tapeout's templates build and check it on GitHub, and the chip
-  comes on a {{ tt("demoboard", "demo board") }} that selects and drives your design.</p>
-<p>Tiny Tapeout also runs {{ tt("workshops", "workshops") }} and supports {{ tt("teaching", "teaching") }} in
-  universities and schools. Browse {{ tt("chips", "every Tiny Tapeout chip") }} and the
-  {{ tt("silicon_proven", "projects proven in silicon") }}, or read the {{ tt("faq", "FAQ") }}.</p>
+<p class="lead">{{ tt("home", "Tiny Tapeout") }} is the quickest and cheapest way to get your own design made on a
+  real chip.</p>
+<p>Many designs share one Tiny Tapeout chip. Each project gets one or more small {{ tt("specs", "tiles") }}, and a
+  multiplexer on the chip connects the one you choose to the pins. Draw your first design in the browser with no
+  experience by following the {{ tt("digital_design", "digital design guide") }}, or write it in
+  {{ tt("hdl", "Verilog or another HDL") }}; Tiny Tapeout's templates build and check it on GitHub. The chip comes
+  on a {{ tt("demoboard", "demo board") }} that selects your design and drives it.</p>
+<p class="mb-0">Tiny Tapeout also runs {{ tt("workshops", "workshops") }} and supports {{ tt("teaching", "teaching") }}
+  in universities and schools. Browse {{ tt("chips", "every Tiny Tapeout chip") }} and the
+  {{ tt("silicon_proven", "projects proven in silicon") }}, or read the {{ tt("faq", "Tiny Tapeout FAQ") }}.</p>
 {% endmacro %}
 
 {# A footnote, last on every Tiny Tapeout page. #}
 {% macro independent() %}
-<p class="small text-muted mb-0">Tiny Tapeout and wafer.space are independent companies that work together
-  ({{ tt("partnership", "announcement") }}). Tiny Tapeout runs its own shuttles: it takes the projects, builds the
-  die, and sells and supports the chips and boards. wafer.space has the die manufactured on its GF180MCU runs, and
-  these pages are wafer.space's measurements of it. For anything about a Tiny Tapeout project, chip or order,
-  {{ tt("contact", "contact Tiny Tapeout") }}.</p>
+<p class="small text-muted mb-0 run-measure">Tiny Tapeout and wafer.space are independent companies that work
+  together ({{ tt("partnership", "announcement") }}). Tiny Tapeout runs its own shuttles: it takes the projects,
+  builds the die, and sells and supports the chips and boards. wafer.space has the dies manufactured on its GF180MCU
+  runs, and these pages are wafer.space's measurements of them. For anything about a Tiny Tapeout project, chip or
+  order, {{ tt("contact", "contact Tiny Tapeout") }}.</p>
 {% endmacro %}
 
-{# Where to get and try this chip: its store page, its board at fpgas.online, its page on tinytapeout.com. #}
-{% macro chip_links(t, cls="btn btn-outline-primary btn-sm mb-10") %}
-<a class="{{ cls }}" href="{{ t.store_url }}">{{ "Buy this chip" if t.store_own_page else "Tiny Tapeout store" }}</a>
-{% if t.fpgas_url %}<a class="{{ cls }}" href="{{ t.fpgas_url }}">Try it online at fpgas.online</a>{% endif %}
-{% if t.chip_url %}<a class="{{ cls }}" href="{{ t.chip_url }}">{{ t.chip }} on tinytapeout.com</a>{% endif %}
+{# Where to get and try this chip: one button (buy it, or the store's kits), then plain links. #}
+{% macro chip_links(t) %}
+<p class="mb-0">
+  {% if t.for_sale %}<a class="btn btn-s mb-10 me-10" href="{{ t.store_url }}">{{ "Buy this chip" if t.store_own_page else "Tiny Tapeout kits" }}</a>{% endif %}
+  {% if t.fpgas_url %}<a class="me-15" href="{{ t.fpgas_url }}">Try it online at fpgas.online</a>{% endif %}
+  {% if t.chip_url %}<a href="{{ t.chip_url }}">{{ t.chip_label }}</a>{% endif %}
+</p>
 {% endmacro %}
 
 {# The demo board the chip comes on. root: the path to the site root from the page. #}
@@ -37,36 +39,151 @@
 <figure class="run-board mb-0">
   <img src="{{ root }}images/tt-demo-board.webp" width="700" height="762" loading="lazy"
        alt="The Tiny Tapeout demo board, with the socket in the middle where the chip's breakout card plugs in">
-  <figcaption class="small text-muted mt-10">The chip comes on a breakout card that plugs into the middle of
-    Tiny Tapeout's {{ tt("demoboard", "demo board") }}. Its RP2350 selects a project and drives its clock; the
-    DIP switches, the seven-segment display and the Pmod headers connect to the project's pins.
-    {% if t.store_own_page %}<a href="{{ t.store_url }}">Buy the kit</a>{% else %}Kits are sold in the
-    <a href="{{ t.store_url }}">Tiny Tapeout store</a>{% endif %}. Render: Tiny Tapeout,
+  <figcaption class="small text-muted mt-10">Tiny Tapeout chips come on a breakout card that plugs into the middle
+    of the {{ tt("demoboard", "demo board") }}. Its RP2350 selects a project and drives its clock; the DIP
+    switches, the seven-segment display and the Pmod headers connect to the project's pins. Render: Tiny Tapeout,
     <a href="{{ links.tinytapeout('board_image') }}">tt-demo-pcb</a>,
     <a href="{{ links.tinytapeout('board_licence') }}">Apache 2.0</a>.</figcaption>
 </figure>
 {% endmacro %}
 
-{# compact: one line, for the foot of a project page. #}
-{% macro upsell(compact=false) %}
-{% if compact %}
-<div class="alert alert-primary text-center mb-0">
-  <p class="mb-0"><strong>Want your own design on a chip like this one?</strong>
-    {{ tt("home", "Tiny Tapeout", "alert-link") }} is a cheap and easy way to get started: see
-    {{ tt("home", "tinytapeout.com", "alert-link") }}.</p>
+{# The three ways in, as the theme's process steps. On Tiny Tapeout pages they are steps, smallest first: get a
+   chip, put a design on the next one, make a whole chip. On wafer.space pages (tt_page false) they are choices, the
+   whole chip first. t: this chip's links, or none on pages that are not about one chip. #}
+{% macro next_steps(t=none, tt_page=true) %}
+<div class="row gutter-60 gutter-md-30 process-wrapper{{ ' arrow' if tt_page }} text-center run-next">
+  {% if tt_page %}{{ _step_chip(t, 1) }}{{ _step_submit(2) }}{{ _step_whole(3) }}
+  {% else %}{{ _step_whole(none) }}{{ _step_submit(none) }}{{ _step_chip(none, none) }}{% endif %}
 </div>
-{% else %}
-<div class="alert alert-primary">
-  <h3 class="alert-heading mb-10">Not ready to make your own chip?</h3>
-  <p>Tiny Tapeout offers a cheap and easy way to get started. Put a small design on a shared Tiny Tapeout chip,
-    from a few logic gates drawn in your browser to your own Verilog, and get it back on a board you can plug in.
-    When your design outgrows a few tiles, a whole die on a <a class="alert-link" href="{{ website }}/">wafer.space</a> run is
-    the next step.</p>
-  <p class="mb-0">
-    <a class="btn btn-default btn-sm mb-5" href="{{ links.tinytapeout('home') }}">Get started at tinytapeout.com</a>
-    <a class="btn btn-outline-primary btn-sm mb-5" href="{{ links.tinytapeout('digital_design') }}">Learn digital design</a>
-    <a class="btn btn-outline-primary btn-sm mb-5" href="{{ links.tinytapeout('faq') }}">Tiny Tapeout FAQ</a>
-  </p>
+{% endmacro %}
+
+{% macro _blob(icon, colour, n) %}<span class="icon icon-blob icon-blob-{{ colour }} color-{{ colour }} mb-20"><i class="jam jam-{{ icon }}"></i>{% if n %}<span class="step bg-{{ colour }}">{{ n }}</span>{% endif %}</span>{% endmacro %}
+
+{% macro _step_chip(t, n) %}
+  <div class="col-md-4 mb-30">
+    {{ _blob("microchip", "purple", n) }}
+    {% if t and t.for_sale and t.store_own_page %}
+    <h5>Get this chip</h5>
+    <p>It comes on a board you can plug in, with every project on it ready to try.</p>
+    <a class="btn btn-s" href="{{ t.store_url }}">Buy this chip</a>
+    {% elif t and not t.for_sale %}
+    <h5>Get a Tiny Tapeout chip</h5>
+    <p>This test chip was not sold. The Tiny Tapeout chips made since come on a board you can plug in and try.</p>
+    <a class="btn btn-s" href="{{ links.tinytapeout('kits') }}">Tiny Tapeout kits</a>
+    {% else %}
+    <h5>Get a Tiny Tapeout chip</h5>
+    <p>Every Tiny Tapeout chip comes on a board you can plug in, with all of its projects ready to try.</p>
+    <a class="btn btn-s" href="{{ links.tinytapeout('kits') }}">Tiny Tapeout kits</a>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{% macro _step_submit(n) %}
+  {% set names = next_tt | map(attribute="name") | list %}
+  <div class="col-md-4 mb-30">
+    {{ _blob("pencil", "purple", n) }}
+    <h5>{{ "Put your design on the next one" if n else "Or start with a Tiny Tapeout tile" }}</h5>
+    {% if next_tt %}
+    <p>{{ names[:-1] | join(", ") ~ " and " ~ names[-1] if names | length > 1 else names[0] }} take projects until
+      <strong>{{ next_tt[0].closes }}</strong>{% if next_tt[0].ws_run %}, to be made on {{ runs_linked(next_tt[0].ws_run) }}{% endif %}.</p>
+    <a class="btn btn-s" href="{{ next_tt[0].url or links.tinytapeout('create') }}">Submit a project</a>
+    {% else %}
+    <p>Tiny Tapeout opens a new GF180MCU chip every few months, from a single tile up.</p>
+    <a class="btn btn-s" href="{{ links.tinytapeout('chips') }}">The next Tiny Tapeout chips</a>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{% macro _step_whole(n) %}
+  <div class="col-md-4 mb-30">
+    {{ _blob("rocket", "blue", n) }}
+    <h5>Make a whole chip of your own</h5>
+    {% if next_ws %}
+    <p>{{ "When a design outgrows a few tiles, it can have" if n else "Book" }} a die to itself on
+      {{ runs_linked(next_ws.name) }}: orders close <strong>{{ next_ws.deadline }}</strong>.</p>
+    <a class="btn btn-s" href="{{ next_ws.url }}">Reserve a slot</a>
+    {% else %}
+    <p>{{ "When a design outgrows a few tiles, it can have" if n else "Book" }} a die to itself on the next
+      wafer.space run.</p>
+    <a class="btn btn-s" href="{{ website }}/">wafer.space runs</a>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{# The same in one box, for the foot of a project page: a Tiny Tapeout project's (t: its chip's links) leads with
+   the next Tiny Tapeout chip, a wafer.space design's with the next wafer.space run. #}
+{% macro next_steps_compact(t=none) %}
+{% set tt_submit = next_tt[0].url if next_tt else links.tinytapeout('chips') %}
+{% set tt_text %}{% if next_tt %}the next Tiny Tapeout GF180MCU chips take projects until
+  <strong>{{ next_tt[0].closes }}</strong>{% if next_tt[0].ws_run %}, for {{ runs_linked(next_tt[0].ws_run) }}{% endif %}{% else %}Tiny
+  Tapeout opens a new GF180MCU chip every few months{% endif %}{% endset %}
+<div class="box bg-white shadow p-30 run-next-compact">
+  <div class="row align-items-center">
+    {% if t %}
+    <div class="col-lg-8">
+      <h4 class="mb-10">Want your own design on a chip like this one?</h4>
+      <p class="mb-lg-0">Start with a tile: {{ tt_text }}.{% if next_ws %} For a die of your own,
+        {{ runs_linked(next_ws.name) }} takes orders until {{ next_ws.deadline }}.{% endif %}</p>
+    </div>
+    <div class="col-lg-4 text-lg-end">
+      <a class="btn btn-s mb-5" href="{{ tt_submit }}">Submit a project</a>
+      {% if t.for_sale and t.store_own_page %}<br><a class="small" href="{{ t.store_url }}">Buy this chip</a>{% endif %}
+    </div>
+    {% else %}
+    <div class="col-lg-8">
+      <h4 class="mb-10">Want a chip of your own like this one?</h4>
+      <p class="mb-lg-0">{% if next_ws %}{{ runs_linked(next_ws.name) }} takes orders until
+        <strong>{{ next_ws.deadline }}</strong>.{% else %}Book a slot on the next wafer.space run.{% endif %}
+        Or start smaller with Tiny Tapeout: {{ tt_text }}.</p>
+    </div>
+    <div class="col-lg-4 text-lg-end">
+      <a class="btn btn-s mb-5" href="{{ next_ws.url if next_ws else website ~ '/' }}">Reserve a slot</a>
+      <br><a class="small" href="{{ tt_submit }}">Start with Tiny Tapeout</a>
+    </div>
+    {% endif %}
+  </div>
 </div>
-{% endif %}
+{% endmacro %}
+
+{# The projects of a die whose projects share one block (Tiny Tapeout GF 0.1), measured from the block's netlist:
+   rows from data/projects.csv, shared its "shared" row. #}
+{% macro netlist_projects(rows, shared) %}
+{% set counts = rows | map(attribute="LOGIC_CELLS") | select | map("int") | list %}
+{% set total = (counts | sum) + (shared.LOGIC_CELLS | int) %}
+{% set largest = counts | max %}
+<h3 id="netlist" class="run-category-title">The {{ rows | length }} projects{{ anchor("netlist") }}</h3>
+<p class="mb-20 run-measure">On this first Tiny Tapeout GF180MCU chip the projects did not get tiles of their own:
+  all {{ rows | length }} were synthesised and placed together in one block, behind the multiplexer that selects one
+  at a time. So each project's size here is counted from that block's netlist, cell by cell. Original tiles is the
+  project's size on the Tiny Tapeout chip it first came from.</p>
+<div class="table-responsive">
+<table class="table run-table run-netlist">
+  <thead><tr><th>Address</th><th>Project</th><th>Author</th><th class="text-end">Original tiles</th>
+    <th class="text-end">Logic cells</th><th class="text-end">Flip-flops</th><th class="run-netlist-bar">Share of the block</th></tr></thead>
+  <tbody>
+  {% for p in rows %}
+  {% set n = p.LOGIC_CELLS | int %}
+  <tr id="p{{ p.CODE }}">
+    <td class="run-mono">{{ p.CODE }}</td>
+    <td>{% if p.REPOSITORY %}<a href="{{ p.REPOSITORY }}">{{ p.PROJECT }}</a>{% else %}{{ p.PROJECT }}{% endif %}</td>
+    <td>{{ p.AUTHOR }}</td>
+    <td class="text-end">{{ p.ORIGINAL_TILES | replace("x", "×") }}</td>
+    <td class="text-end">{{ '{:,}'.format(n) if p.LOGIC_CELLS else "counted below" }}</td>
+    <td class="text-end">{{ '{:,}'.format(p.FLIP_FLOPS | int) if p.LOGIC_CELLS else "" }}</td>
+    <td class="run-netlist-bar">{% if n %}<span style="width: {{ '%.1f' | format(70 * n / largest) }}%"></span>
+      <small class="text-muted">{{ '%.1f' | format(100 * n / total) }}%</small>{% endif %}</td>
+  </tr>
+  {% endfor %}
+  {% set s = shared.LOGIC_CELLS | int %}
+  <tr class="text-muted"><td></td><td>The multiplexer and controller, with Chip ROM and the MULDIV unit</td><td></td><td></td>
+    <td class="text-end">{{ '{:,}'.format(s) }}</td><td class="text-end">{{ shared.FLIP_FLOPS }}</td>
+    <td class="run-netlist-bar"><span style="width: {{ '%.1f' | format(70 * s / largest) }}%"></span>
+      <small class="text-muted">{{ '%.1f' | format(100 * s / total) }}%</small></td></tr>
+  </tbody>
+</table>
+</div>
+<p class="small text-muted mb-40 run-measure">A cell belongs to the project its nets are named after, or to the one
+  project of the cells it is wired to. Chip ROM and the MULDIV unit are purely combinational, so synthesis kept no
+  names for their cells: they are counted with the shared multiplexer and controller. The {{ '{:,}'.format(total) }}
+  logic cells in all are exactly the block's logic cells as measured from the layout.</p>
 {% endmacro %}

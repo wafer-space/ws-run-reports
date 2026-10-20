@@ -14,6 +14,7 @@ import statistics
 from collections import Counter
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 from markupsafe import Markup
@@ -250,13 +251,18 @@ def tt_chip_links(site: dict) -> dict:
     """Where a Tiny Tapeout chip is described, sold and driven, from its run's ``[site]``.
 
     ``tt_store_url`` names the chip's own page in the Tiny Tapeout store; without one the store's
-    development kits are linked. The chip's fpgas.online board is linked only once its page is up.
+    development kits are linked. ``tt_for_sale = false`` marks a chip that was never sold (GF 0.1). The chip's
+    fpgas.online board is linked only once its page is up.
     """
     chip = site.get("tt_chip", "")
     fpgas = links.fpgas_online(chip)
-    return {"chip": chip, "chip_url": f"https://tinytapeout.com/chips/{chip}/" if chip else "",
+    # ``tt_chip_url`` for a chip tinytapeout.com has no page for (GF 0.1: its shuttle repository).
+    chip_url = site.get("tt_chip_url") or (f"https://tinytapeout.com/chips/{chip}/" if chip else "")
+    return {"chip": chip, "chip_url": chip_url,
+            "chip_label": "Shuttle repository on GitHub" if site.get("tt_chip_url") else "All its projects on tinytapeout.com",
             "store_url": site.get("tt_store_url") or links.tinytapeout("kits"),
             "store_own_page": bool(site.get("tt_store_url")),
+            "for_sale": site.get("tt_for_sale", True),
             "fpgas_url": fpgas if fpgas and external.available(fpgas) else ""}
 
 
@@ -407,8 +413,13 @@ def build_context(run, out_dir: Path) -> dict:
         "precheck_table": _precheck_table,
         "feature_labels": FEATURE_LABELS,
         "children": _children(run),
-        "words": TERMS["tiny-tapeout" if run.site.get("kind") == "tiny-tapeout" else "wafer.space"],
+        # [site] terms renames them for a die whose slots are not projects (Tiny Tapeout GF 0.1's blocks).
+        "words": {**TERMS["tiny-tapeout" if run.site.get("kind") == "tiny-tapeout" else "wafer.space"],
+                  **run.site.get("terms", {})},
         "tt": _tiny_tapeout(run),
+        # A die whose projects share one block (GF 0.1): each project measured from the block's netlist.
+        "netlist_projects": tinytapeout.load_projects(run.repo_dir),
+        "netlist_shared": tinytapeout.shared_cells(run.repo_dir),
         "window_side": stats_module.length_label(stats.window_um),
         "window_step": stats_module.length_label(stats.step_um),
         "window_is_mm": stats.window_um == 1000,
@@ -500,6 +511,8 @@ def build_site(run, out_dir: Path) -> Path:
     env.globals.update(related=lambda design: related.for_slot(run, design.project))
     env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id,
                        runs_linked=links.runs_linked)
+    # Where a reader goes next: the Tiny Tapeout GF180MCU chips taking projects, and the wafer.space run taking orders.
+    env.globals.update(next_tt=tinytapeout.next_shuttles(external.tt_chips()), next_ws=external.next_run())
 
     # The data behind the page, so every figure on it can be checked.
     data_dir = site_dir / "data"
@@ -525,6 +538,12 @@ def build_site(run, out_dir: Path) -> Path:
         rel = related.for_slot(run, design.project)
         if rel and len(rel["stages"]) > 1:
             histories.setdefault(rel["name"], {"rel": rel, "designs": []})["designs"].append(design)
+    # On a die whose projects share one block (GF 0.1) the slots are blocks: take the projects from its table.
+    for row in context["netlist_projects"]:
+        project = SimpleNamespace(top=row["TOP"], name=row["PROJECT"], repository="", code=row["CODE"])
+        rel = related.for_slot(run, project)
+        if rel and len(rel["stages"]) > 1:
+            histories.setdefault(rel["name"], {"rel": rel, "designs": [], "anchor": f"#p{row['CODE']}"})
     context["histories"] = sorted(histories.values(), key=lambda h: -len(h["rel"]["stages"]))
     (site_dir / "index.html").write_text(env.get_template("index.html").render(root="", **context))
     # A JavaScript-free strip of the designs for other pages to embed; dies with photographs first.

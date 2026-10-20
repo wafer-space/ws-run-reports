@@ -50,11 +50,14 @@
   <div class="container inner text-center">
     <h1 class="page-title">{{ run.heading[0] }}{% for line in run.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
     {% if tt %}
-    <p class="lead">{{ stats.designs | length }} projects{% if tt.parent.title %} · <span class="run-crumb">{{ runs_linked(tt.parent.title) }}</span>{% endif %}{% if tt.parent.url %}
-      · <a class="run-crumb" href="{{ tt.parent.url }}">die {{ run.shuttle }} there</a>{% endif %}{% if tt.chip_url %}
-      · <a class="run-crumb" href="{{ tt.chip_url }}">{{ tt.chip }} on tinytapeout.com</a>{% endif %}
-      · <a class="run-crumb" href="{{ tt.store_url }}">{{ "buy this chip" if tt.store_own_page else "Tiny Tapeout store" }}</a>{% if tt.fpgas_url %}
-      · <a class="run-crumb" href="{{ tt.fpgas_url }}">try it online</a>{% endif %}</p>
+    <p class="lead">{{ netlist_projects | length if netlist_projects else stats.designs | length }} projects
+      {%- if tt.parent.title %} · made on {{ runs_linked(tt.parent.title) }}{% if tt.parent.url %}
+      (<a class="run-crumb" href="{{ tt.parent.url }}">die {{ run.shuttle }}</a>){% endif %}{% endif %}</p>
+    <p class="mb-0 run-hero-actions">
+      {% if tt.for_sale %}<a class="btn btn-s" href="{{ tt.store_url }}">{{ "Buy this chip" if tt.store_own_page else "Tiny Tapeout kits" }}</a>{% endif %}
+      {% if next_tt %}<a class="btn btn-s btn-white" href="{{ next_tt[0].url }}">Put your design on the next one</a>{% endif %}
+      {% if tt.fpgas_url %}<a class="btn btn-s btn-white" href="{{ tt.fpgas_url }}">Try it online</a>{% endif %}
+      {% if tt.chip_url %}<a class="btn btn-s btn-white" href="{{ tt.chip_url }}">{{ tt.chip_label }}</a>{% endif %}</p>
     {% else %}
     <p class="lead">Shuttle {{ run.shuttle }} · {{ stats.designs | length }} public designs on one reticle</p>
     {% endif %}
@@ -64,28 +67,44 @@
 <!-- Headline numbers -->
 <div id="summary" class="wrapper light-wrapper run-first">
   <div class="container inner">
-    <h2 class="section-title mb-40 text-center">What was built{{ anchor("summary") }}</h2>
+    <h2 class="section-title mb-10 text-center">What was built{{ anchor("summary") }}</h2>
+    <p class="lead text-center mb-40">{% if tt %}The chip as a whole: what its projects add up to.{% else %}The
+      run as a whole: what its designs add up to.{% endif %}</p>
     <div class="row justify-content-center">
-      {% if tt %}
-      {{ stat(stats.designs | length, 'Projects', 'in the die') }}
+      {% if netlist_projects %}
+      {{ stat(netlist_projects | length, 'Projects', 'in one shared block') }}
+      {{ stat(stats.designs | selectattr("category", "equalto", "Test structures") | list | length - 1, 'Cell tests', 'and a pad test') }}
+      {% elif tt %}
+      {{ stat(stats.designs | length, 'Projects', 'on the chip') }}
+      {{ stat(open_source, 'Open source', 'with a public repository') }}
       {% else %}
       {{ stat(stats.designs | length, 'Public designs', 'of ' ~ run.slots ~ ' reticle slots') }}
-      {% endif %}
       {{ stat(open_source, 'Open source', 'with a public repository') }}
+      {% endif %}
       {{ stat(stats.transistors | count, 'Transistors', 'across the unique designs') }}
       {{ stat(stats.logic_cells | count, 'Logic cells', 'gates and flip-flops') }}
-      {{ stat('%.0f KiB' | format(stats.sram_bits / 8 / 1024), 'SRAM', 'in foundry and custom macros') }}
+      {% if stats.sram_bits %}{{ stat('%.0f KiB' | format(stats.sram_bits / 8 / 1024) if stats.sram_bits >= 8192 else '%d bytes' | format(stats.sram_bits // 8), 'SRAM', 'in foundry and custom macros') }}{% endif %}
       {% if not tt %}
       {{ stat(pads | count, 'Bond pads', 'and ' ~ probe_pads | count ~ ' probe pads' if probe_pads else '') }}
       {% endif %}
     </div>
-    {% if tt %}
-    <p class="text-center text-muted small mb-0">Counted inside the projects only: the die's pads, Tiny Tapeout's
-      multiplexer, controller and power switches, and the fill are left out.</p>
+    {% if netlist_projects %}
+    <p class="text-center text-muted small mb-0">Counted inside the blocks: the shared project block (with its
+      multiplexer), the cell tests and the pad test buffer. The pads and the fill are left out.</p>
+    {% elif tt %}
+    <p class="text-center text-muted small mb-0">Counted inside the projects only, so these totals are smaller than
+      the die's own figures on its run's page: the pads, Tiny Tapeout's multiplexer, controller and power switches,
+      and the fill are left out.</p>
     {% else %}
     <p class="text-center text-muted small mb-0">Private designs on the reticle are not in the public layout and are
       not counted. Designs placed more than once are counted once.</p>
     {% endif %}
+    <h2 id="next" class="section-title mt-60 mb-10 text-center">{% if tt %}Get this chip, or make your own{% else %}Make
+      a chip of your own{% endif %}{{ anchor("next") }}</h2>
+    <p class="lead text-center mb-40">{% if tt %}Tiny Tapeout puts many small designs on one chip. Start with a tile,
+      then come back with a whole die.{% else %}Start small with a Tiny Tapeout tile, or go straight to a whole die
+      on the next run, as the designers here did.{% endif %}</p>
+    {{ tiny.next_steps(tt, tt_page=tt is not none) }}
   </div>
 </div>
 
@@ -123,7 +142,7 @@
           </div>
         </div>
         <p class="small text-muted mt-10 mb-0">Every design rendered from the layout at the same scale and placed where
-          it sits on the {{ '%.0f' | format(renders.reticle.width_mm) }} × {{ '%.1f' | format(renders.reticle.height_mm) }} mm
+          it sits on the {{ renders.reticle.width_mm | round(1) | string | replace(".0", "") }} × {{ renders.reticle.height_mm | round(1) | string | replace(".0", "") }} mm
           {{ words.reticle }}.{% if framed %} It is drawn on a {{ '%.0f' | format(renders.reticle.frame_width_mm) }} × {{ '%.1f' | format(renders.reticle.frame_height_mm) }} mm
           frame, so that the dies appear at the same scale as on the other runs' pages.{% endif %}{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}
           Select a {{ words.die }} for its details.</p>
@@ -136,7 +155,7 @@
         <h2 id="slots" class="section-title mb-20">{{ words.Slots }}{{ anchor("slots") }}</h2>
         <table class="table table-sm run-table bg-white mb-30">
           <tbody>
-            {% for row in slot_types %}<tr><td>{{ row.label }}{% if tt %} tiles{% endif %}</td><td class="text-end">{{ row.dies }}</td></tr>{% endfor %}
+            {% for row in slot_types %}<tr><td>{{ row.label }}{% if tt and words.slot %} {{ words.slot }}{% endif %}</td><td class="text-end">{{ row.dies }}</td></tr>{% endfor %}
           </tbody>
           <tfoot><tr><th>Total</th><th class="text-end">{{ slot_types | sum(attribute="dies") }}</th></tr></tfoot>
         </table>
@@ -167,6 +186,9 @@
         </ul>
         {% if run.site.timeline_source %}
         <p class="small text-muted mb-0">From {% if run.site.timeline_source_url %}<a href="{{ run.site.timeline_source_url }}">{{ run.site.timeline_source }}</a>{% else %}{{ run.site.timeline_source }}{% endif %}.</p>
+        {% elif not run.site.runs_yml_key and tt and tt.repo %}
+        <p class="small text-muted mb-0">From the {{ link(tt.name or "Tiny Tapeout shuttle", links.repo_tree(tt.repo, tt.commit)) }}
+          repository's releases. Its later milestones have not been published.</p>
         {% else %}
         <p class="small text-muted mb-0">From the <a href="{{ website }}/">wafer.space</a> run schedule{% if tt and tt.repo %}
           and the {{ link(tt.name or "Tiny Tapeout shuttle", links.repo_tree(tt.repo, tt.commit)) }} repository{% endif %}.</p>
@@ -487,24 +509,30 @@
 <div id="projects" class="wrapper light-wrapper">
   <div class="container inner">
     <h2 class="section-title mb-10 text-center">The projects{{ anchor("projects") }}</h2>
-    <p class="lead text-center mb-40">Grouped by what they are. Each links to renders, measurements and any photographs
-      or bonding results.</p>
+    <p class="lead text-center mb-40">Every {{ 'project on this chip' if tt else 'design on this run' }}, grouped by
+      what it does. Select one for its layout, its measurements and any die photographs.</p>
     {% if histories %}
     <h3 id="grew" class="run-category-title">Designs that grew{{ anchor("grew") }}</h3>
-    <p class="mb-20">{% if tt %}These projects have been made on other chips too, many of them on Tiny Tapeout
-      first and then on a whole die of their own.{% else %}These designs were made before, as a Tiny Tapeout tile or on a
-      Google shuttle, or have been made again since. Start small, then come back bigger.{% endif %}
+    <p class="mb-20 run-measure">{% if tt %}Some designers on this chip kept going: they made their design again on
+      later Tiny Tapeout chips, and several now have a whole die of their own on a wafer.space run.{% else %}These
+      designs have been made more than once: first as a Tiny Tapeout tile or on a Google shuttle, then on wafer.space,
+      or improved and made again on a later run. Start small, then come back bigger.{% endif %}
       Oldest version first; this {{ 'chip' if tt else 'run' }} in bold.</p>
     <ul class="run-grew">
       {% for h in histories %}
-      {% set d = h.designs[0] %}
       <li>
-        <a class="run-grew-name" href="projects/{{ d.code }}.html#related">{{ h.rel.name }}</a>
+        {% if h.designs %}
+        <a class="run-grew-name" href="projects/{{ h.designs[0].code }}.html#related">{{ h.rel.name }}</a>
         <span class="text-muted small">{{ h.designs | map(attribute="code") | join(", ") }}</span>
+        {% else %}{# a project of a shared block: its full story is on its latest wafer.space die's page #}
+        {% set latest = (h.rel.wafer_space | sort(attribute="date") | last) %}
+        <a class="run-grew-name" href="{{ latest.url ~ '#related' if latest else h.anchor }}">{{ h.rel.name }}</a>
+        <a class="text-muted small" href="{{ h.anchor }}">this chip's row</a>
+        {% endif %}
         <ol class="run-grew-stages">
           {% for stage in h.rel.stages %}
           {% set here = stage.steps | selectattr("current") | list %}
-          <li class="run-history-{{ stage.kind | replace('_', '-') }}">{% if here %}<strong class="run-grew-label">{{ stage.shuttle }}</strong>{% else %}<span class="run-grew-label">{{ stage.shuttle }}</span>{% endif %}
+          <li class="run-history-{{ stage.css }}">{% if here %}<strong class="run-grew-label">{{ stage.shuttle }}</strong>{% else %}<span class="run-grew-label">{{ stage.shuttle }}</span>{% endif %}
             {%- set sizes = stage.steps | map(attribute="size") | select | unique | list %}
             {%- if sizes %} <span class="text-muted">{{ sizes | join(", ") }}</span>{% endif %}</li>
           {% endfor %}
@@ -512,9 +540,26 @@
       </li>
       {% endfor %}
     </ul>
-    <p class="small text-muted mb-40 run-history-key"><span class="run-history-key-tiny-tapeout">Tiny Tapeout tile</span>
-      <span class="run-history-key-other-shuttles">Google shuttle</span>
-      <span class="run-history-key-wafer-space">wafer.space die</span></p>
+    <p class="small text-muted mb-40 run-history-key"><span class="run-history-key-tt">Tiny Tapeout tile</span>
+      <span class="run-history-key-google">Google shuttle</span>
+      <span class="run-history-key-ws">wafer.space die</span></p>
+    {% endif %}
+    {% set tt_dies = children | dictsort | selectattr("1.0.site.kind", "equalto", "tiny-tapeout") | list %}
+    {% if tt_dies and not tt %}
+    <div class="box bg-white shadow p-30 mb-40 run-tt-dies">
+      <h4 class="mb-10">{{ tt_dies | length }} {{ 'die is a Tiny Tapeout chip' if tt_dies | length == 1 else 'dies are Tiny Tapeout chips' }}</h4>
+      <p class="mb-15">{% for code, children_of in tt_dies %}<a href="{{ children_of[0].pages_url }}">{{ children_of[0].heading[0] }}</a>
+        ({{ code }}){{ ", " if loop.revindex > 2 else " and " if loop.revindex == 2 }}{% endfor %} each hold dozens of small
+        projects from Tiny Tapeout, the cheaper way to make a first chip. Each has pages of its own, project by project.</p>
+      <p class="mb-0"><a class="btn btn-s" href="{{ website }}/tinytapeouts/">Tiny Tapeout chips on wafer.space</a>
+        {% if next_tt %}<a class="ms-10" href="{{ next_tt[0].url }}">Submit to the next one, by {{ next_tt[0].closes }}</a>{% endif %}</p>
+    </div>
+    {% endif %}
+    {% if netlist_projects %}
+    {{ tiny.netlist_projects(netlist_projects, netlist_shared) }}
+    <h3 id="blocks" class="run-category-title">The blocks{{ anchor("blocks") }}</h3>
+    <p class="mb-20">The die's own blocks, each measured like a design: the shared block that holds the projects,
+      eight standard cell tests and the pad test buffer.</p>
     {% endif %}
     {% for name, group in categories %}
     <h3 id="{{ category_id(name) }}" class="run-category-title">
@@ -619,18 +664,16 @@
 {% if tt %}
 <div class="wrapper light-wrapper">
   <div class="container inner">
-    <div class="row gutter-50">
+    <div class="row gutter-50 align-items-center">
       <div class="col-lg-7 mb-30">
         {{ tiny.about() }}
+        <div class="mt-30">{{ tiny.chip_links(tt) }}</div>
       </div>
-      <div class="col-lg-5">
-        <h2 id="board" class="section-title mb-20">Get this chip{{ anchor("board") }}</h2>
+      <div class="col-lg-5 mb-30">
         {{ tiny.board(tt, "") }}
-        <p class="mt-20">{{ tiny.chip_links(tt) }}</p>
-        {{ tiny.upsell() }}
       </div>
     </div>
-    {{ tiny.independent() }}
+    <div class="mt-30">{{ tiny.independent() }}</div>
   </div>
 </div>
 {% endif %}

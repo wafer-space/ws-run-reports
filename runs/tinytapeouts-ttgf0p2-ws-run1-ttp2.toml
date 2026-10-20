@@ -22,7 +22,7 @@ kind = "tiny-tapeout"
 # The chip's development kit in the Tiny Tapeout store.
 tt_store_url = "https://store.tinytapeout.com/products/TTGF0p2-Development-Kit-P2-edition-p841828501"
 tt_chip = "ttgf0p2"
-heading = ["Tiny Tapeout GF 0.2", "Die TTP2 on wafer.space Run 1"]
+heading = ["Tiny Tapeout GF 0.2", "Die TTP2 on wafer.space Run 1: the standard edition"]
 slot_labels = false
 # The run's schedule, with the Tiny Tapeout shuttle's own milestones (data/tt_shuttle.json) merged in.
 runs_yml_key = "gf180mcu_run_1"

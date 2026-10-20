@@ -63,6 +63,29 @@ def timeline(run) -> list:
 
 
 @functools.cache
+def next_run() -> dict:
+    """The wafer.space run now taking orders, from the website's ``_data/runs.yml``: the first run whose
+    purchase deadline has not passed. {"name": "wafer.space Run 3", "deadline": "9 December 2026",
+    "submission": "16 December 2026", "url": where to buy a slot}, or {}."""
+    from datetime import datetime, timezone
+
+    def load():
+        import yaml
+        now = datetime.now(timezone.utc).isoformat()
+        for key, entry in yaml.safe_load(fetch(RUNS_YML_URL))["runs"].items():
+            deadline = entry.get("campaign_deadline") or {}
+            if str(deadline.get("date", "")) > now:
+                day = lambda text: re.sub(r"\s*@.*$", "", text or "")
+                return {"key": key, "name": f"wafer.space Run {entry.get('run_number', '')}".strip(),
+                        "deadline": day(deadline.get("display_date")),
+                        "submission": day((entry.get("submission_deadline") or {}).get("display_date")),
+                        "url": deadline.get("button_url") or "https://buy.wafer.space/"}
+        return {}
+
+    return _try("next wafer.space run", load, {})
+
+
+@functools.cache
 def available(url: str) -> bool:
     """Whether ``url`` answers with a page (not a 404): for links to pages that may not exist yet."""
     def load():

@@ -20,7 +20,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 from . import config, external, links, related, tinytapeout
 from . import site as site_module
 from . import stats as stats_module
-from .site import TT_BOARD_IMAGE, WEBSITE, tt_chip_links
+from .site import TT_BOARD_IMAGE, WEBSITE, milestone_done, tt_chip_links
 
 COLLECTIONS_DIR = config.RUNS_DIR / "collections"
 
@@ -76,20 +76,24 @@ def build(name: str, out: Path) -> Path:
         timeline = sorted(external.timeline(run) + tinytapeout.timeline_items(tinytapeout.load_shuttle(run.repo_dir)),
                           key=lambda item: item["date"])
         today = date.today().isoformat()
-        reached = [item for item in timeline if item["date"] <= today]
-        upcoming = [item for item in timeline if item["date"] > today]
+        # As on the die's own page: a milestone with only a rough date ("Early Q4 2026") is still to come.
+        reached = [item for item in timeline if milestone_done(item, today)]
+        upcoming = [item for item in timeline if not milestone_done(item, today)]
         entries.append({"run": run, "renders": renders, "stats": stats,
                         "status": reached[-1] if reached else None, "next": upcoming[0] if upcoming else None,
-                        "projects": len(run.projects()), "parent": run.site.get("parent", {}),
+                        "projects": len(tinytapeout.load_projects(run.repo_dir) or run.projects()),
+                        "parent": run.site.get("parent", {}),
                         "chip": run.site.get("tt_chip", ""), "links": tt_chip_links(run.site),
-                        "chip_url": f"https://tinytapeout.com/chips/{run.site['tt_chip']}/" if run.site.get("tt_chip") else ""})
+                        "chip_url": tt_chip_links(run.site)["chip_url"]})
     coming, other = tt_chips(collection, {entry["chip"] for entry in entries}) if collection.site["kind"] == "tiny-tapeout" else ([], [])
     env = Environment(loader=PackageLoader("ws_run_reports", "templates"),
                       autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
     static = Path(__file__).parent / "static"
     digest = hashlib.sha256(b"".join(path.read_bytes() for path in sorted(static.iterdir())))
     env.globals.update(static_version=digest.hexdigest()[:10], links=links, link=links.html,
-                       anchor=site_module._anchor, runs_linked=links.runs_linked)
+                       anchor=site_module._anchor, runs_linked=links.runs_linked,
+                       next_tt=tinytapeout.next_shuttles(external.tt_chips()), next_ws=external.next_run(),
+                       tiny_name=tinytapeout.chip_name)
     site_dir = out / name / "site"
     site_dir.mkdir(parents=True, exist_ok=True)
     (site_dir / "index.html").write_text(env.get_template("collection.html").render(

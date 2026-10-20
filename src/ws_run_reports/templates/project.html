@@ -18,14 +18,12 @@
 
 {% include "_design.html" %}
 
-{% if tt %}
 <div class="wrapper light-wrapper">
   <div class="container inner run-inner-slim">
-    {{ tiny.upsell(compact=true) }}
-    <div class="mt-20">{{ tiny.independent() }}</div>
+    {{ tiny.next_steps_compact(tt) }}
+    {% if tt %}<div class="mt-20">{{ tiny.independent() }}</div>{% endif %}
   </div>
 </div>
-{% endif %}
 <div class="wrapper dark-wrapper inverse-text">
   <div class="container inner run-pager">
     <a href="{{ previous.code }}.html">← {{ previous.code }} <span>{{ previous.name }}</span></a>
