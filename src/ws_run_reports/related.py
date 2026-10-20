@@ -184,7 +184,7 @@ def tiny_tapeout_lead(steps: list) -> bool:
 
 
 def graduated() -> list:
-    """Designs made on Tiny Tapeout chips first and then on wafer.space dies, the longest histories first:
+    """Designs made on Tiny Tapeout chips first and then on wafer.space dies, newest first:
     [{"name", "stages", "url": the latest wafer.space slot's page}]."""
     found = []
     for design in designs():
@@ -197,7 +197,8 @@ def graduated() -> list:
         steps = [s | {"current": False} for s in steps]
         found.append({"name": design["name"], "stages": stages(steps),
                       "url": max(slots, key=lambda s: s["date"])["url"]})
-    return sorted(found, key=lambda d: -len(d["stages"]))
+    # Newest first: by the latest version, then the longer history.
+    return sorted(found, key=lambda d: (d["stages"][-1]["date"], len(d["stages"])), reverse=True)
 
 
 def _size(step: dict) -> str:

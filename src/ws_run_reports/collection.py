@@ -79,12 +79,16 @@ def build(name: str, out: Path) -> Path:
         # As on the die's own page: a milestone with only a rough date ("Early Q4 2026") is still to come.
         reached = [item for item in timeline if milestone_done(item, today)]
         upcoming = [item for item in timeline if not milestone_done(item, today)]
-        entries.append({"run": run, "renders": renders, "stats": stats,
+        shuttle = tinytapeout.load_shuttle(run.repo_dir)
+        made = (shuttle.get("release") or {}).get("date") or shuttle.get("end_date") or ""
+        entries.append({"run": run, "renders": renders, "stats": stats, "made": made,
                         "status": reached[-1] if reached else None, "next": upcoming[0] if upcoming else None,
                         "projects": len(tinytapeout.load_projects(run.repo_dir) or run.projects()),
                         "parent": run.site.get("parent", {}),
                         "chip": run.site.get("tt_chip", ""), "links": tt_chip_links(run.site),
                         "chip_url": tt_chip_links(run.site)["chip_url"]})
+    # Newest first: by when the die's layout was released, then by chip, newest name first (GF 26b before 26a).
+    entries.sort(key=lambda e: (e["made"], e["chip"]), reverse=True)
     coming, other = tt_chips(collection, {entry["chip"] for entry in entries}) if collection.site["kind"] == "tiny-tapeout" else ([], [])
     env = Environment(loader=PackageLoader("ws_run_reports", "templates"),
                       autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
