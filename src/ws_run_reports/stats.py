@@ -447,9 +447,17 @@ class RunStats:
         heights = Counter(c.height_um for (lib, _), c in self.library.items() if lib == library)
         return heights.most_common(1)[0][0] if heights else 0.0
 
-    def reference_cell(self, library: str, pattern: str):
-        """Smallest cell of a library whose type matches a reference pattern."""
+    def reference_cell(self, library: str, pattern: str, whole_library: bool = True):
+        """Smallest cell of a library whose type matches a reference pattern.
+
+        With ``whole_library`` the library's own cells count too (analyze.REFERENCE_BOUNDARIES), not only those
+        this run used, so a maximum is the same on every page (GF 0.1 used buf_2 but the library has buf_1).
+        Cells only from there have no transistor count: ``whole_library=False`` for figures that need one.
+        """
         matches = [c for (lib, ct), c in self.library.items() if lib == library and re.fullmatch(pattern, ct)]
+        if whole_library:
+            used = {c.cell_type for c in matches}
+            matches += [c for c in _library_cells(library) if c.cell_type not in used and re.fullmatch(pattern, c.cell_type)]
         return min(matches, key=lambda c: (c.area_um2, c.cell_type)) if matches else None
 
     def buffer_max(self, library: str) -> float:
@@ -553,6 +561,25 @@ def length_label(um: float, compact: bool = False) -> str:
     if compact:
         return f"{um / 1000:g}mm" if um >= 1000 else f"{um:g}um"
     return f"{um / 1000:g} mm" if um >= 100 else f"{um:g} µm"
+
+
+# Placement boundaries of the libraries' cells (the file analyze.REFERENCE_BOUNDARIES reads), for theoretical maxima
+# from the whole library rather than the cells a run happened to use.
+LIBRARY_CELLS = Path(__file__).parent / "data" / "stdcell_boundaries.csv"
+_library_cell_cache: dict = {}
+
+
+def _library_cells(library: str) -> list:
+    """The cells of ``library`` with their boundaries, as LibCells without transistor counts; [] for a library
+    not in the file. The thin-oxide copies (hfd_sc_) are the foundry's cells under another name."""
+    if not _library_cell_cache:
+        with open(LIBRARY_CELLS, newline="") as f:
+            for r in csv.DictReader(f):
+                w, h = float(r["width_um"]), float(r["height_um"])
+                _library_cell_cache.setdefault(r["library"], []).append(
+                    LibCell(r["library"], r["cell_type"], False, w, h, w, h, 0))
+    base = library[len(THIN_OXIDE):] if library.startswith(THIN_OXIDE) else library
+    return _library_cell_cache.get(base, [])
 
 
 def load(run: Run, out_dir: Path) -> RunStats:

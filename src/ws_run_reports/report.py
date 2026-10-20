@@ -314,7 +314,8 @@ def build_report(stats) -> str:
     for lib in libs:
         rows = []
         for label, _, pattern in REFERENCE_CELLS:
-            cell = stats.reference_cell(lib, pattern)
+            # Transistor counts are measured, so only from the cells this run used.
+            cell = stats.reference_cell(lib, pattern, whole_library=False)
             if cell:
                 rows.append([cell_link(lib, cell.cell_type), f"{cell.width_um:.2f} um", k(cell.per_mm2), cell.transistors,
                              f"{k(cell.transistors_per_mm2)}/mm²"])

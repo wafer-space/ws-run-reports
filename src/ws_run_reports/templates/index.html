@@ -383,9 +383,9 @@
             {% for licence, n in licence_counts %}<tr><td>{{ link(licence, links.spdx(licence)) }}</td><td class="text-end">{{ n }}</td></tr>{% endfor %}
           </tbody>
         </table>
-        {% if licence_issues %}<p class="small text-muted mb-0">Repository licence differs from the declared one, or is
-          missing: {% for code, status in licence_issues %}<a class="run-mono" href="projects/{{ code }}.html">{{ code }}</a>
-          ({{ status }}){{ ", " if not loop.last }}{% endfor %}.</p>{% endif %}
+        {# Which designs' repositories differ is on each design's own page, not listed here. #}
+        {% if licence_issues %}<p class="small text-muted mb-0">Some repositories carry a different licence file from the
+          one declared at submission, or none: check a design's repository, and its page here, before reusing it.</p>{% endif %}
       </div>
       <div class="col-lg-6 mb-30">
         <h3 id="precheck" class="mb-10">Packaging and precheck{{ anchor("precheck") }}</h3>
