@@ -29,10 +29,14 @@ def tables() -> dict:
     return tomllib.loads(DATA.read_text())
 
 
-def html(text, url: str, mono: bool = False) -> Markup:
-    """``text`` as a link to ``url``, or as plain (escaped) text without one."""
+def html(text, url: str, mono: bool = False, cls: str = "") -> Markup:
+    """``text`` as a link to ``url`` (with class ``cls``), or as plain (escaped) text without one."""
     inner = Markup('<span class="run-mono">{}</span>').format(text) if mono else escape(text)
-    return Markup('<a href="{}">{}</a>').format(url, inner) if url else Markup(inner)
+    if not url:
+        return Markup(inner)
+    if cls:
+        return Markup('<a class="{}" href="{}">{}</a>').format(cls, url, inner)
+    return Markup('<a href="{}">{}</a>').format(url, inner)
 
 
 def markdown(text, url: str, code: bool = False) -> str:
