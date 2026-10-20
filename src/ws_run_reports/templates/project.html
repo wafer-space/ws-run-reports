@@ -20,7 +20,10 @@
 
 {% if tt %}
 <div class="wrapper light-wrapper">
-  <div class="container inner run-inner-slim">{{ tiny.upsell(compact=true) }}</div>
+  <div class="container inner run-inner-slim">
+    {{ tiny.upsell(compact=true) }}
+    <div class="mt-20">{{ tiny.independent() }}</div>
+  </div>
 </div>
 {% endif %}
 <div class="wrapper dark-wrapper inverse-text">

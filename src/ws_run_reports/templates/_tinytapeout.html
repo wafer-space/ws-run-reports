@@ -16,15 +16,13 @@
   {{ tt("silicon_proven", "projects proven in silicon") }}, or read the {{ tt("faq", "FAQ") }}.</p>
 {% endmacro %}
 
+{# A footnote, last on every Tiny Tapeout page. #}
 {% macro independent() %}
-<div class="alert alert-secondary">
-  <p class="mb-10"><strong>Tiny Tapeout and wafer.space are independent companies that work together.</strong>
-    Tiny Tapeout runs its own shuttles: it takes the projects, builds the die, and sells and supports the chips and
-    boards. wafer.space has the die manufactured as one of the designs on its GF180MCU runs, and these pages are
-    wafer.space's measurements of it as manufactured.</p>
-  <p class="mb-0">For anything about a Tiny Tapeout project, chip or order, {{ tt("contact", "contact Tiny Tapeout", "alert-link") }}.
-    Tiny Tapeout's {{ tt("partnership", "announcement of the partnership", "alert-link") }} tells how it began.</p>
-</div>
+<p class="small text-muted mb-0">Tiny Tapeout and wafer.space are independent companies that work together
+  ({{ tt("partnership", "announcement") }}). Tiny Tapeout runs its own shuttles: it takes the projects, builds the
+  die, and sells and supports the chips and boards. wafer.space has the die manufactured on its GF180MCU runs, and
+  these pages are wafer.space's measurements of it. For anything about a Tiny Tapeout project, chip or order,
+  {{ tt("contact", "contact Tiny Tapeout") }}.</p>
 {% endmacro %}
 
 {# Where to get and try this chip: its store page, its board at fpgas.online, its page on tinytapeout.com. #}

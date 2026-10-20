@@ -21,7 +21,6 @@
     <div class="row gutter-50">
       <div class="col-lg-7 mb-30">
         {{ tiny.about() }}
-        {{ tiny.independent() }}
       </div>
       <div class="col-lg-5">
         {{ tiny.upsell() }}
@@ -122,6 +121,12 @@
       {% endfor %}
     </div>
   </div>
+</div>
+{% endif %}
+
+{% if tt %}
+<div class="wrapper light-wrapper">
+  <div class="container inner run-inner-slim">{{ tiny.independent() }}</div>
 </div>
 {% endif %}
 {% endblock %}
