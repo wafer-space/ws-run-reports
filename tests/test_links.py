@@ -62,6 +62,7 @@ def test_related_designs_are_well_formed():
     from ws_run_reports import related
     for design in related.designs():
         assert design["name"] and (design["wafer_space"] or design["tiny_tapeout"])
-        for key in design["wafer_space"] + design["tiny_tapeout"]:
+        keys = design["wafer_space"] + design["other_shuttles"] + design["tiny_tapeout"]
+        for key in keys:
             assert key.count("/") == 1 and all(key.split("/")), key
-        assert set(design["notes"]) <= set(design["wafer_space"] + design["tiny_tapeout"])
+        assert set(design["notes"]) <= set(keys)

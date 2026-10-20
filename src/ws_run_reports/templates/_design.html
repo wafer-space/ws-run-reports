@@ -299,19 +299,32 @@
     {% set rel = related(design) %}
     {% if rel %}
     <h3 id="{{ idp }}related" class="mt-20 mb-10">Related tapeouts{{ anchor(idp ~ "related") }}</h3>
-    <p class="mb-20">{{ rel.name }}{% if rel.here %} ({{ rel.here }}){% endif %} has also been made
-      {%- if rel.wafer_space %} on {{ "another wafer.space slot" if rel.wafer_space | length == 1 else rel.wafer_space | length ~ " other wafer.space slots" }}{% endif %}
-      {%- if rel.wafer_space and rel.tiny_tapeout %} and{% endif %}
-      {%- if rel.tiny_tapeout %} on {{ "a Tiny Tapeout chip" if rel.tiny_tapeout | length == 1 else rel.tiny_tapeout | length ~ " Tiny Tapeout chips" }}{% endif %}.</p>
+    {% set made = [] %}
+    {% if rel.wafer_space %}{% set _ = made.append("another wafer.space slot" if rel.wafer_space | length == 1 else rel.wafer_space | length ~ " other wafer.space slots") %}{% endif %}
+    {% if rel.other_shuttles %}{% set _ = made.append("a Google shuttle" if rel.other_shuttles | length == 1 else rel.other_shuttles | length ~ " Google shuttle slots") %}{% endif %}
+    {% set chips = rel.tiny_tapeout | map(attribute="chip") | unique | list | length %}
+    {% if chips %}{% set _ = made.append("a Tiny Tapeout chip" if chips == 1 else chips ~ " Tiny Tapeout chips") %}{% endif %}
+    <p class="mb-20">{{ rel.name }}{% if rel.here %} ({{ rel.here }}){% endif %} has also been made on
+      {{ made[:-1] | join(", ") ~ " and " ~ made[-1] if made | length > 1 else made[0] }}.</p>
     <div class="row gutter-50">
-      {% if rel.wafer_space %}
+      {% if rel.wafer_space or rel.other_shuttles %}
       <div class="col-md-6 mb-20">
+        {% if rel.wafer_space %}
         <h4 class="mb-10">On wafer.space runs</h4>
         <ul class="run-related">
           {% for s in rel.wafer_space %}<li><a href="{{ s.url }}"><strong>{{ s.code }}</strong> {{ s.name }}</a>
             <span class="text-muted">— {{ runs_linked(s.run) }}{% if s.slot %}, {{ s.slot | replace("p", ".") }} slot{% endif %}{% if s.note %}, {{ s.note }}{% endif %}</span></li>
           {% endfor %}
         </ul>
+        {% endif %}
+        {% if rel.other_shuttles %}
+        <h4 class="mb-10{{ ' mt-20' if rel.wafer_space }}">On Google GF180MCU shuttles</h4>
+        <ul class="run-related">
+          {% for s in rel.other_shuttles %}<li><a href="{{ s.url }}"><strong>{{ s.code }}</strong> {{ s.name }}</a>
+            <span class="text-muted">— {{ runs_linked(s.run) }}{% if s.note %}, {{ s.note }}{% endif %}</span></li>
+          {% endfor %}
+        </ul>
+        {% endif %}
       </div>
       {% endif %}
       {% if rel.tiny_tapeout %}

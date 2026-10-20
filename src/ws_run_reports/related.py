@@ -22,7 +22,7 @@ DESIGNS = config.RUNS_DIR / "related" / "designs.toml"
 def designs() -> list[dict]:
     if not DESIGNS.exists():
         return []
-    return [{"notes": {}, "wafer_space": [], "tiny_tapeout": [], **d}
+    return [{"notes": {}, "wafer_space": [], "other_shuttles": [], "tiny_tapeout": [], **d}
             for d in tomllib.loads(DESIGNS.read_text()).get("design", [])]
 
 
@@ -91,12 +91,12 @@ def for_slot(run, project) -> dict | None:
     """The related tapeouts of ``project`` on ``run``, or None when it has none.
 
     {"name", "started_on_tiny_tapeout", "here": this slot's note, "wafer_space": [other slots],
-    "tiny_tapeout": [Tiny Tapeout projects other than this one]}
+    "other_shuttles": [slots on the Google shuttles], "tiny_tapeout": [Tiny Tapeout projects other than this one]}
     """
     kind, key = _key(run, project)
-    design = next((d for d in designs() if key in d[kind]), None)
+    design = next((d for d in designs() if key in d[kind] or key in d["other_shuttles"]), None)
     if design is None:
-        design = {"name": project.name, "notes": {}, "wafer_space": [], "tiny_tapeout": []}
+        design = {"name": project.name, "notes": {}, "wafer_space": [], "other_shuttles": [], "tiny_tapeout": []}
     keys = list(design["wafer_space"])
     # Slots with the same repository on other wafer.space runs.
     repo = https_url(project.repository) if kind == "wafer_space" else ""
@@ -104,10 +104,12 @@ def for_slot(run, project) -> dict | None:
         for name, other in _runs().items():
             if other.name != run.name and other.site.get("kind") != "tiny-tapeout":
                 keys += [f"{name}/{p.code}" for p in _projects(name).values()
-                         if https_url(p.repository) == repo and f"{name}/{p.code}" not in keys]
+                         if https_url(p.repository) == repo and f"{name}/{p.code}" not in keys
+                         and f"{name}/{p.code}" not in design["other_shuttles"]]
     slots = [s for s in (_slot(k, design) for k in keys if k != key) if s]
+    others = [s for s in (_slot(k, design) for k in design["other_shuttles"] if k != key) if s]
     tt = [_tt(k, design) for k in design["tiny_tapeout"] if k != key]
-    if not slots and not tt:
+    if not slots and not others and not tt:
         return None
     return {"name": design["name"], "started_on_tiny_tapeout": design.get("started_on_tiny_tapeout", False),
-            "here": design["notes"].get(key, ""), "wafer_space": slots, "tiny_tapeout": tt}
+            "here": design["notes"].get(key, ""), "wafer_space": slots, "other_shuttles": others, "tiny_tapeout": tt}

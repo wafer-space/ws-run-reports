@@ -5,6 +5,9 @@
 #   wafer_space   "<run>/<code>" of each slot, as in runs/<run>.toml and its manifest
 #   tiny_tapeout  "<chip>/<macro>" of each Tiny Tapeout project (the chip as on tinytapeout.com/chips, the
 #                 project's tt_um_ macro); its title and author come from index.tinytapeout.com
+#   other_shuttles
+#                 "<run>/<code>" of slots on other shuttles these pages measure (the Google GF180MCU
+#                 shuttles), usually the design's earlier versions
 #   notes         a few words on how one of them differs, by the same key
 #   started_on_tiny_tapeout
 #                 true when the design was on Tiny Tapeout chips before it had a wafer.space slot
@@ -18,7 +21,8 @@ name = "KianV RISC-V Linux SoC"
 started_on_tiny_tapeout = true
 wafer_space = ["ws-run1/KIAN", "ws-run2/KIAN"]
 tiny_tapeout = ["tt05/tt_um_kianV_rv32ima_uLinux_SoC", "tt06/tt_um_kianV_rv32ima_uLinux_SoC",
-                "tt07/tt_um_kianv_bare_metal", "ttihp0p2/tt_um_kianv_bare_metal", "ttihp26a/tt_um_kianv_sv32_soc"]
+                "tt07/tt_um_kianv_bare_metal", "ttihp0p2/tt_um_kianv_bare_metal", "ttgf0p2/tt_um_kianV_rv32ima_uLinux_SoC",
+                "ttgf0p3/tt_um_kianV_rv32ima_uLinux_SoC", "ttihp26a/tt_um_kianv_sv32_soc"]
 [design.notes]
 "ws-run1/KIAN" = "5 V standard cells and SRAM"
 "ws-run2/KIAN" = "3.3 V standard cells and SRAM"
@@ -31,9 +35,42 @@ started_on_tiny_tapeout = true
 wafer_space = ["ws-run1/TQVA", "ws-run1/TQVB", "ws-run1/TQVC", "ws-run2/TQVA", "ws-run2/TQVC", "ws-run2/TQVD",
                "ws-run2/TQVE"]
 tiny_tapeout = ["tt06/tt_um_MichaelBell_tinyQV", "ttihp0p2/tt_um_MichaelBell_tinyQV", "ttihp25a/tt_um_MichaelBell_tinyQV",
-                "ttgf0p2/tt_um_MichaelBell_tinyQV", "ttihp25b/tt_um_tt_tinyQV"]
+                "ttsky25a/tt_um_tt_tinyQV", "ttsky25a/tt_um_tt_tinyQVb", "ttgf0p2/tt_um_MichaelBell_tinyQV",
+                "ttihp25b/tt_um_tt_tinyQV", "ttsky25b/tt_um_MichaelBell_tinyQV", "ttgf0p3/tt_um_MichaelBell_tinyQV"]
 [design.notes]
+"ttsky25a/tt_um_tt_tinyQV" = "'Asteroids', with crowdsourced peripherals"
+"ttsky25a/tt_um_tt_tinyQVb" = "'Berzerk', with crowdsourced peripherals"
 "ttihp25b/tt_um_tt_tinyQV" = "with the peripherals of Tiny Tapeout's RISC-V competition"
+"ws-run2/TQVD" = "3.3 V standard cells and SRAM, HDMI output"
+"ws-run2/TQVE" = "3.3 V, with an experimental pad setup"
+
+[[design]]
+name = "SERV multi-core RISC-V SoC"
+started_on_tiny_tapeout = true
+wafer_space = ["ws-run1/GD02", "ws-run1/GD03", "ws-run1/GD04", "ws-run2/GD04"]
+other_shuttles = ["google-gf180mcu-mpw0/6079"]
+tiny_tapeout = ["tt02/gregdavill_serv_top", "tt03/gregdavill_serv_top"]
+[design.notes]
+"tt02/gregdavill_serv_top" = "one SERV core"
+"tt03/gregdavill_serv_top" = "one SERV core"
+"google-gf180mcu-mpw0/6079" = "three SERV cores"
+"ws-run1/GD03" = "23 SERV cores"
+
+[[design]]
+name = "Avalon Semiconductors' retro-computing family"
+started_on_tiny_tapeout = true
+wafer_space = ["ws-run1/AS03", "ws-run2/AS04"]
+other_shuttles = ["google-gf180mcu-mpw0/105A"]
+tiny_tapeout = ["tt02/tholin_avalonsemi_5401", "tt02/tholin_avalonsemi_tbb1143", "tt03/tholin_avalonsemi_5401",
+                "tt03/tholin_avalonsemi_tbb1143"]
+[design.notes]
+"tt02/tholin_avalonsemi_5401" = "a 4-bit microprocessor"
+"tt03/tholin_avalonsemi_5401" = "a 4-bit microprocessor"
+"tt02/tholin_avalonsemi_tbb1143" = "a programmable sound generator"
+"tt03/tholin_avalonsemi_tbb1143" = "a programmable sound generator"
+"google-gf180mcu-mpw0/105A" = "a Signetics 2650 8-bit CPU replica"
+"ws-run1/AS03" = "a multi-project die: 6502 and SID replicas, an RV32IMA core, a DRAM controller and more"
+"ws-run2/AS04" = "the multi-project die again, on 3.3 V standard cells"
 
 [[design]]
 name = "Open-source Z80"
