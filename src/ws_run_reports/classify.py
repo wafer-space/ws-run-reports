@@ -18,6 +18,8 @@ import re
 # Order matters: the first match wins, so the specific rules come first and
 # the broad ones ("risc-v", "soc") come last.
 RULES = [
+    # Before "Multi-project die": Tiny Tapeout's own factory test project is named after Tiny Tapeout.
+    ("Test structures", r"factory test"),
     ("Multi-project die", r"tiny ?tapeout|multi[- ]?project|multiple (users|projects)|\bprojects from\b"),
     ("Art and logos", r"\blogo\b|artwork|\bmeme\b"),
     ("FPGA", r"\bfpga\b|fabulous"),
@@ -37,7 +39,8 @@ FALLBACK_CUSTOM = "Analog and mixed-signal"
 FALLBACK_UNKNOWN = "Uncategorised"
 
 # Order used when listing categories that have the same number of projects.
-CATEGORY_ORDER = [category for category, _ in RULES] + [FALLBACK_DIGITAL, FALLBACK_UNKNOWN]
+# A category with more than one rule keeps the place of its last one.
+CATEGORY_ORDER = list(reversed(dict.fromkeys(reversed([category for category, _ in RULES])))) + [FALLBACK_DIGITAL, FALLBACK_UNKNOWN]
 
 # One-word page anchors for the categories, so links to them survive a rewording of the name.
 CATEGORY_IDS = {

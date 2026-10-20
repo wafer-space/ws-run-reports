@@ -159,8 +159,9 @@ def for_slot(run, project) -> dict | None:
         return None
     this = _tt(key, design) if kind == "tiny_tapeout" else _slot(key, design)
     steps = [s | {"current": s is this} for s in [this] + others + tt + slots if s]
-    # Undated steps last; a run's slots stay in their listed order.
-    steps.sort(key=lambda s: s["date"] or "9999")
+    # Undated steps last; versions handed in the same day by shuttle name (GF 0.1 before GF 0.2); a run's slots
+    # keep their listed order (the sort is stable).
+    steps.sort(key=lambda s: (s["date"] or "9999", s.get("shuttle") or s.get("run", "")))
     return {"name": design["name"], "started_on_tiny_tapeout": design.get("started_on_tiny_tapeout", False),
             "tiny_tapeout_lead": tiny_tapeout_lead(steps),
             "here": design["notes"].get(key, ""), "wafer_space": slots, "other_shuttles": others, "tiny_tapeout": tt,
@@ -192,7 +193,7 @@ def graduated() -> list:
             continue
         others = [s for s in (_slot(k, design) for k in design["other_shuttles"]) if s]
         steps = sorted(others + [_tt(k, design) for k in design["tiny_tapeout"]] + slots,
-                       key=lambda s: s["date"] or "9999")
+                       key=lambda s: (s["date"] or "9999", s.get("shuttle") or s.get("run", "")))
         steps = [s | {"current": False} for s in steps]
         found.append({"name": design["name"], "stages": stages(steps),
                       "url": max(slots, key=lambda s: s["date"])["url"]})

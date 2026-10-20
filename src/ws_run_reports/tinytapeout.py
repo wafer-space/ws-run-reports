@@ -258,3 +258,13 @@ def next_shuttles(rows: list[dict]) -> list[dict]:
     return [{"name": chip_name(row["run"]), "chip": row["chip"], "url": row.get("url", ""),
              "closes": display_date(row["closes"]), "closes_iso": row["closes"],
              "ws_run": links.run_alias(row.get("shuttle", ""))} for row in open_rows]
+
+
+def shuttle_names(shuttles: list[dict]) -> str:
+    """The chips' names in one phrase, the shared part said once: 'Tiny Tapeout GF 26c and 26d'."""
+    names = [s["name"] for s in shuttles]
+    if len(names) < 2:
+        return names[0] if names else ""
+    prefix = names[0].rsplit(" ", 1)[0] + " "
+    rest = [n[len(prefix):] if n.startswith(prefix) else n for n in names[1:]]
+    return ", ".join([names[0]] + rest[:-1]) + " and " + rest[-1]

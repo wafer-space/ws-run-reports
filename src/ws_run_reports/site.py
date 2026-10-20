@@ -429,6 +429,9 @@ def build_context(run, out_dir: Path) -> dict:
         "windowed": report.windowed(stats),
         "core_area_text": (f"Core area is the area of each die's {stats.meta['core_cell']} cell."
                            if stats.meta.get("core_cell") else
+                           # [measure] pad_ring_um = 0: a Tiny Tapeout project or block is all core.
+                           f"Core area is the whole {TERMS['tiny-tapeout']['die'] if not run.site.get('terms') else run.site['terms']['die']}."
+                           if run.measure.get("pad_ring_um") == 0 else
                            f"Core area is the die minus a {stats_module.PAD_RING_MM * 1000:.0f} µm pad ring on each side."),
     }
 
@@ -515,7 +518,8 @@ def build_site(run, out_dir: Path) -> Path:
     env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id,
                        runs_linked=links.runs_linked)
     # Where a reader goes next: the Tiny Tapeout GF180MCU chips taking projects, and the wafer.space run taking orders.
-    env.globals.update(next_tt=tinytapeout.next_shuttles(external.tt_chips()), next_ws=external.next_run())
+    next_tt = tinytapeout.next_shuttles(external.tt_chips())
+    env.globals.update(next_tt=next_tt, next_tt_names=tinytapeout.shuttle_names(next_tt), next_ws=external.next_run())
 
     # The data behind the page, so every figure on it can be checked.
     data_dir = site_dir / "data"

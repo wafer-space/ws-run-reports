@@ -98,10 +98,10 @@
             <div class="widget">
               <h5 class="widget-title">{{ run.short_title }}</h5>
               <ul class="list-unstyled mb-0">
-                <li><a href="{{ root }}index.html">Run overview</a></li>
+                <li><a href="{{ root }}index.html">{{ 'All Tiny Tapeout chips' if collection is defined else ('Chip overview' if tt else 'Run overview') }}</a></li>
                 <li><a href="{{ run.source_url }}">Layout and manifest on GitHub</a></li>
                 <li><a href="{{ run.report_url }}">Density report</a></li>
-                {% if run.site.campaign_url %}<li><a href="{{ run.site.campaign_url }}">Campaign page</a></li>{% endif %}
+                {% if run.site.campaign_url %}<li><a href="{{ run.site.campaign_url }}">The run on Crowd Supply</a></li>{% endif %}
               </ul>
             </div>
           </div>
@@ -109,8 +109,9 @@
             <div class="widget">
               <h5 class="widget-title">About this page</h5>
               <p class="small mb-0">Generated on {{ generated }} by
-                <a href="https://github.com/wafer-space/ws-run-reports">ws-run-reports</a> from the public reticle
-                layout. Every figure is measured from the layout; the data files are linked from the overview.</p>
+                <a href="https://github.com/wafer-space/ws-run-reports">ws-run-reports</a>. Sizes, cells and
+                transistors are measured from the public layout; dates come from the published schedules. The data
+                files are linked from the overview.</p>
             </div>
           </div>
         </div>

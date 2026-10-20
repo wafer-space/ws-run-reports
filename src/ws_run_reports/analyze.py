@@ -45,6 +45,7 @@ DEFAULT_STDCELL_PREFIXES = ("gf180mcu_fd_sc_", "gf180mcu_as_sc_", "gf180mcu_as_e
 # not logic. These are inserted by automated tools for manufacturing rules.
 FILL_CELL_PREFIXES = (
     "fill", "endcap", "filltie", "fillcap",  # gap fillers
+    "decap",                                   # decoupling capacitors (Avalon Semiconductors' name for fillcap)
     "tap",                                     # well tap (latch-up prevention)
     "antenna",                                 # antenna rule fix diodes
     "diode",                                   # ESD/antenna diodes

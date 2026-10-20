@@ -93,6 +93,7 @@ def build(name: str, out: Path) -> Path:
     env.globals.update(static_version=digest.hexdigest()[:10], links=links, link=links.html,
                        anchor=site_module._anchor, runs_linked=links.runs_linked,
                        next_tt=tinytapeout.next_shuttles(external.tt_chips()), next_ws=external.next_run(),
+                       next_tt_names=tinytapeout.shuttle_names(tinytapeout.next_shuttles(external.tt_chips())),
                        tiny_name=tinytapeout.chip_name)
     site_dir = out / name / "site"
     site_dir.mkdir(parents=True, exist_ok=True)

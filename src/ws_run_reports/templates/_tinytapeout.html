@@ -84,7 +84,7 @@
     {{ _blob("pencil", "purple", n) }}
     <h5>{{ "Put your design on the next one" if n else "Or start with a Tiny Tapeout tile" }}</h5>
     {% if next_tt %}
-    <p>{{ names[:-1] | join(", ") ~ " and " ~ names[-1] if names | length > 1 else names[0] }} take projects until
+    <p>{{ next_tt_names }} take projects until
       <strong>{{ next_tt[0].closes }}</strong>{% if next_tt[0].ws_run %}, to be made on {{ runs_linked(next_tt[0].ws_run) }}{% endif %}.</p>
     <a class="btn btn-s" href="{{ next_tt[0].url or links.tinytapeout('create') }}">Submit a project</a>
     {% else %}
@@ -158,25 +158,25 @@
   project's size on the Tiny Tapeout chip it first came from.</p>
 <div class="table-responsive">
 <table class="table run-table run-netlist">
-  <thead><tr><th>Address</th><th>Project</th><th>Author</th><th class="text-end">Original tiles</th>
-    <th class="text-end">Logic cells</th><th class="text-end">Flip-flops</th><th class="run-netlist-bar">Share of the block</th></tr></thead>
+  <thead><tr><th>Address</th><th>Project</th><th class="d-none d-md-table-cell">Author</th><th class="text-end d-none d-md-table-cell">Original tiles</th>
+    <th class="text-end">Logic cells</th><th class="text-end d-none d-md-table-cell">Flip-flops</th><th class="run-netlist-bar">Share of the block</th></tr></thead>
   <tbody>
   {% for p in rows %}
   {% set n = p.LOGIC_CELLS | int %}
   <tr id="p{{ p.CODE }}">
     <td class="run-mono">{{ p.CODE }}</td>
     <td>{% if p.REPOSITORY %}<a href="{{ p.REPOSITORY }}">{{ p.PROJECT }}</a>{% else %}{{ p.PROJECT }}{% endif %}</td>
-    <td>{{ p.AUTHOR }}</td>
-    <td class="text-end">{{ p.ORIGINAL_TILES | replace("x", "×") }}</td>
-    <td class="text-end">{{ '{:,}'.format(n) if p.LOGIC_CELLS else "counted below" }}</td>
-    <td class="text-end">{{ '{:,}'.format(p.FLIP_FLOPS | int) if p.LOGIC_CELLS else "" }}</td>
+    <td class="d-none d-md-table-cell">{{ p.AUTHOR }}</td>
+    <td class="text-end d-none d-md-table-cell">{{ p.ORIGINAL_TILES | replace("x", "×") }}</td>
+    <td class="text-end run-nowrap">{{ '{:,}'.format(n) if p.LOGIC_CELLS else "in the shared logic" }}</td>
+    <td class="text-end d-none d-md-table-cell">{{ '{:,}'.format(p.FLIP_FLOPS | int) if p.LOGIC_CELLS else "" }}</td>
     <td class="run-netlist-bar">{% if n %}<span style="width: {{ '%.1f' | format(70 * n / largest) }}%"></span>
       <small class="text-muted">{{ '%.1f' | format(100 * n / total) }}%</small>{% endif %}</td>
   </tr>
   {% endfor %}
   {% set s = shared.LOGIC_CELLS | int %}
-  <tr class="text-muted"><td></td><td>The multiplexer and controller, with Chip ROM and the MULDIV unit</td><td></td><td></td>
-    <td class="text-end">{{ '{:,}'.format(s) }}</td><td class="text-end">{{ shared.FLIP_FLOPS }}</td>
+  <tr class="text-muted"><td></td><td>The multiplexer and controller, with Chip ROM and the MULDIV unit</td><td class="d-none d-md-table-cell"></td><td class="d-none d-md-table-cell"></td>
+    <td class="text-end">{{ '{:,}'.format(s) }}</td><td class="text-end d-none d-md-table-cell">{{ shared.FLIP_FLOPS }}</td>
     <td class="run-netlist-bar"><span style="width: {{ '%.1f' | format(70 * s / largest) }}%"></span>
       <small class="text-muted">{{ '%.1f' | format(100 * s / total) }}%</small></td></tr>
   </tbody>

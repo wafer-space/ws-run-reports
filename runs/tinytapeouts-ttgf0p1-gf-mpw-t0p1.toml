@@ -41,7 +41,7 @@ reticle_px_per_mm = 400
 reticle_background = true
 
 [categories]
-MAIN = "Multi-project die"
+MAIN = "Shared project block"
 CEL0 = "Test structures"
 CEL1 = "Test structures"
 CEL2 = "Test structures"

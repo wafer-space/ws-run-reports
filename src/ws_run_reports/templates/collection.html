@@ -11,7 +11,8 @@
      data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
   <div class="container inner text-center">
     <h1 class="page-title">{{ collection.heading[0] }}{% for line in collection.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
-    <p class="lead">{{ chips | length }} chips · {{ chips | sum(attribute="projects") }} projects</p>
+    {% set editions = entries | length - chips | length %}
+    <p class="lead">{{ chips | length }} chips{% if editions %} (one of them in two editions){% endif %} · {{ chips | sum(attribute="projects") }} projects</p>
     {% if tt %}
     <p class="mb-0 run-hero-actions">
       {% if next_tt %}<a class="btn btn-s" href="{{ next_tt[0].url }}">Submit your design by {{ next_tt[0].closes }}</a>{% endif %}
@@ -67,13 +68,13 @@
     <h3 class="mt-20 mb-15 text-center">Planned</h3>
     <div class="table-responsive run-planned">
     <table class="table run-table bg-white">
-      <thead><tr><th>Chip</th><th>Projects close</th><th>Shipping</th><th>Made on</th></tr></thead>
+      <thead><tr><th>Chip</th><th>Projects close</th><th>Shipping</th><th class="d-none d-md-table-cell">Made on</th></tr></thead>
       <tbody>
       {% for c in planned %}
-      <tr><td>{{ link(tiny_name(c.run), c.url) }}</td>
+      <tr><td class="run-nowrap">{{ link(tiny_name(c.run), c.url) }}</td>
         <td>{{ c.dates.closes or c.dates["submission deadline"] }}{% if c.section == "future" %} <span class="text-muted">(estimated)</span>{% endif %}</td>
         <td>{{ c.dates["estimated shipping date"] or c.dates["chips expected"] }}</td>
-        <td>{% if c.ws_run %}{{ runs_linked(c.ws_run) }}{% else %}<span class="text-muted">not yet announced</span>{% endif %}</td></tr>
+        <td class="d-none d-md-table-cell">{% if c.ws_run %}{{ runs_linked(c.ws_run) }}{% else %}<span class="text-muted">not yet announced</span>{% endif %}</td></tr>
       {% endfor %}
       </tbody>
     </table>
