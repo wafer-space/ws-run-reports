@@ -37,6 +37,9 @@
 
         {% if design.features or design.voltages %}
         <h4 id="{{ idp }}features" class="mt-30 mb-10">Process features{{ anchor(idp ~ "features") }}</h4>
+        <p class="small text-muted mb-10">Which parts of the GF180MCU process this design uses: its transistor
+          voltages and where they come from, its gate oxides, and any devices drawn by hand outside the standard cells,
+          SRAM and pads.</p>
         <table class="table table-sm run-table run-facts">
           <tbody>
             {% for volts, sources in design.voltages.items() %}
@@ -55,7 +58,6 @@
             {% endif %}
           </tbody>
         </table>
-        <p class="small text-muted">Devices the designer drew, outside standard cells, SRAM macros and pads.</p>
         {% endif %}
 
         {% if design.logic_cells %}
@@ -335,14 +337,18 @@
       <p>Tiny Tapeout puts many small designs on one chip, so trying out a block costs a fraction of a whole die.
         It is a cheap and easy way to get a first design made, or to test one piece of a bigger one.</p>
       {% endif %}
-      <p class="mb-0"><a class="btn btn-default btn-sm mb-5" href="{{ links.tinytapeout('home') }}">Get started at tinytapeout.com</a>
-        <a class="btn btn-outline-primary btn-sm mb-5" href="{{ website }}/tinytapeouts/">Tiny Tapeout chips on wafer.space</a></p>
+      <p class="mb-0"><a class="btn btn-s mb-5 me-10" href="{{ next_tt[0].url if next_tt else links.tinytapeout('home') }}">{% if next_tt %}Submit
+        to the next Tiny Tapeout chip, by {{ next_tt[0].closes }}{% else %}Start your first chip with Tiny Tapeout{% endif %}</a>
+        <a class="alert-link" href="{{ website }}/tinytapeouts/">Tiny Tapeout chips on wafer.space</a></p>
     </div>
     {% elif tt and rel.wafer_space %}
+    {% set runs = rel.wafer_space | map(attribute="run") | unique | list %}
     <div class="alert alert-primary">
       <h4 class="alert-heading mb-10">From a Tiny Tapeout tile to a whole die</h4>
-      <p class="mb-0">{{ rel.name }} went on to a slot of its own on a wafer.space run. When a design outgrows its
-        tiles, a whole die on a <a class="alert-link" href="{{ website }}/">wafer.space</a> run is the next step.</p>
+      <p>{{ rel.name }} started as a few tiles on Tiny Tapeout and went on to {{ 'a die' if rel.wafer_space | length == 1 else 'dies' }}
+        of its own on {{ runs_linked(runs[:-1] | join(", ") ~ " and " ~ runs[-1] if runs | length > 1 else runs[0]) }}. When your
+        design outgrows its tiles, a whole die on a wafer.space run is the next step.</p>
+      {% if next_ws %}<p class="mb-0"><a class="btn btn-s" href="{{ next_ws.url }}">Reserve a slot on {{ next_ws.name }}</a></p>{% endif %}
     </div>
     {% endif %}
     {% endif %}
@@ -409,9 +415,21 @@
 <div id="{{ idp }}precheck" class="wrapper {{ 'light-wrapper' if previous_gray else 'gray-wrapper' }}">
   <div class="container inner">
     <h2 class="section-title mb-10 text-center">Precheck{{ anchor(idp ~ "precheck") }}</h2>
-    <p class="lead text-center mb-30">The platform precheck {{ design.code }} was accepted on{% if table.columns | length > 1 %}, and its latest re-run{% endif %}</p>
+    <p class="lead text-center mb-30 run-measure">Before a design is made, the wafer.space platform checks it against
+      the foundry's design rules. {{ design.code }} was accepted on this check{% if table.columns | length > 1 %}, and
+      has been checked again since with newer rules{% endif %}.</p>
+    {# The result in one line; the step-by-step table opens below it, already open when something did not pass. #}
+    {% set pc = namespace(steps=0, passed=0) %}
+    {% for step, results in table.rows %}{% if results[0] is not none %}{% set pc.steps = pc.steps + 1 %}
+      {% if results[0] == "passed" or (results[0] == "warning" and step == "Checker.MagicDRC") %}{% set pc.passed = pc.passed + 1 %}{% endif %}{% endif %}{% endfor %}
+    {% set accepted = table.columns[0][1] %}
     <div class="row">
       <div class="col-lg-10 offset-lg-1">
+        <p class="text-center mb-20 run-precheck-result{{ ' ok' if pc.passed == pc.steps }}"><strong>{% if pc.passed == pc.steps %}All {{ pc.steps }}
+          steps passed{% else %}{{ pc.passed }} of {{ pc.steps }} steps passed{% endif %}</strong>{% if accepted.details %}, with
+          {{ accepted.klayout_drc_errors }} KLayout DRC errors{% endif %}, on {{ accepted.created_at[:10] }}.</p>
+        <details class="run-more"{{ ' open' if pc.passed != pc.steps }}>
+        <summary>Every step{% if table.columns | length > 1 %}, and the latest re-run{% endif %}</summary>
         <div class="table-responsive">
         <table class="table table-sm run-table run-precheck bg-white">
           <thead><tr><th>Step</th>{% for label, check in table.columns %}<th>{{ label }}<br>
@@ -430,6 +448,7 @@
           </tbody>
         </table>
         </div>
+        </details>
         <p class="small text-muted">The steps of the {{ link("gf180mcu-precheck", links.precheck("")) }} {{ link("LibreLane", links.tool("LibreLane")) }}
           flow, as run by {{ link("platform.wafer.space", links.site("platform.wafer.space")) }}. The
           design was accepted on the newest finished check before it was submitted; later re-runs check the same file with

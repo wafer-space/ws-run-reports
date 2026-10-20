@@ -304,6 +304,9 @@ def build_context(run, out_dir: Path) -> dict:
         # each marked with who owns the step.
         for item in timeline:
             item["owner"] = "wafer.space"
+            # The run's slot sales are for whole dies: say so, so a Tiny Tapeout buyer does not think they apply.
+            if CAMPAIGN_RE.search(item["title"]) and "deadline" in item["title"].lower():
+                item["description"] = f"{item['description']}, for whole-die slots on the run (not Tiny Tapeout projects)"
         timeline = sorted(timeline + tinytapeout.timeline_items(tinytapeout.load_shuttle(run.repo_dir)),
                           key=lambda item: item["date"])
     cob = external.cob_pages(run)

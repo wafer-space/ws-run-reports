@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% import "_tinytapeout.html" as tiny with context %}
 {% set short_title = run.short_title %}
+{# Long lists show this many rows; the rest open under "Show all". #}
+{% set SHOWN = 12 %}
 {% block title %}{{ short_title }} — wafer.space{% endblock %}
 
 {% macro stat(value, label, note='') %}
@@ -152,7 +154,11 @@
       </div>
       <div class="col-lg-4">
         {% if slot_types %}
-        <h2 id="slots" class="section-title mb-20">{{ words.Slots }}{{ anchor("slots") }}</h2>
+        <h2 id="slots" class="section-title mb-10">{{ words.Slots }}{{ anchor("slots") }}</h2>
+        <p class="small text-muted mb-15">{% if netlist_projects %}The blocks on the die, by size.{% elif tt %}How many
+          tiles each project took. A tile is the smallest piece of a Tiny Tapeout chip you can submit a design to.{% else %}How
+          much of the reticle each design took: a 1 × 1 slot is a whole die of its own, and the ½ sizes are halves
+          and quarters of one.{% endif %}</p>
         <table class="table table-sm run-table bg-white mb-30">
           <tbody>
             {% for row in slot_types %}<tr><td>{{ row.label }}{% if tt and words.slot %} {{ words.slot }}{% endif %}</td><td class="text-end">{{ row.dies }}</td></tr>{% endfor %}
@@ -184,6 +190,8 @@
           {% if not marker.shown %}<li class="run-today"><span class="run-today-rocket" aria-hidden="true"></span>
             <span class="run-timeline-date">Today, {{ today.display }}</span></li>{% endif %}
         </ul>
+        {% if tt and next_tt %}<p class="small mb-10"><strong>Missed this one?</strong> {{ next_tt | map(attribute="name") | join(" and ") }}
+          take projects until {{ next_tt[0].closes }}: <a href="{{ next_tt[0].url }}">submit a project</a>.</p>{% endif %}
         {% if run.site.timeline_source %}
         <p class="small text-muted mb-0">From {% if run.site.timeline_source_url %}<a href="{{ run.site.timeline_source_url }}">{{ run.site.timeline_source }}</a>{% else %}{{ run.site.timeline_source }}{% endif %}.</p>
         {% elif not run.site.runs_yml_key and tt and tt.repo %}
@@ -228,7 +236,8 @@
 
     <div class="row gutter-50">
       <div class="col-lg-6 mb-30">
-        <h3 id="categories" class="mb-20">What people built{{ anchor("categories") }}</h3>
+        <h3 id="categories" class="mb-10">What people built{{ anchor("categories") }}</h3>
+        <p class="small text-muted mb-20">The kinds of design on this {{ 'chip' if tt else 'run' }}.</p>
         {% for name, group in categories %}
         <a class="run-category" href="#{{ category_id(name) }}">
           <span class="run-category-name">{{ name }}</span>
@@ -238,7 +247,9 @@
         {% endfor %}
       </div>
       <div class="col-lg-6 mb-30">
-        <h3 id="libraries" class="mb-20">Standard cell libraries{{ anchor("libraries") }}</h3>
+        <h3 id="libraries" class="mb-10">Standard cell libraries{{ anchor("libraries") }}</h3>
+        <p class="small text-muted mb-20">The ready-made gate libraries the designs were built from: how many tracks
+          tall each cell is, and the voltage it runs at.</p>
         <table class="table table-sm run-table mb-0">
           <thead><tr><th>Standard cell library</th><th class="text-end">Logic cells</th><th class="text-end">Share</th></tr></thead>
           <tbody>
@@ -254,8 +265,8 @@
 
     <h3 id="area" class="mb-10">Area budget of every design{{ anchor("area") }}</h3>
     <p class="text-muted small mb-20">Each bar is one {{ words.die }}, split the same way as above. Sorted by how much of the {{ words.die }} is logic.</p>
-    <div class="run-rows">
-      {% for d in stats.designs | sort(attribute='utilisation', reverse=true) %}
+    {% set rows = stats.designs | sort(attribute='utilisation', reverse=true) | list %}
+    {% macro area_row(d) %}
       <a class="run-row" href="projects/{{ d.code }}.html">
         <span class="run-row-label"><strong>{{ d.code }}</strong> <span class="text-muted">{{ d.name }}</span></span>
         <span class="run-bar">
@@ -265,8 +276,16 @@
           {% endfor %}
         </span>
       </a>
-      {% endfor %}
+    {% endmacro %}
+    <div class="run-rows">
+      {% for d in rows[:SHOWN] %}{{ area_row(d) }}{% endfor %}
     </div>
+    {% if rows | length > SHOWN %}
+    <details class="run-more">
+      <summary>Show all {{ rows | length }} {{ words.dies }}</summary>
+      <div class="run-rows">{% for d in rows[SHOWN:] %}{{ area_row(d) }}{% endfor %}</div>
+    </details>
+    {% endif %}
   </div>
 </div>
 
@@ -293,6 +312,7 @@
       </div>
       <div class="col-lg-7 mb-30">
         <h3 id="devices" class="mb-20">Optional devices drawn by designers{{ anchor("devices") }}</h3>
+        {% if stats.feature_popularity | selectattr(2) | list %}
         <table class="table table-sm run-table bg-white">
           <thead><tr><th>Device</th><th class="text-end">Designs</th><th>Which</th></tr></thead>
           <tbody>
@@ -303,6 +323,7 @@
             {% endfor %}
           </tbody>
         </table>
+        {% endif %}
         {% set unused = stats.feature_popularity | selectattr(2, "equalto", []) | list %}
         {% if unused %}<p class="small text-muted mb-0">Not drawn by any design: {% for key, label, _ in unused %}{{ link(label, links.feature(key)) }}{{ ", " if not loop.last }}{% endfor %}.</p>{% endif %}
         <p class="small text-muted">Only devices outside standard cells, SRAM macros and I/O pads count, since every
@@ -486,22 +507,33 @@
       blocks take their area out of that. The theoretical maxima fill the core with nothing but that one cell of
       {{ link(maxima.library | library_label, links.library(maxima.library)) if maxima.library else "the main library" }}, the
       library most used on this run, edge to edge with no routing.</p>
+    <p class="text-center mb-50">{% if tt %}Pick the tile size your design needs when you submit it to
+      {% if next_tt %}<a href="{{ next_tt[0].url }}">the next Tiny Tapeout chip</a>, by {{ next_tt[0].closes }}{% else %}the next
+      Tiny Tapeout chip{% endif %}.{% else %}Pick the slot size your design needs{% if next_ws %} on
+      <a href="{{ next_ws.url }}">{{ next_ws.name }}</a>: orders close {{ next_ws.deadline }}{% endif %}.{% endif %}</p>
 
     <h3 id="densities" class="mb-10">Logic density of every digital design{{ anchor("densities") }}</h3>
     <p class="text-muted small mb-20">Solid bar: average over the core. Outlined bar: the densest single mm² outside SRAM (a dash where memory covers most of the die). The scale
       ends at the buffer theoretical maximum ({{ scale_max | k }} cells/mm²).</p>
-    <div class="run-rows">
-      {% for d in digital %}
-      <a class="run-row" href="projects/{{ d.code }}.html">
-        <span class="run-row-label"><strong>{{ d.code }}</strong> <span class="text-muted">{{ d.library_label }}</span></span>
+    {% macro density_row(d) %}
+      <a class="run-row" href="projects/{{ d.code }}.html" title="{{ d.code }} {{ d.name }} — {{ d.library_label }}">
+        <span class="run-row-label"><strong>{{ d.code }}</strong> <span class="text-muted">{{ d.name }}</span></span>
         <span class="run-density">
           <i class="peak" style="width: {{ '%.2f' | format([d.peak_cells / scale_max, 1] | min * 100) }}%"></i>
           <i class="core" style="width: {{ '%.2f' | format([d.core_density / scale_max, 1] | min * 100) }}%"></i>
         </span>
         <span class="run-row-value">{{ d.core_density | k }} <span class="text-muted">/ {{ d.peak_cells | k if d.peak_cells >= d.core_density else "—" }}</span></span>
       </a>
-      {% endfor %}
+    {% endmacro %}
+    <div class="run-rows">
+      {% for d in digital[:SHOWN] %}{{ density_row(d) }}{% endfor %}
     </div>
+    {% if digital | length > SHOWN %}
+    <details class="run-more">
+      <summary>Show all {{ digital | length }} digital {{ words.dies }}</summary>
+      <div class="run-rows">{% for d in digital[SHOWN:] %}{{ density_row(d) }}{% endfor %}</div>
+    </details>
+    {% endif %}
   </div>
 </div>
 
@@ -615,7 +647,7 @@
 
 {% if parent_die %}
 <div id="die" class="wrapper dark-wrapper inverse-text">
-  <div class="container inner text-center">
+  <div class="container inner run-inner-slim text-center">
     <h2 class="section-title color-white mb-10">Die {{ parent_die.design.code }} on {{ runs_linked(parent_die.label) }}{{ anchor("die") }}</h2>
     <p class="lead mb-0">The die as a whole, measured like every other design on its run: its size, pads, process
       features, density, precheck and photographs. <a href="{{ parent_die.run.pages_url }}">All of {{ parent_die.run.short_title }}</a></p>
