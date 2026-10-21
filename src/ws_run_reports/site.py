@@ -544,6 +544,46 @@ def _parent_die(run, out_dir: Path, env) -> dict | None:
     return None
 
 
+_DIE_STATS: dict = {}
+
+
+def _die_stats(name: str, out_root: Path):
+    """A run's statistics by its name, from ``out_root/<name>``, kept for the build; None when not measured."""
+    if name not in _DIE_STATS:
+        try:
+            _DIE_STATS[name] = stats_module.load(config.load_run(name), out_root / name)
+        except (FileNotFoundError, KeyError, ValueError):
+            _DIE_STATS[name] = None
+    return _DIE_STATS[name]
+
+
+def _compare_dies(run, stats, design, out_root: Path) -> list:
+    """The design's dies on every measured wafer.space run and Google shuttle, oldest first, as rows to compare;
+    [] when it has only this one. A die with the same logic and transistors as an earlier one is the same layout."""
+    rel = related.for_slot(run, design.project)
+    if not rel:
+        return []
+    rows = []
+    for step in rel["steps"]:
+        if step["kind"] not in ("wafer_space", "other_shuttles"):
+            continue
+        name, _, code = step["key"].partition("/")
+        other = stats if name == run.name else _die_stats(name, out_root)
+        d = next((x for x in other.designs if x.code == code), None) if other else None
+        if d is None:
+            continue
+        same = next((r for r in rows if r["logic_cells"] == d.logic_cells and r["transistors"] == d.transistors
+                     and d.logic_cells), None)
+        rows.append({"run": step["run"], "run_url": step["run_url"], "url": step["url"], "code": code,
+                     "current": step["current"], "slot": d.slot_label, "library": d.library_label,
+                     "oxides": d.voltage_group, "logic_cells": d.logic_cells, "transistors": d.transistors,
+                     "core_density": d.core_density, "peak_cells": d.peak_cells,
+                     "sram": (f"{d.sram_label} {'macro' if d.sram_label == '1' else 'macros'}" if d.macros else d.sram_label)
+                             if d.has_sram or d.macros else "",
+                     "same_as": same["run"] if same else ""})
+    return rows if len(rows) > 1 else []
+
+
 def build_site(run, out_dir: Path) -> Path:
     """Render ``index.html`` and one page per project into ``out_dir/site``."""
     context = build_context(run, out_dir)
@@ -560,7 +600,8 @@ def build_site(run, out_dir: Path) -> Path:
     digest = hashlib.sha256(b"".join(path.read_bytes() for path in sorted(static.iterdir())))
     env.globals.update(static_version=digest.hexdigest()[:10])
     env.globals.update(area_bar=_area_bar, heatmap=_heatmap, photo_credit=lambda target=None: _photo_credit(run, target))
-    env.globals.update(related=lambda design: related.for_slot(run, design.project))
+    env.globals.update(related=lambda design: related.for_slot(run, design.project),
+                       compare_dies=lambda design: _compare_dies(run, stats, design, out_dir.parent))
     env.globals.update(repository_public=external.repository_public, author=_author, min_logic=report.MINIMAL_LOGIC_CELLS, area_text=_area_text)
     env.filters.update(autolink=_autolink)
     env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id,

@@ -365,6 +365,31 @@
     <p class="small text-muted mb-20 run-history-key"><span class="run-history-key-tt">Tiny Tapeout tile</span>
       <span class="run-history-key-google">Google shuttle</span>
       <span class="run-history-key-ws">wafer.space die</span></p>
+    {% set dies = compare_dies(design) if not tt else [] %}
+    {% if dies %}
+    <h4 id="{{ idp }}dies" class="mb-10">Its dies compared{{ anchor(idp ~ "dies") }}</h4>
+    <p class="small text-muted mb-10">Every die of this design measured here, oldest first, with this one in bold.</p>
+    <div class="table-responsive">
+    <table class="table table-sm run-table bg-white mb-20">
+      <thead><tr><th>Made on</th><th>Slot</th><th>Library</th><th class="d-none d-md-table-cell">Gate oxides</th>
+        <th class="text-end">Logic cells</th><th class="text-end">Per mm² of core</th><th class="text-end d-none d-sm-table-cell">Densest</th>
+        <th class="d-none d-md-table-cell">SRAM</th></tr></thead>
+      <tbody>
+      {% for r in dies %}
+      <tr{% if r.current %} class="fw-bold"{% endif %}>
+        <td>{% if r.current %}{{ r.run }} · {{ r.code }}{% else %}<a href="{{ r.url }}">{{ r.run }} · {{ r.code }}</a>{% endif %}
+          {%- if r.same_as %}<br><span class="small text-muted fw-normal">the same layout as on {{ r.same_as }}</span>{% endif %}</td>
+        <td class="run-nowrap">{{ r.slot }}</td><td class="run-nowrap">{{ r.library }}</td>
+        <td class="d-none d-md-table-cell">{{ r.oxides }}</td>
+        <td class="text-end">{{ '{:,}'.format(r.logic_cells) }}</td>
+        <td class="text-end">{{ r.core_density | k if r.logic_cells >= min_logic else '—' }}</td>
+        <td class="text-end d-none d-sm-table-cell">{{ r.peak_cells | k if r.logic_cells >= min_logic else '—' }}</td>
+        <td class="d-none d-md-table-cell">{{ r.sram or 'none' }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
     {% if rel.tiny_tapeout and not tt %}
     <div class="alert alert-primary">
       {# A whole-die page: tell the design's way here, then sell the next die first and Tiny Tapeout second. #}
