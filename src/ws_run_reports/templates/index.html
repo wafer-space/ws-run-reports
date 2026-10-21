@@ -626,6 +626,8 @@
     <h3 id="index" class="run-category-title">Project index{{ anchor("index") }}</h3>
     <p class="mb-20 run-measure">All {{ index_rows | length }} projects by their address on the chip's multiplexer, with
       how many tiles each took and how much logic it packs.</p>
+    {% set INDEX_SHOWN = 16 %}
+    {% if index_rows | length > INDEX_SHOWN %}<input type="checkbox" id="run-index-all" class="run-index-toggle">{% endif %}
     <div class="table-responsive run-index">
     <table class="table table-sm run-table">
       <thead><tr><th>Address</th><th>Project</th><th class="d-none d-md-table-cell">Author</th><th>Tiles</th>
@@ -633,7 +635,7 @@
         <th class="text-end d-none d-sm-table-cell">Cells per mm²</th></tr></thead>
       <tbody>
       {% for d in index_rows %}
-      <tr><td class="run-mono">{{ d.code }}</td>
+      <tr{% if loop.index > INDEX_SHOWN %} class="run-extra"{% endif %}><td class="run-mono">{{ d.code }}</td>
         <td><a href="{{ design_href(d.code) }}">{{ d.name }}</a></td>
         <td class="d-none d-md-table-cell">{{ d.project.extra.AUTHOR }}</td>
         <td class="run-nowrap">{{ d.slot_label }}</td>
@@ -644,6 +646,8 @@
       </tbody>
     </table>
     </div>
+    {% if index_rows | length > INDEX_SHOWN %}<label for="run-index-all" class="run-index-more"><span class="run-show">Show all
+      {{ index_rows | length }} projects</span><span class="run-hide">Show the first {{ INDEX_SHOWN }} only</span></label>{% endif %}
     <div class="mb-40"></div>
     {% endif %}
     {% if histories %}

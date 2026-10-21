@@ -305,18 +305,19 @@
           {% if map.window %}
           <rect class="window" x="{{ '%.3f' | format(map.window.x * s) }}" y="{{ '%.3f' | format(map.window.y * s) }}" width="{{ '%g' | format(map.window.w * s) }}" height="{{ '%g' | format(map.window.h * s) }}"><title>Densest SRAM-free {{ 'mm²' if window_is_mm else window_side ~ ' square' }}: {{ '{:,}'.format(map.window.cells) }} logic cells</title></rect>
           {% endif %}
+          {# Labels in logic cells per mm², as on every map; a wide map of many squares gets bigger labels, so that they
+             stay readable when the map is scaled down to the column. #}
+          {% set columns = map.width * s %}
           {% for c in map.cells if c.sram is not sameas true and c.w * s > 0.6 and c.h * s > 0.6 %}
-          <text x="{{ '%.3f' | format((c.x + c.w / 2) * s) }}" y="{{ '%.3f' | format((c.y + c.h / 2) * s) }}" class="{{ 'light' if c.level > 0.55 else '' }}">{{ c.cells | k if window_is_mm else c.cells }}</text>
+          <text x="{{ '%.3f' | format((c.x + c.w / 2) * s) }}" y="{{ '%.3f' | format((c.y + c.h / 2) * s) }}" class="{{ 'light' if c.level > 0.55 else '' }}"
+                style="font-size: {{ '%.3f' | format([0.22, 0.026 * columns] | max) }}px">{{ (c.cells / (design.window_mm * design.window_mm)) | k }}</text>
           {% endfor %}
         </svg>
-        {% if map.rects or map.window %}
-        <p class="small text-muted mb-0">Logic cells in each {{ 'square millimetre' if window_is_mm else window_side ~ ' square' }} of the {{ words.die }}. Hatched outlines are SRAM
-          macros{% if map.window %}; the bold outline is the densest {{ '1 mm²' if window_is_mm else window_side ~ ' square' }} that avoids them, found by sliding a
-          {{ window_side }} square over the {{ words.die }} in {{ window_step }} steps{% endif %}. Edge squares are smaller than {{ '1 mm²' if window_is_mm else window_side ~ ' square' }}.</p>
-        {% else %}
-        <p class="small text-muted mb-0">Logic cells in each {{ 'square millimetre' if window_is_mm else window_side ~ ' square' }} of the {{ words.die }}. Hatched squares overlap an
-          SRAM macro and are not counted. Edge squares are smaller than {{ '1 mm²' if window_is_mm else window_side ~ ' square' }}.</p>
-        {% endif %}
+        <p class="small text-muted mb-0">Logic cells per mm² in each {{ 'square millimetre' if window_is_mm else window_side ~ ' square' }} of the
+          {{ words.die }}{{ ' (counted in the square, scaled up to a mm²)' if not window_is_mm }}. {% if map.rects or map.window %}Hatched
+          outlines are SRAM macros{% if map.window %}; the bold outline is the {{ window_name }} that avoids them, found by sliding a
+          {{ window_side }} square over the {{ words.die }} in {{ window_step }} steps{% endif %}.{% else %}Hatched squares overlap an
+          SRAM macro and are not counted.{% endif %} Squares at the edges are partial, so they read low.</p>
         {% endif %}
       </div>
     </div>
