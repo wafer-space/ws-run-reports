@@ -5,18 +5,18 @@
 <div class="run-tl">
   <div class="run-tl-row run-tl-axis" aria-hidden="true">
     <div class="run-tl-name"></div>
-    <div class="run-tl-track">{% for y in chart.years %}<span style="left: {{ y.x }}%">{{ y.label }}</span>{% endfor %}</div>
+    <div class="run-tl-track">{% for y in chart.years %}<span{{ " class=\"run-tl-edge\"" | safe if y.x < 3 }} style="left: {{ y.x }}%">{{ y.label }}</span>{% endfor %}</div>
   </div>
   {% for r in chart.rows %}
   <div class="run-tl-row">
     <div class="run-tl-name"><a href="{{ r.url }}">{{ r.name }}</a>{% if r.note %} <span class="small text-muted">{{ r.note }}</span>{% endif %}</div>
-    <div class="run-tl-track">
+    <div class="run-tl-track" style="--h: {{ r.height }}px; --hm: {{ r.height_m }}px">
       {% for y in chart.years %}<i class="run-tl-grid" style="left: {{ y.x }}%" aria-hidden="true"></i>{% endfor %}
       {% for d in r.dots %}
-      <a class="run-tl-dot run-tl-{{ d.kind }}{{ ' current' if d.current }}" href="{{ d.url }}"
-         style="left: {{ d.x }}%; --dy: {{ d.dy }}px"
+      <a class="run-tl-dot run-tl-{{ d.kind }}{{ ' current' if d.current }}{{ ' run-tl-end' if d.x > 75 else ' run-tl-start' if d.x < 25 }}" href="{{ d.url }}"
+         style="left: {{ d.x }}%; --dy: {{ d.dy }}px; --dym: {{ d.dym }}px"
          aria-label="{{ d.shuttle }}, {{ d.when }}{% if d.sizes %}, {{ d.sizes }}{% endif %}{% if d.current %} ({{ here }}){% endif %}">
-        <span class="run-tl-tip" role="tooltip"><strong>{{ d.shuttle }}</strong> · {{ d.when }}<br>{{ d.names }}{% if d.sizes %}<br><span class="text-muted">{{ d.sizes }}</span>{% endif %}</span>
+        <span class="run-tl-tip" role="tooltip"><strong>{{ d.shuttle }}</strong> · {{ d.when }}<br>{{ d.what }}{% if d.sizes %}<br><span class="text-muted">{{ d.sizes }}</span>{% endif %}</span>
       </a>
       {% endfor %}
     </div>
@@ -25,7 +25,7 @@
   {% if chart.rows | length > 4 %}
   <div class="run-tl-row run-tl-axis" aria-hidden="true">
     <div class="run-tl-name"></div>
-    <div class="run-tl-track">{% for y in chart.years %}<span style="left: {{ y.x }}%">{{ y.label }}</span>{% endfor %}</div>
+    <div class="run-tl-track">{% for y in chart.years %}<span{{ " class=\"run-tl-edge\"" | safe if y.x < 3 }} style="left: {{ y.x }}%">{{ y.label }}</span>{% endfor %}</div>
   </div>
   {% endif %}
 </div>
@@ -34,7 +34,8 @@
   <span class="run-tl-key-google">Google shuttle</span>
   <span class="run-tl-key-ws">wafer.space die</span>
   {% if here %}<span class="run-tl-key-current">{{ here }}</span>{% endif %}
-  · Each dot is one version: point at it for details, select it for its page.</p>
+  <br>Each marker is one version of the design: hover over it or focus it for details, and select it to open its
+  page. The table below lists every one.</p>
 <details class="run-more">
   <summary>As a table</summary>
   <div class="table-responsive">

@@ -204,6 +204,23 @@ def graduated() -> list:
     return sorted(found, key=lambda d: (d["stages"][-1]["date"], len(d["stages"])), reverse=True)
 
 
+# A dot's offsets from its row's line, in px: the line, then lanes above and below it, 13 px apart so that 12 px
+# markers do not touch. The row grows to fit the lanes it uses.
+LANES = (0, -13, 13, -26, 26, -39, 39)
+# How close two dots may be, in percent of the track, before they need different lanes: a marker's width on a
+# desktop's track (about 850 px) and on a phone's (about 360 px).
+CLOSE = {"dy": 1.6, "dym": 3.6}
+
+
+def _lanes(dots: list, key: str, close: float) -> int:
+    """Give each dot (in date order) the first lane that no dot close before it has, as ``dot[key]``; returns the
+    track height in px that the lanes need."""
+    for i, dot in enumerate(dots):
+        taken = {d[key] for d in dots[:i] if dot["x"] - d["x"] < close}
+        dot[key] = next((dy for dy in LANES if dy not in taken), 0)
+    return max(40, 2 * max((abs(d[key]) for d in dots), default=0) + 16)
+
+
 def timeline_chart(rows: list) -> dict:
     """A dot timeline of designs' versions: rows of {"name", "url", "note", "stages"}, each stage a dot placed by
     its date along a shared axis of years. Returns {"years": [{"label", "x"}], "rows": [{..., "dots": [...]}]}, x in
@@ -211,8 +228,9 @@ def timeline_chart(rows: list) -> dict:
     dates = [datetime.date.fromisoformat(s["date"]) for r in rows for s in r["stages"] if s["date"]]
     if not dates:
         return {"years": [], "rows": []}
+    # From the half-year of the first version, so a December start leaves no empty year.
     first, last = min(dates).year, max(max(dates), datetime.date.today()).year + 1
-    start, end = datetime.date(first, 1, 1), datetime.date(last, 1, 1)
+    start, end = datetime.date(first, 7 if min(dates).month > 6 else 1, 1), datetime.date(last, 1, 1)
     span = (end - start).days
 
     def x(day):
@@ -225,19 +243,20 @@ def timeline_chart(rows: list) -> dict:
             if not stage["date"]:
                 continue
             sizes = ", ".join(dict.fromkeys(s["size"] for s in stage["steps"] if s["size"]))
-            names = "; ".join(dict.fromkeys((s.get("title") or f"{s['code']} {s['name']}") for s in stage["steps"]))
+            titles = list(dict.fromkeys((s.get("title") or f"{s['code']} {s['name']}") for s in stage["steps"]))
+            # The tooltip says what was made, not every die's name: "TinyQV RISC-V SoC" or "3 dies".
+            unit = "dies" if stage["kind"] == "wafer_space" else "projects"
             dots.append({"x": x(datetime.date.fromisoformat(stage["date"])), "kind": stage["css"],
                          "current": any(s.get("current") for s in stage["steps"]),
                          "url": stage["steps"][0].get("here") or stage["steps"][0]["url"],
                          "shuttle": stage["shuttle"], "shuttle_url": stage["url"], "when": stage["when"],
-                         "sizes": sizes, "names": names})
-        # Versions close together in time (TT02 and GFMPW-0, three days apart) step up and down so both show.
-        step = 0
-        for i, dot in enumerate(dots):
-            step = step + 1 if i and dot["x"] - dots[i - 1]["x"] < 1.6 else 0
-            dot["dy"] = [0, -7, 7, -14, 14][step % 5]
-        out.append({**r, "dots": dots})
-    return {"years": [{"label": str(y), "x": x(datetime.date(y, 1, 1))} for y in range(first, last)],
+                         "sizes": sizes, "names": "; ".join(titles),
+                         "what": titles[0] if len(titles) == 1 else f"{len(titles)} {unit}"})
+        # Versions close together in time (TT02 and GFMPW-0, three days apart) take different lanes above and below
+        # the line, so that none hides another; a phone's narrower track needs more of them.
+        heights = {key: _lanes(dots, key, close) for key, close in CLOSE.items()}
+        out.append({**r, "dots": dots, "height": heights["dy"], "height_m": heights["dym"]})
+    return {"years": [{"label": str(y), "x": x(datetime.date(y, 1, 1))} for y in range(first + (start.month == 7), last)],
             "rows": out}
 
 
