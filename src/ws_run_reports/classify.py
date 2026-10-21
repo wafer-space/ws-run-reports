@@ -31,11 +31,18 @@ RULES = [
     ("Analog and mixed-signal", r"\badc\b|\bdac\b|\bpll\b|\bdco\b|\btdc\b|analog|op-?amp|charge pump|floating[- ]gate"
                                 r"|mosbius|chipathon|synth\b|eurosynth|bandgap"),
     ("Test structures", r"test structure|test passives|leakage|pad test|flip chip|characteri[sz]ation"),
+    # Matched on the name only (NAME_ONLY). A game, not a games console or the Game of Life.
+    ("Games", r"\bgames?\b(?! console| of life)|\bpong\b|tetris|\bsnake\b|simon says|breakout|lockpick|tic[- ]?tac"),
     ("Retro computing", r"\bz80\b|6502|\bsid\b|8-bit cpu|games? console|riscboy|ray ?cast|raybox|\bvga\b"),
-    ("Accelerators", r"accelerator|tpu\b|machine learning|\bml\b|neural|logic gate network|chess|cordic|path-tracing"
-                     r"|ethernet"),
+    ("Accelerators", r"accelerator|tpu\b|machine learning|\bml\b|neural|logic gate network|chess|cordic|path-tracing"),
     ("RISC-V and CPUs", r"risc-?v|rv32|picosoc|serv\b|\bcpu\b|\bsoc\b|processor|\balu\b|transport triggered"),
+    # Matched on the name only (NAME_ONLY): descriptions mention a UART in passing.
+    ("Communications", r"\busb\b|\bble\b|bluetooth|ethernet|\buart\b|\bcan (bus|controller)\b|transceiver|\bmodem\b"
+                       r"|\bradio\b|manchester|\blora\b|communication"),
 ]
+
+# Categories whose rules are matched against a project's name only.
+NAME_ONLY = {"Games", "Communications"}
 
 FALLBACK_DIGITAL = "Other digital"
 FALLBACK_CUSTOM = "Analog and mixed-signal"
@@ -55,6 +62,8 @@ CATEGORY_IDS = {
     "Memory test chip": "memory",
     "Analog and mixed-signal": "analog",
     "Test structures": "test",
+    "Games": "games",
+    "Communications": "comms",
     "Retro computing": "retro",
     "Accelerators": "accelerators",
     "RISC-V and CPUs": "cpus",
@@ -80,6 +89,8 @@ def classify(design, overrides=None, tiles: bool = False) -> str:
     for text in (design.project.name, design.project.details):
         for category, pattern in RULES:
             if tiles and category == "Multi-project die":
+                continue
+            if category in NAME_ONLY and text is not design.project.name:
                 continue
             if re.search(pattern, text, re.IGNORECASE):
                 return category

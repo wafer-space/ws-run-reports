@@ -39,3 +39,7 @@ thumb_px_per_mm = 600
 thumb_max_px = 400
 reticle_px_per_mm = 400
 reticle_background = true
+
+# Its name does not say what it is: the Ethernet switch with a beacon, as on Run 2 (CAFE).
+[categories]
+"099" = "Communications"
