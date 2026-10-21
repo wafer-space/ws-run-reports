@@ -128,8 +128,10 @@
     <h2 id="next" class="section-title mt-60 mb-10 text-center">{% if tt %}Get this chip, or make your own{% else %}Make
       a chip of your own{% endif %}{{ anchor("next") }}</h2>
     <p class="lead text-center mb-40">{% if tt %}Tiny Tapeout puts many small designs on one chip. Start with a tile,
-      then come back with a whole die.{% else %}Start small with a Tiny Tapeout tile, or go straight to a whole die
-      on the next wafer.space run.{% endif %}</p>
+      then come back with a whole die.{% elif run.name.startswith("google-") %}These designs were made free on one of
+      Google's shuttles. The same {{ run.process }} process is open to anyone on wafer.space: start small with a
+      Tiny Tapeout tile, or go straight to a whole die on the next wafer.space run.{% else %}Start small with a Tiny
+      Tapeout tile, or go straight to a whole die on the next wafer.space run.{% endif %}</p>
     {{ tiny.next_steps(tt, tt_page=tt is not none) }}
   </div>
 </div>
@@ -172,7 +174,7 @@
         <p class="small text-muted mt-10 mb-0 text-center run-measure mx-auto">Every design rendered from the layout at the same scale and placed where
           it sits on the {{ renders.reticle.width_mm | round(1) | string | replace(".0", "") }} × {{ renders.reticle.height_mm | round(1) | string | replace(".0", "") }} mm
           {{ words.reticle }}.{% if framed %} It is drawn on a {{ '%.0f' | format(renders.reticle.frame_width_mm) }} × {{ '%.1f' | format(renders.reticle.frame_height_mm) }} mm
-          frame, so that the dies appear at the same scale as on the other runs' pages.{% endif %}{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}
+          frame, so that the dies appear at the same scale as on the other runs' pages.{% endif %}{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}{% if run.site.slot_origin == "top-right" %} The slots are named as in the shuttle's own list: rows lettered from the top, columns numbered from the right.{% endif %}
           <span class="d-none d-sm-inline">Point at a {{ words.die }} to see its name, and select it for its details.</span><span class="d-sm-none">Every {{ words.die }} is listed further down.</span></p>
         {% else %}
         <p class="text-muted">Renders have not been generated for this run yet.</p>

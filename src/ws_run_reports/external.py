@@ -63,7 +63,9 @@ def timeline(run) -> list:
         entry = data["runs"][key]
         return [
             {"title": item["title"], "date": str(item["date"]), "display_date": clock_24h(item.get("display_date", "")),
-             "description": item.get("description", ""), "status": item.get("status", ""), "done": item.get("done")}
+             "description": item.get("description", ""), "status": item.get("status", ""), "done": item.get("done"),
+             # Where the milestone is recorded, when a schedule names it (the Google shuttles' sources).
+             **({"url": item["url"]} if item.get("url") else {})}
             for item in entry.get("timeline", [])
         ]
 
