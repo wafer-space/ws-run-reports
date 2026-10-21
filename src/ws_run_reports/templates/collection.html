@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "_tinytapeout.html" as tiny with context %}
+{% import "_history.html" as history with context %}
 {% set short_title = collection.short_title %}
 {% block title %}{{ collection.title }} — wafer.space{% endblock %}
 {% block description %}{{ collection.intro or collection.title }}{% endblock %}
@@ -11,8 +12,7 @@
      data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
   <div class="container inner text-center">
     <h1 class="page-title">{{ collection.heading[0] }}{% for line in collection.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
-    {% set editions = entries | length - chips | length %}
-    <p class="lead">{{ chips | length }} chips{% if editions %} (one of them in two editions){% endif %} · {{ chips | sum(attribute="projects") }} projects</p>
+    <p class="lead">{{ entries | length }} chips · {{ chips | sum(attribute="projects") }} projects</p>
     {% if tt %}
     <p class="mb-0 run-hero-actions">
       {% if next_tt %}<a class="btn btn-s" href="{{ next_tt[0].url }}">Submit your design by {{ next_tt[0].closes }}</a>{% endif %}
@@ -103,16 +103,17 @@
           </a>
           <div class="run-card-body">
             <h5 class="post-title mb-5"><a href="{{ r.path }}/index.html">{{ r.heading[0] }}</a></h5>
-            <p class="mb-5 text-muted small">{{ r.heading[1:] | join(" ") }}</p>
+            <p class="mb-5 text-muted small">{{ runs_linked(r.heading[1:] | join(" ")) }}</p>
             <p class="mb-5 text-muted small">{{ e.projects }} projects{% if e.stats %} · {{ '{:,}'.format(e.stats.logic_cells) }} logic cells{% endif %}</p>
             {% if e.next %}<p class="mb-0 small"><span class="text-muted">Next:</span> {{ e.next.title }}
               <span class="text-muted">({{ e.next.display_date or e.next.date }})</span></p>
             {% elif e.status %}<p class="mb-0 small"><span class="text-muted">Latest:</span> {{ e.status.title }}
               <span class="text-muted">({{ e.status.display_date or e.status.date }})</span></p>{% endif %}
           </div>
+          {# The card's own page first: every project on the chip, measured. Buying and files come second. #}
           <div class="run-card-actions">
-            {% if e.links.for_sale and e.links.store_own_page %}<a class="btn btn-s" href="{{ e.links.store_url }}">Buy this chip</a>
-            {% else %}<a class="btn btn-s" href="{{ r.path }}/index.html">See every project</a>{% endif %}
+            <a class="btn btn-s" href="{{ r.path }}/index.html">See all {{ e.projects }} projects →</a>
+            {% if e.links.for_sale and e.links.store_own_page %}<a href="{{ e.links.store_url }}">Buy this chip</a>{% endif %}
             {% if e.links.fpgas_url %}<a href="{{ e.links.fpgas_url }}">Try it online</a>{% endif %}
             <a href="{{ r.source_url }}">Layout files</a>
           </div>
@@ -123,34 +124,14 @@
   </div>
 </div>
 
-{% if graduated %}
+{% if grew_chart and grew_chart.rows %}
 <div id="grew" class="wrapper gray-wrapper">
   <div class="container inner">
     <h2 class="section-title mb-10 text-center">From a few tiles to a die of their own{{ anchor("grew") }}</h2>
     <p class="lead text-center mb-40 run-measure">Many designers start with a few tiles on a Tiny Tapeout chip, then
-      come back with a whole die. These designs did exactly that. Each row runs from its first version to its latest;
-      select one for the full story.</p>
-    <ul class="run-grew">
-      {% for g in graduated %}
-      {% set first = g.stages[0] %}{% set last = g.stages[-1] %}
-      <li>
-        <a class="run-grew-name" href="{{ g.url }}#related">{{ g.name }}</a>
-        <span class="small text-muted">First made on {{ first.shuttle }}{% if first.when %} ({{ first.when }}){% endif %};
-          latest on {{ last.shuttle }}.</span>
-        <ol class="run-grew-stages">
-          {% for stage in g.stages %}
-          <li class="run-history-{{ stage.css }}"><span class="run-grew-label">{{ stage.shuttle }}</span>
-            {%- set sizes = stage.steps | map(attribute="size") | select | unique | list %}
-            {%- if sizes %} <span class="text-muted">{{ sizes | join(", ") }}</span>{% endif %}</li>
-          {% endfor %}
-        </ol>
-      </li>
-      {% endfor %}
-    </ul>
-    <p class="small text-muted mb-30 run-history-key"><span class="run-history-key-tt">Tiny Tapeout tile</span>
-      <span class="run-history-key-google">Google shuttle</span>
-      <span class="run-history-key-ws">wafer.space die</span></p>
-    {% if next_ws %}<p class="text-center mb-0"><a class="btn btn-s" href="{{ next_ws.url }}">Reserve a slot on {{ next_ws.name }}</a></p>{% endif %}
+      come back with a whole die. These designs did exactly that: each row is one design, each dot one version of it.</p>
+    {{ history.timeline(grew_chart) }}
+    {% if next_ws %}<p class="text-center mt-30 mb-0"><a class="btn btn-s" href="{{ next_ws.url }}">Reserve a slot on {{ next_ws.name }}</a></p>{% endif %}
   </div>
 </div>
 {% endif %}
@@ -158,13 +139,16 @@
 {% if tt %}
 <div class="wrapper light-wrapper">
   <div class="container inner">
-    <div class="row gutter-50 align-items-center">
-      <div class="col-lg-7 mb-30">{{ tiny.about() }}</div>
-      <div class="col-lg-5 mb-30">{{ tiny.board({"store_url": links.tinytapeout("kits"), "store_own_page": false}, "") }}</div>
+    {# Text beside a board image no taller than it; the footnote centred under both. #}
+    <div class="row gutter-50 align-items-start justify-content-center">
+      <div class="col-lg-7 mb-30">{{ tiny.about() }}
+        <p class="mt-30 mb-0"><a class="btn btn-s me-10" href="{{ links.tinytapeout('digital_design') }}">Start your first design</a>
+          <a href="{{ links.tinytapeout('kits') }}">Get a chip and board</a></p></div>
+      <div class="col-md-8 col-lg-4 mb-30">{{ tiny.board({"store_url": links.tinytapeout("kits"), "store_own_page": false}, "") }}</div>
     </div>
     {% if other %}<p class="small text-muted mt-20">{% for c in other %}{{ link(c.name or c.run, c.url or c.repo) }}{% if c.description %}:
       {{ c.description }}{% endif %}{{ " " }}{% endfor %}</p>{% endif %}
-    <div class="mt-30">{{ tiny.independent() }}</div>
+    <div class="mt-20 run-measure mx-auto text-center">{{ tiny.independent() }}</div>
   </div>
 </div>
 {% endif %}

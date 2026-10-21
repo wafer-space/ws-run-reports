@@ -553,6 +553,16 @@ def build_site(run, out_dir: Path) -> Path:
             histories.setdefault(rel["name"], {"rel": rel, "designs": [], "anchor": f"#p{row['CODE']}"})
     context["histories"] = sorted(histories.values(), key=lambda h: (h["rel"]["stages"][-1]["date"], len(h["rel"]["stages"])),
                                   reverse=True)
+
+    def history_row(h):
+        """A design's row in the timeline: its page here, or for a shared block's project its latest die's page."""
+        if h["designs"]:
+            return {"name": h["rel"]["name"], "url": f"projects/{h['designs'][0].code}.html#related",
+                    "note": ", ".join(d.code for d in h["designs"]), "stages": h["rel"]["stages"]}
+        latest = max(h["rel"]["wafer_space"], key=lambda s: s["date"], default=None)
+        return {"name": h["rel"]["name"], "url": f"{latest['url']}#related" if latest else h["anchor"],
+                "note": "", "stages": h["rel"]["stages"]}
+    context["grew_chart"] = related.timeline_chart([history_row(h) for h in context["histories"]])
     (site_dir / "index.html").write_text(env.get_template("index.html").render(root="", **context))
     # A JavaScript-free strip of the designs for other pages to embed; dies with photographs first.
     embed_designs = sorted(stats.designs, key=lambda d: (d.code not in context["photos"], d.code))

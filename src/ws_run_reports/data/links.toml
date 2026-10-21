@@ -39,10 +39,18 @@ fpgas_online = "https://tinytapeout.fpgas.online/board/{chip}/"
 board_image = "https://github.com/TinyTapeout/tt-demo-pcb/blob/main/doc/img/tt-etr-dbv3p2-render.png"
 board_licence = "https://github.com/TinyTapeout/tt-demo-pcb/blob/main/LICENSE"
 
-# wafer.space runs that have pages, by the name the pages use for them: where a page names one, it links it.
+# Runs, shuttles and Tiny Tapeout chips that have pages here, by the name the pages use for them: where a page
+# names one, it links it (links.runs_linked). GF 0.2 links its standard edition, TTP2.
 [runs]
 "wafer.space Run 1" = "https://wafer.space/ws-run1/"
 "wafer.space Run 2" = "https://wafer.space/ws-run2/"
+"Google GFMPW-0" = "https://wafer.space/google-gf180mcu-mpw0/"
+"Google MPW-18H1" = "https://wafer.space/google-gf180mcu-mpw18h1/"
+"Tiny Tapeout GF 0.1" = "https://wafer.space/tinytapeouts/ttgf0p1/gf-mpw-t0p1/"
+"Tiny Tapeout GF 0.2" = "https://wafer.space/tinytapeouts/ttgf0p2/ws-run1-ttp2/"
+"Tiny Tapeout GF 0.3" = "https://wafer.space/tinytapeouts/ttgf0p3/ws-run2-t0p3/"
+"Tiny Tapeout GF 26a" = "https://wafer.space/tinytapeouts/ttgf26a/ws-run2-t26a/"
+"Tiny Tapeout GF 26b" = "https://wafer.space/tinytapeouts/ttgf26b/ws-run2-t26b/"
 
 # What Tiny Tapeout's chips page calls the wafer.space runs (its "Shuttle" column). Until the website keeps
 # this mapping (wafer-space/wafer-space.github.io#134).

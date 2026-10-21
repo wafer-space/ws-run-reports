@@ -201,6 +201,43 @@ def graduated() -> list:
     return sorted(found, key=lambda d: (d["stages"][-1]["date"], len(d["stages"])), reverse=True)
 
 
+def timeline_chart(rows: list) -> dict:
+    """A dot timeline of designs' versions: rows of {"name", "url", "note", "stages"}, each stage a dot placed by
+    its date along a shared axis of years. Returns {"years": [{"label", "x"}], "rows": [{..., "dots": [...]}]}, x in
+    percent of the track; each dot has its kind's class, its details for the tooltip and the version's link."""
+    dates = [datetime.date.fromisoformat(s["date"]) for r in rows for s in r["stages"] if s["date"]]
+    if not dates:
+        return {"years": [], "rows": []}
+    first, last = min(dates).year, max(max(dates), datetime.date.today()).year + 1
+    start, end = datetime.date(first, 1, 1), datetime.date(last, 1, 1)
+    span = (end - start).days
+
+    def x(day):
+        return round(100 * (day - start).days / span, 2)
+
+    out = []
+    for r in rows:
+        dots = []
+        for stage in r["stages"]:
+            if not stage["date"]:
+                continue
+            sizes = ", ".join(dict.fromkeys(s["size"] for s in stage["steps"] if s["size"]))
+            names = "; ".join(dict.fromkeys((s.get("title") or f"{s['code']} {s['name']}") for s in stage["steps"]))
+            dots.append({"x": x(datetime.date.fromisoformat(stage["date"])), "kind": stage["css"],
+                         "current": any(s.get("current") for s in stage["steps"]),
+                         "url": stage["steps"][0].get("here") or stage["steps"][0]["url"],
+                         "shuttle": stage["shuttle"], "shuttle_url": stage["url"], "when": stage["when"],
+                         "sizes": sizes, "names": names})
+        # Versions close together in time (TT02 and GFMPW-0, three days apart) step up and down so both show.
+        step = 0
+        for i, dot in enumerate(dots):
+            step = step + 1 if i and dot["x"] - dots[i - 1]["x"] < 1.6 else 0
+            dot["dy"] = [0, -7, 7, -14, 14][step % 5]
+        out.append({**r, "dots": dots})
+    return {"years": [{"label": str(y), "x": x(datetime.date(y, 1, 1))} for y in range(first, last)],
+            "rows": out}
+
+
 def _size(step: dict) -> str:
     """"1×1 tile", "8×2 tiles" or "1×0.5 slot"; "" when not known."""
     if step.get("shared"):

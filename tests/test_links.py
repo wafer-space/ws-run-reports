@@ -54,6 +54,9 @@ def test_run_names_link_to_their_pages():
     assert links.runs_linked("Die T0P3 on wafer.space Run 2 (G802)") == (
         'Die T0P3 on <a href="https://wafer.space/ws-run2/">wafer.space Run 2</a> (G802)')
     assert "<a " not in links.runs_linked("wafer.space Run 20 & more")
+    # Chips and shuttles with pages link too, at the end of a sentence as well.
+    assert links.runs_linked("Made on Tiny Tapeout GF 0.3.").endswith('>Tiny Tapeout GF 0.3</a>.')
+    assert 'href="https://wafer.space/google-gf180mcu-mpw0/"' in links.runs_linked("first on Google GFMPW-0")
     assert "&amp;" in links.runs_linked("wafer.space Run 1 & Run 2")
     assert links.tinytapeout("store").startswith("https://store.tinytapeout.com/")
 

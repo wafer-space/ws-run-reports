@@ -116,7 +116,8 @@ def runs_linked(text: str, cls: str = "") -> Markup:
     runs = tables().get("runs", {})
     if not runs:
         return escape(text)
-    pattern = re.compile("|".join(re.escape(name) for name in sorted(runs, key=len, reverse=True)) + r"(?!\d)")
+    # The whole alternation is grouped so that no name matches the start of a longer number ("Run 20").
+    pattern = re.compile("(?:" + "|".join(re.escape(name) for name in sorted(runs, key=len, reverse=True)) + r")(?!\d)")
     attrs = Markup(' class="{}"').format(cls) if cls else Markup("")
     out, last = Markup(""), 0
     for m in pattern.finditer(text or ""):

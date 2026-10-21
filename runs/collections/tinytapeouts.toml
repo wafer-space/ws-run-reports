@@ -1,7 +1,7 @@
 # The index page of wafer-space/tinytapeouts: every die in that repository.
 title = "Tiny Tapeout on wafer.space"
 repo = "wafer-space/tinytapeouts"
-heading = ["Tiny Tapeout", "GF180MCU chips, measured project by project"]
+heading = ["Tiny Tapeout", "Many small designs, one shared chip"]
 intro = """Every Tiny Tapeout GF180MCU chip made so far. Open one to see each project on it: where it sits on the die,
 how big it is and how much logic it packs. Use them to size your own design."""
 # The Tiny Tapeout pieces of the page: what Tiny Tapeout is, the chips still to come (from tinytapeout.com/chips)

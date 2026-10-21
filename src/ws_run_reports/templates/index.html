@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "_tinytapeout.html" as tiny with context %}
+{% import "_history.html" as history with context %}
 {% set short_title = run.short_title %}
 {# Long lists show this many rows; the rest open under "Show all". #}
 {% set SHOWN = 12 %}
@@ -49,7 +50,7 @@
 <div class="wrapper image-wrapper bg-image page-title-wrapper run-hero inverse-text"
      data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
   <div class="container inner text-center">
-    <h1 class="page-title">{{ run.heading[0] }}{% for line in run.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
+    <h1 class="page-title">{{ run.heading[0] }}{% for line in run.heading[1:] %}<span class="page-title-sub">{{ runs_linked(line) }}</span>{% endfor %}</h1>
     {% if tt %}
     {% if netlist_projects %}
     <p class="lead run-measure mx-auto">Tiny Tapeout's first, experimental GF180MCU chip. Instead of tiles, its
@@ -563,40 +564,43 @@
 <div id="projects" class="wrapper light-wrapper">
   <div class="container inner">
     <h2 class="section-title mb-10 text-center">The projects{{ anchor("projects") }}</h2>
-    <p class="lead text-center mb-40">Every {{ 'project on this chip' if tt else 'design on this run' }}, grouped by
-      what it does. Select one for its layout, its measurements and any die photographs.</p>
+    <p class="lead text-center mb-40">Every {{ 'project on this chip' if tt else 'design on this run' }}: an index,
+      then grouped by what it does. Select one for its layout, its measurements and any die photographs.</p>
+    {% if tt and not netlist_projects %}
+    {# The chip's project index, in multiplexer-address order, as on Tiny Tapeout's own chip pages. #}
+    {% set index_rows = stats.designs | sort(attribute="code") | list %}
+    <h3 id="index" class="run-category-title">Project index{{ anchor("index") }}</h3>
+    <p class="mb-20 run-measure">All {{ index_rows | length }} projects by their address on the chip's multiplexer, with
+      how many tiles each took and how much logic it packs.</p>
+    <div class="table-responsive run-index">
+    <table class="table table-sm run-table">
+      <thead><tr><th>Address</th><th>Project</th><th class="d-none d-md-table-cell">Author</th><th>Tiles</th>
+        <th class="d-none d-lg-table-cell">What it is</th><th class="text-end">Logic cells</th>
+        <th class="text-end d-none d-sm-table-cell">Cells per mm²</th></tr></thead>
+      <tbody>
+      {% for d in index_rows %}
+      <tr><td class="run-mono">{{ d.code }}</td>
+        <td><a href="projects/{{ d.code }}.html">{{ d.name }}</a></td>
+        <td class="d-none d-md-table-cell">{{ d.project.extra.AUTHOR }}</td>
+        <td class="run-nowrap">{{ d.slot_label }}</td>
+        <td class="d-none d-lg-table-cell run-nowrap"><a href="#{{ category_id(d.category) }}">{{ d.category }}</a></td>
+        <td class="text-end">{{ '{:,}'.format(d.logic_cells) }}</td>
+        <td class="text-end d-none d-sm-table-cell">{{ d.core_density | k if d.logic_cells else "" }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <div class="mb-40"></div>
+    {% endif %}
     {% if histories %}
     <h3 id="grew" class="run-category-title">Designs that grew{{ anchor("grew") }}</h3>
     <p class="mb-20 run-measure">{% if tt %}Some designers on this chip kept going: they made their design again on
       later Tiny Tapeout chips, and several now have a whole die of their own on a wafer.space run.{% else %}These
       designs have been made more than once: first as a Tiny Tapeout tile or on a Google shuttle, then on wafer.space,
       or improved and made again on a later run. Start small, then come back bigger.{% endif %}
-      Oldest version first; this {{ 'chip' if tt else 'run' }} in bold.</p>
-    <ul class="run-grew">
-      {% for h in histories %}
-      <li>
-        {% if h.designs %}
-        <a class="run-grew-name" href="projects/{{ h.designs[0].code }}.html#related">{{ h.rel.name }}</a>
-        <span class="text-muted small">{{ h.designs | map(attribute="code") | join(", ") }}</span>
-        {% else %}{# a project of a shared block: its full story is on its latest wafer.space die's page #}
-        {% set latest = (h.rel.wafer_space | sort(attribute="date") | last) %}
-        <a class="run-grew-name" href="{{ latest.url ~ '#related' if latest else h.anchor }}">{{ h.rel.name }}</a>
-        <a class="text-muted small" href="{{ h.anchor }}">See it on this chip</a>
-        {% endif %}
-        <ol class="run-grew-stages">
-          {% for stage in h.rel.stages %}
-          {% set here = stage.steps | selectattr("current") | list %}
-          <li class="run-history-{{ stage.css }}">{% if here %}<strong class="run-grew-label">{{ stage.shuttle }}</strong>{% else %}<span class="run-grew-label">{{ stage.shuttle }}</span>{% endif %}
-            {%- set sizes = stage.steps | map(attribute="size") | select | unique | list %}
-            {%- if sizes %} <span class="text-muted">{{ sizes | join(", ") }}</span>{% endif %}</li>
-          {% endfor %}
-        </ol>
-      </li>
-      {% endfor %}
-    </ul>
-    <p class="small text-muted mb-40 run-history-key"><span class="run-history-key-tt">Tiny Tapeout tile</span>
-      <span class="run-history-key-google">Google shuttle</span>
-      <span class="run-history-key-ws">wafer.space die</span></p>
+      Newest first; the ringed dot is {{ 'this chip' if tt else 'this run' }}.</p>
+    {{ history.timeline(grew_chart, here='this chip' if tt else 'this run') }}
+    <div class="mb-40"></div>
     {% endif %}
     {% set tt_dies = children | dictsort | selectattr("1.0.site.kind", "equalto", "tiny-tapeout") | list %}
     {% if tt_dies and not tt %}
@@ -727,16 +731,16 @@
 {% if tt %}
 <div class="wrapper light-wrapper">
   <div class="container inner">
-    <div class="row gutter-50 align-items-center">
+    <div class="row gutter-50 align-items-start justify-content-center">
       <div class="col-lg-7 mb-30">
         {{ tiny.about() }}
         <div class="mt-30">{{ tiny.chip_links(tt) }}</div>
       </div>
-      <div class="col-lg-5 mb-30">
+      <div class="col-md-8 col-lg-4 mb-30">
         {{ tiny.board(tt, "") }}
       </div>
     </div>
-    <div class="mt-30">{{ tiny.independent() }}</div>
+    <div class="mt-20 run-measure mx-auto text-center">{{ tiny.independent() }}</div>
   </div>
 </div>
 {% endif %}

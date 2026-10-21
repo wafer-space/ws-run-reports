@@ -118,11 +118,19 @@ def main(argv=None):
     col.add_argument("--out", type=Path, help="output directory (default: out/)")
     col.add_argument("--publish", action="store_true", help="commit the page to the root of the repository's gh-pages")
     col.add_argument("--push", action="store_true", help="push the gh-pages branch after committing")
+    bench = sub.add_parser("benchmarks", help="theoretical maxima and what every measured design achieved, as YAML "
+                           "for the website's _data/density.yml")
+    bench.add_argument("--out", type=Path, help="output directory holding the run analyses (default: out/)")
+    bench.add_argument("--output", type=Path, required=True, help="YAML file to write")
     args = parser.parse_args(argv)
     if args.command == "tt-manifest":
         return cmd_tt_manifest(args)
     if args.command == "collection":
         return cmd_collection(args)
+    if args.command == "benchmarks":
+        from . import benchmarks
+        print(f"Wrote {benchmarks.write(args.out or Path('out'), args.output)}")
+        return
     run = config.load_run(args.run, args.repo_dir)
     COMMANDS[args.command][0](args, run)
 

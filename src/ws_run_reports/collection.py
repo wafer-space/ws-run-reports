@@ -103,7 +103,8 @@ def build(name: str, out: Path) -> Path:
     site_dir.mkdir(parents=True, exist_ok=True)
     (site_dir / "index.html").write_text(env.get_template("collection.html").render(
         run=collection, collection=collection, entries=entries, coming=coming, other=other,
-        graduated=related.graduated() if collection.site["kind"] == "tiny-tapeout" else [],
+        grew_chart=related.timeline_chart([{"name": g["name"], "url": f"{g['url']}#related", "note": "", "stages": g["stages"]}
+                                           for g in related.graduated()]) if collection.site["kind"] == "tiny-tapeout" else None,
         tt=collection.site["kind"] == "tiny-tapeout", root="", website=WEBSITE, renders=None,
         generated=date.today().isoformat()))
     for path in static.iterdir():
