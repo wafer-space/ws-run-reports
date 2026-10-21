@@ -401,3 +401,6 @@
 .run-which { overflow-wrap: anywhere; }
 /* A card title may be one long word (FA25_Engn2912e_Saligane...): wrap it rather than cut it off. */
 .run-card .post-title { overflow-wrap: anywhere; }
+/* A framed reticle shown cropped to its dies (the frame's scale, without the empty frame). */
+.run-reticle-crop { overflow: hidden; border-radius: 6px; line-height: 0; }
+.run-reticle-crop .run-reticle.framed { outline: 0; }

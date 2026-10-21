@@ -145,7 +145,12 @@
         {% if renders %}
         {# As wide as the column, but no taller than about a screen: a tall die (a Tiny Tapeout chip) is narrower. #}
         {% set aspect = renders.reticle.width_px / renders.reticle.height_px %}
-        <div class="run-reticle-frame{{ ' with-labels' if slot_columns else '' }}" style="max-width: {{ [900, (720 * aspect) | round | int] | min }}px">
+        {% set framed = renders.reticle.frame_width_mm is defined and (renders.reticle.frame_width_mm, renders.reticle.frame_height_mm) != (renders.reticle.width_mm, renders.reticle.height_mm) %}
+        {# A framed reticle (a few dies on the 30 mm frame) is cropped to the dies, at the scale the frame would have:
+           the frame's width is the 900 px a full reticle gets, and the reticle's share of it is shown. #}
+        {% set full_width = [900, (720 * aspect) | round | int] | min %}
+        {% set shown = (renders.reticle.width_mm / renders.reticle.frame_width_mm) if framed else 1 %}
+        <div class="run-reticle-frame{{ ' with-labels' if slot_columns else '' }}{{ ' cropped' if framed }}" style="max-width: {{ (full_width * shown) | round | int }}px">
           {% if slot_columns %}
           <style>
             {% for c in slot_columns %}.run-reticle-frame:has(.run-reticle-slot[data-col="{{ loop.index0 }}"]:is(:hover, :focus-visible)) .run-reticle-cols [data-col="{{ loop.index0 }}"]{{ ',' if not loop.last }}
@@ -159,8 +164,8 @@
             {% for r in slot_rows %}<span data-row="{{ loop.index0 }}" style="top: {{ '%.3f' | format(r.top * 100) }}%; height: {{ '%.3f' | format(r.height * 100) }}%">{{ r.label }}</span>{% endfor %}
           </div>
           {% endif %}
-          {% set framed = renders.reticle.frame_width_mm is defined and (renders.reticle.frame_width_mm, renders.reticle.frame_height_mm) != (renders.reticle.width_mm, renders.reticle.height_mm) %}
-          <div class="run-reticle{{ ' framed' if framed else ' shadow' }}">
+          {% if framed %}<div class="run-reticle-crop shadow" style="aspect-ratio: {{ renders.reticle.width_mm }} / {{ renders.reticle.height_mm }}">{% endif %}
+          <div class="run-reticle{{ ' framed' if framed else ' shadow' }}"{% if framed %} style="width: {{ '%.4f' | format(100 / shown) }}%"{% endif %}>
             <img src="renders/{{ renders.reticle.file }}" alt="Render of the {{ run.shuttle }} {{ words.reticle }}"
                  width="{{ renders.reticle.width_px }}" height="{{ renders.reticle.height_px }}">
             {% for p in placements %}
@@ -170,11 +175,12 @@
                style="left: {{ '%.3f' | format(p.left * 100) }}%; top: {{ '%.3f' | format(p.top * 100) }}%; width: {{ '%.3f' | format(p.width * 100) }}%; height: {{ '%.3f' | format(p.height * 100) }}%;"><span>{% if p.label %}{{ p.label }} · {% endif %}{{ p.code }}</span></a>
             {% endfor %}
           </div>
+          {% if framed %}</div>{% endif %}
         </div>
         <p class="small text-muted mt-10 mb-0 text-center run-measure mx-auto">Every design rendered from the layout at the same scale and placed where
           it sits on the {{ renders.reticle.width_mm | round(1) | string | replace(".0", "") }} × {{ renders.reticle.height_mm | round(1) | string | replace(".0", "") }} mm
-          {{ words.reticle }}.{% if framed %} It is drawn on a {{ '%.0f' | format(renders.reticle.frame_width_mm) }} × {{ '%.1f' | format(renders.reticle.frame_height_mm) }} mm
-          frame, so that the dies appear at the same scale as on the other runs' pages.{% endif %}{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}{% if run.site.slot_origin == "top-right" %} The slots are named as in the shuttle's own list: rows lettered from the top, columns numbered from the right.{% endif %}
+          {{ words.reticle }}.{% if framed %} It is drawn at the same scale as the {{ '%.0f' | format(renders.reticle.frame_width_mm) }} × {{ '%.1f' | format(renders.reticle.frame_height_mm) }} mm
+          reticles on the other runs' pages, so its dies can be compared with theirs.{% endif %}{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}{% if run.site.slot_origin == "top-right" %} The slots are named as in the shuttle's own list: rows lettered from the top, columns numbered from the right.{% endif %}
           <span class="d-none d-sm-inline">Point at a {{ words.die }} to see its name, and select it for its details.</span><span class="d-sm-none">Every {{ words.die }} is listed further down.</span></p>
         {% else %}
         <p class="text-muted">Renders have not been generated for this run yet.</p>
@@ -185,8 +191,8 @@
         <h2 id="slots" class="section-title mb-10">{{ words.Slots }}{{ anchor("slots") }}</h2>
         <p class="small text-muted mb-15">{% if netlist_projects %}The blocks on the die, by size.{% elif tt %}How many
           tiles each project took. A tile is the smallest piece of a Tiny Tapeout chip you can submit a design to.{% else %}How
-          much of the reticle each design took: a 1 × 1 slot is a whole die of its own, and the ½ sizes are halves
-          and quarters of one.{% set filled = slot_types | sum(attribute="dies") %}{% if filled > stats.designs | length %}
+          much of the reticle each design took: a 1 × 1 slot is a whole die of its own{% if slot_types | length > 1 %}, and
+          the ½ sizes are halves and quarters of one{% endif %}.{% set filled = slot_types | sum(attribute="dies") %}{% if filled > stats.designs | length %}
           Some designs are placed more than once, so {{ stats.designs | length }} designs fill {{ filled }} slots.{% endif %}{% endif %}</p>
         <table class="table table-sm run-table bg-white mb-30">
           <tbody>
