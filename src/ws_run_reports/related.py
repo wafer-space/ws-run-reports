@@ -89,8 +89,19 @@ def _slot(key: str, design: dict) -> dict | None:
     kind = "other_shuttles" if key in design.get("other_shuttles", []) else "wafer_space"
     label = f"Google {run.site.get('short_name', run.heading[0])}" if kind == "other_shuttles" else run_label(run)
     return {"key": key, "kind": kind, "run": label, "run_url": run.pages_url, "code": code,
-            "name": spelled(project.name), "slot": project.slot_size, "date": submitted(run_name),
+            # "AS04 AS04 Multi-Project die" reads "AS04 Multi-Project die" once the code is shown before it.
+            "name": spelled(project.name[len(code) + 1:] if project.name.startswith(code + " ") else project.name),
+            "slot": project.slot_size, "date": submitted(run_name),
             "url": f"{run.pages_url}projects/{code}.html", "note": design.get("notes", {}).get(key, "")}
+
+
+@cache
+def _tt_shuttle_closed() -> dict:
+    """Tiny Tapeout chip -> the ISO date its submissions closed, from the shuttle data of a die measured here: the
+    date the die's own shuttle status shows."""
+    from . import tinytapeout
+    return {run.site.get("tt_chip", ""): end for run in _runs().values() if run.site.get("kind") == "tiny-tapeout"
+            and (end := str(tinytapeout.load_shuttle(run.repo_dir).get("end_date") or "")[:10])}
 
 
 @cache
@@ -114,8 +125,8 @@ def _tt(key: str, design: dict) -> dict:
     shuttle = re.sub(r"(\d)p(\d)", r"\1.\2", index.get("name") or chip)
     step = {"key": key, "kind": "tiny_tapeout", "chip": chip, "macro": macro, "shuttle": shuttle,
             "chip_url": f"https://tinytapeout.com/chips/{chip}/",
-            "title": project.get("title") or macro, "author": project.get("author", ""),
-            "tiles": project.get("tiles", ""), "date": _tt_closed().get(chip, ""),
+            "title": spelled(project.get("title") or macro), "author": project.get("author", ""),
+            "tiles": project.get("tiles", ""), "date": _tt_shuttle_closed().get(chip) or _tt_closed().get(chip, ""),
             "url": f"https://tinytapeout.com/chips/{chip}/{macro}", "here": _tt_dies().get((chip, macro), ""),
             "note": design.get("notes", {}).get(key, "")}
     if step["here"]:

@@ -35,7 +35,7 @@
         <p class="text-muted">No render has been generated for this design yet.</p>
         {% endif %}
 
-        {% if design.logic_cells %}
+        {% if design.logic_cells >= min_logic %}
         <h4 id="{{ idp }}density" class="mt-30 mb-10">Logic density{{ anchor(idp ~ "density") }}</h4>
         <table class="table table-sm run-table run-facts">
           <tbody>
@@ -57,9 +57,12 @@
             {% endif %}
             <tr><th>Core covered by logic</th><td>{{ design.utilisation | pct }}</td></tr>
             <tr><th>Transistor density<br><span class="small text-muted fw-normal">transistors per mm²</span></th><td>{{ design.core_transistor_density | k }} average{% if windowed_peak %},
-              {{ design.peak_transistors | k }} in the {{ window_name }} of logic{% endif %}</td></tr>
+              {{ design.peak_transistors | k }} in the {{ window_name | replace("densest ", "") }} with the most logic cells{% endif %}</td></tr>
           </tbody>
         </table>
+        {% elif design.logic_cells %}
+        <p class="mt-30 mb-10">{{ '{:,}'.format(design.logic_cells) }} logic cells: too few for density figures, which are
+          given for {{ 'projects' if tt else 'designs' }} of {{ '{:,}'.format(min_logic) }} or more.</p>
         {% endif %}
         <p class="small text-muted mb-0">Every figure here is measured from the <a href="{{ run.source_url }}">public layout</a>, the same way for every
           design on the {{ 'chip' if tt else 'run' }}: see <a href="{{ root }}index.html#data">data and method</a>, and
@@ -68,8 +71,8 @@
 
       <div class="col-lg-5">
         {% if info and info.description %}
-        <div class="run-description">{% for para in info.description.split('\n') if para.strip() %}<p{% if loop.first %} class="lead"{% endif %}>{{ para }}</p>{% endfor %}</div>
-        {% elif design.project.details %}<p class="lead">{{ design.project.details }}</p>{% endif %}
+        <div class="run-description">{% for para in info.description.split('\n') if para.strip() %}<p{% if loop.first %} class="lead"{% endif %}>{{ para | autolink }}</p>{% endfor %}</div>
+        {% elif design.project.details %}<p class="lead">{{ design.project.details | autolink }}</p>{% endif %}
         {# One button, the source; the rest as plain links. A chip tinytapeout.com has pages for links them there. #}
         {% set tt_pages = tt and tt.chip_url.startswith("https://tinytapeout.com/") %}
         <p class="run-design-links">
@@ -144,7 +147,7 @@
               {{ link(lib | library_label, links.library(lib)) }} <span class="text-muted">({{ n | count }})</span>{{ ', ' if not loop.last }}
               {% endfor %}</td></tr>
             {% endif %}
-            <tr><th>SRAM</th><td>{% if not design.has_sram and not design.macros %}None{% else %}{{ design.sram_label }}
+            <tr><th>SRAM</th><td>{% if not design.has_sram and not design.macros %}No SRAM{% else %}{{ design.sram_label }}
               {{ ('macro' if design.sram_label == '1' else 'macros') if design.macros else 'layout' }}{% if design.sram_bits %},
               {{ '{:,}'.format(design.sram_bits) }} bits{% endif %}{% endif %}</td></tr>
           </tbody>
@@ -248,11 +251,11 @@
     <div class="row gutter-50">
       <div class="col-lg-7 mb-30">
         <h3 id="{{ idp }}area" class="mb-10">Where the area went{{ anchor(idp ~ "area") }}</h3>
-        <p class="small text-muted mb-10">How this {{ 'project' if tt else 'design' }}'s area splits{% set parts = area_bar(design.area_breakdown) | map(attribute='label') | list %} between {% for p in parts %}{{ p if p == 'SRAM' else p | lower }}{{ ', ' if loop.revindex > 2 else ' and ' if loop.revindex == 2 }}{% endfor %}.</p>
+        <p class="small text-muted mb-10">{% set parts = area_bar(design.area_breakdown) | map(attribute='label') | list %}{% if parts | length > 1 %}How this {{ 'project' if tt else 'design' }}'s area splits between {% for p in parts %}{{ p if p == 'SRAM' else p | lower }}{{ ', ' if loop.revindex > 2 else ' and ' if loop.revindex == 2 }}{% endfor %}.{% else %}All of this {{ 'project' if tt else 'design' }}'s area is {{ parts[0] | lower }}.{% endif %}</p>
         <div class="run-bar run-bar-large mb-10">
           {% for part in area_bar(design.area_breakdown) if part.share > 0.001 %}
           <div style="width: {{ '%.2f' | format(part.share * 100) }}%; background: {{ part.colour }}"
-               title="{{ part.label }}: {{ '%.2f' | format(part.mm2) }} mm²">
+               title="{{ part.label }}: {{ area_text(part.mm2) }}">
             {% if part.share > 0.08 %}<span>{{ part.share | pct }}</span>{% endif %}
           </div>
           {% endfor %}
@@ -260,7 +263,7 @@
         <ul class="run-legend">
           {% for part in area_bar(design.area_breakdown) %}
           <li><i style="background: {{ part.colour }}"></i><strong>{{ part.label }}</strong>
-            {{ '%.2f' | format(part.mm2) }} mm² <span class="text-muted">({{ part.share | pct }})</span></li>
+            {{ area_text(part.mm2) }} <span class="text-muted">({{ part.share | pct }})</span></li>
           {% endfor %}
         </ul>
 
@@ -283,7 +286,7 @@
       </div>
 
       <div class="col-lg-5 mb-30">
-        {% if map and design.logic_cells %}
+        {% if map and design.logic_cells >= min_logic %}
         <h3 id="{{ idp }}map" class="mb-10">Logic density map{{ anchor(idp ~ "map") }}</h3>
         {# Drawn in units of one map square, so strokes and labels suit any square size. #}
         {% set s = 1 / design.window_mm %}
@@ -309,11 +312,17 @@
           <text x="{{ '%.3f' | format((c.x + c.w / 2) * s) }}" y="{{ '%.3f' | format((c.y + c.h / 2) * s) }}" class="{{ 'light' if c.level > 0.55 else '' }}"
                 style="font-size: {{ '%.3f' | format([0.22, 0.026 * columns] | max) }}px">{{ (c.cells / (design.window_mm * design.window_mm)) | k }}</text>
           {% endfor %}
+          {% if map.window %}
+          {% set fs = [0.22, 0.026 * columns] | max %}
+          {% set ty = map.window.y * s - fs * 0.75 if map.window.y * s > fs * 1.3 else (map.window.y + map.window.h) * s + fs * 0.75 %}
+          <text x="{{ '%.3f' | format((map.window.x + map.window.w / 2) * s) }}" y="{{ '%.3f' | format(ty) }}" class="window-label"
+                style="font-size: {{ '%.3f' | format(fs) }}px">{{ design.peak_cells | k }}</text>
+          {% endif %}
         </svg>
         <p class="small text-muted mb-0">Logic cells per mm² in each {{ 'square millimetre' if window_is_mm else window_side ~ ' square' }} of the
           {{ words.die }}{{ ' (counted in the square, scaled up to a mm²)' if not window_is_mm }}. {% if map.rects or map.window %}Hatched
-          outlines are SRAM macros{% if map.window %}; the red outline is the {{ window_name }} that avoids them, found by sliding a
-          {{ window_side }} square over the {{ words.die }} in {{ window_step }} steps{% endif %}.{% else %}Hatched squares overlap an
+          outlines are SRAM macros{% if map.window %}; the red outline, labelled in red, is the {{ window_name }} that avoids them, found by sliding a
+          {{ window_side }} square over the {{ words.die }} in {{ window_step }} steps, so it can straddle the fixed squares and find more than any one of them{% endif %}.{% else %}Hatched squares overlap an
           SRAM macro and are not counted.{% endif %} Squares at the edges are partial, so they read low.</p>
         {% endif %}
 

@@ -91,17 +91,18 @@
     <h2 class="section-title mb-10 text-center">What was built{{ anchor("summary") }}</h2>
     <p class="lead text-center mb-40">{% if tt %}The chip as a whole: what its projects add up to.{% else %}The
       run as a whole: what its designs add up to.{% endif %}</p>
+    {% if run.site.intro %}<p class="run-measure mx-auto text-center mb-40">{{ run.site.intro | safe }}</p>{% endif %}
     <div class="row justify-content-center">
       {% if netlist_projects %}
       {{ stat(netlist_projects | length, 'Projects', 'in one shared block') }}
       {{ stat(stats.designs | selectattr("category", "equalto", "Test structures") | list | length - 1, 'Cell tests', 'and a pad test') }}
       {% elif tt %}
       {{ stat(stats.designs | length, 'Projects', 'on the chip') }}
-      {{ stat(open_source, 'Open source', 'with a public repository') }}
+      {{ stat(open_source, 'Open source', 'with a public repository and an open licence' if details else 'with a public repository') }}
       {% else %}
       {% set filled = slot_types | sum(attribute="dies") if slot_types else 0 %}
       {{ stat(stats.designs | length, 'Public designs', ('filling all ' ~ filled ~ ' slots' if filled == run.slots else 'in ' ~ filled ~ ' of the reticle\'s ' ~ run.slots ~ ' slots') if filled else ('of ' ~ run.slots ~ ' reticle slots')) }}
-      {{ stat(open_source, 'Open source', 'with a public repository') }}
+      {{ stat(open_source, 'Open source', 'with a public repository and an open licence' if details else 'with a public repository') }}
       {% endif %}
       {{ stat(stats.transistors | count, 'Transistors', 'across the unique designs') }}
       {{ stat(stats.logic_cells | count, 'Logic cells', 'gates and flip-flops') }}
@@ -179,7 +180,7 @@
         <p class="small text-muted mt-10 mb-0 text-center run-measure mx-auto">Every design rendered from the layout at the same scale and placed where
           it sits on the {{ renders.reticle.width_mm | round(1) | string | replace(".0", "") }} × {{ renders.reticle.height_mm | round(1) | string | replace(".0", "") }} mm
           {{ words.reticle }}.{% if framed %} It is drawn at the same scale as the {{ '%.0f' | format(renders.reticle.frame_width_mm) }} × {{ '%.1f' | format(renders.reticle.frame_height_mm) }} mm
-          reticles on the other runs' pages, so its dies can be compared with theirs.{% endif %}{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}{% if run.site.slot_origin == "top-right" %} The slots are named as in the shuttle's own list: rows lettered from the top, columns numbered from the right.{% endif %}
+          reticles of wafer.space Runs 1 and 2, so its dies can be compared with theirs.{% endif %}{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}{% if run.site.slot_origin == "top-right" %} The slots are named as in the shuttle's own list: rows lettered from the top, columns numbered from the right.{% endif %}
           <span class="d-none d-sm-inline">Point at a {{ words.die }} to see its name, and select it for its details.</span><span class="d-sm-none">Every {{ words.die }} is listed further down.</span></p>
         {% else %}
         <p class="text-muted">Renders have not been generated for this run yet.</p>
@@ -410,7 +411,7 @@
     <div class="row gutter-50">
       <div class="col-lg-6 mb-30">
         <h3 id="licences" class="mb-10">Licences{{ anchor("licences") }}</h3>
-        <p class="small text-muted mb-15">The open-source licence each designer declared when submitting.</p>
+        <p class="small text-muted mb-15">The licence each designer declared when submitting.</p>
         <table class="table table-sm run-table bg-white mb-10">
           <thead><tr><th>Declared licence</th><th class="text-end">Designs</th></tr></thead>
           <tbody>
@@ -521,7 +522,7 @@
         edge with no wiring, would reach 100%.</p>
       {% elif digital %}
       <div class="col-lg-8"><p class="lead mb-0">This {{ 'chip' if tt else 'shuttle' }} has only {{ digital | length }}
-        digital {{ words.die if digital | length == 1 else words.dies }}, too few for a best or typical figure.
+        {{ words.die if digital | length == 1 else words.dies }} with 1,000 or more logic cells, too few for a best or typical figure.
         For densities across dozens of designs, see {{ runs_linked("wafer.space Run 2") }}.</p></div>
       {% endif %}
     </div>
@@ -536,8 +537,8 @@
       tell you what a tile holds. For tile sizes, see the later chips, from
       <a href="{{ website }}/tinytapeouts/ttgf0p2/ws-run1-ttp2/">Tiny Tapeout GF 0.2</a> on.</p>
     {% elif digital | length < 3 %}
-    <p class="lead text-center mb-50 run-measure">With only {{ digital | length }} digital
-      {{ words.die if digital | length == 1 else words.dies }}, this {{ 'chip' if tt else 'shuttle' }} cannot say what a
+    <p class="lead text-center mb-50 run-measure">With only {{ digital | length }}
+      {{ words.die if digital | length == 1 else words.dies }} of 1,000 or more logic cells, this {{ 'chip' if tt else 'shuttle' }} cannot say what a
       {{ 'tile' if tt else 'slot' }} typically holds. {{ runs_linked("wafer.space Run 2") }}'s page sizes each slot from
       dozens of designs.</p>
     {% else %}
@@ -593,7 +594,7 @@
 
     <h3 id="densities" class="mb-10">Logic density of every digital design{{ anchor("densities") }}</h3>
     {% set sealed = digital and digital[0].seal_ring_mm %}
-    <p class="text-muted small mb-20">Solid bar: average over the core{% if sealed %}. Dark line inside it: average
+    <p class="text-muted small mb-20">A digital {{ words.die }} here is one with 1,000 or more logic cells. Solid bar: average over the core{% if sealed %}. Dark line inside it: average
       over all the silicon inside the seal ring, pad ring included{% endif %}. Outlined bar: the {{ window_name }}
       outside SRAM{{ ', per mm²' if not window_is_mm }} (a dash where memory covers most of the design). The scale
       ends at the buffer theoretical maximum ({{ scale_max | k }} cells/mm²). The numbers are
@@ -764,10 +765,8 @@
       <a class="btn btn-outline-primary btn-sm mb-10" href="{{ design_href(code, "#bonding") }}">{{ code }}</a>
       {% endfor %}
     </div>
-    <div class="run-embed shadow">
-      <iframe src="{{ run.site.cob_url }}/" title="Chip-on-board results for {{ short_title }}" loading="lazy"></iframe>
-    </div>
-    <p class="small text-muted text-center mt-10 mb-0">From the <a href="{{ run.site.cob_url }}/">chip-on-board results page</a>.</p>
+    <p class="small text-muted text-center mb-0">Select a die for its bonding results on its page, or see the whole
+      <a href="{{ run.site.cob_url }}/">chip-on-board results page</a>.</p>
   </div>
 </div>
 {% endif %}
@@ -788,7 +787,7 @@
     <h2 class="section-title mb-10 text-center">Data and method{{ anchor("data") }}</h2>
     <p class="lead text-center mb-30 run-measure">{% if netlist_projects %}The die and its blocks are measured from the
       <a href="{{ run.source_url }}">public layout</a>; each project's share of the shared block is counted from that block's netlist.{% else %}Everything on this
-      page is measured from the <a href="{{ run.source_url }}">public layout</a>; the dates come from the published schedules.{% endif %}</p>
+      page is measured from the <a href="{{ run.source_url }}">public layout</a>; the dates come from {{ run.site.timeline_source or "the published schedules" }}.{% endif %}</p>
     <div class="row">
       <div class="col-lg-6 mb-30">
         <ul class="run-method">

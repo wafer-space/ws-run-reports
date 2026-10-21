@@ -7,6 +7,8 @@ slots = 4
 md5 = "e65f93005a41a1c997298f8b4abfc07c"
 
 [site]
+# Why a wafer.space customer would care, under "What was built" (HTML).
+intro = '''A private GF180MCU test shuttle on GlobalFoundries' MPW service, with four test designs. Each sat in the user area of the <a href="https://caravel-harness.readthedocs.io/">Caravel</a> harness, which took 55% of every die for its management SoC, pads and wiring. They are measured here the same way as wafer.space's own runs, for comparison with a wafer.space die, where everything inside the pad ring is your design. The other Google shuttle measured here is <a href="https://wafer.space/google-gf180mcu-mpw0/">GFMPW-0</a>.'''
 # The short name labels the shuttle elsewhere ("Google MPW-18H1").
 short_name = "MPW-18H1"
 heading = ["Google GF180MCU test shuttle (MPW‑18H1)", "Made on a private GlobalFoundries MPW run"]  # a non-breaking hyphen keeps the name on one line

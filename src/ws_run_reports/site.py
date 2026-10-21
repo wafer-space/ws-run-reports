@@ -42,8 +42,8 @@ AREA_NOTES = {
     "SRAM": "memory macros",
     "Filler and tap cells": "inserted by the tools to keep rows continuous and wells tied",
     "Other": "routing channels, analog and custom layout, power grid and empty space",
-    "Pad ring": "the 350 µm border of I/O cells and bond pads",
-    "Outside the user area": "the pad frame and shared harness around the user's design, not measured",
+    "Pad ring": f"the {stats_module.PAD_RING_MM * 1000:.0f} µm border of I/O cells and bond pads",
+    "Outside the user area": "the Caravel harness around the user's design: its management SoC, pads and wiring",
 }
 CATEGORY_COLOURS = ["#5ca7db", "#9b6bd6", "#45c4a0", "#f0b84c", "#e2626b", "#6f7bd9", "#3fb6c9", "#d98a4f",
                     "#8fb84e", "#c56bb4", "#7d8a99", "#a0a8b3"]
@@ -233,6 +233,23 @@ EXACT_DATE_RE = re.compile(r"\b\d{1,2} (January|February|March|April|May|June|Ju
                            r"November|December) \d{4}\b")
 
 
+def _area_text(mm2: float) -> str:
+    """An area in mm², or in µm² when it would read 0.00 mm²."""
+    return f"{mm2:.2f} mm²" if mm2 >= 0.005 else f"{mm2 * 1e6:,.0f} µm²"
+
+
+URL_RE = re.compile(r"https?://[^\s<>()\[\]]+[^\s<>()\[\].,;:!?'\"]")
+
+
+def _autolink(text: str) -> Markup:
+    """``text``, escaped, with each bare web address in it made a link."""
+    out, last = Markup(""), 0
+    for m in URL_RE.finditer(text or ""):
+        out += escape(text[last:m.start()]) + Markup('<a href="{0}">{0}</a>').format(m.group(0))
+        last = m.end()
+    return out + escape((text or "")[last:])
+
+
 def _author(name: str, repository: str) -> Markup:
     """A Tiny Tapeout project's author, then the GitHub account that owns its repository when that is a person's:
     the account is named as the repository's owner, not taken to be every author's."""
@@ -323,7 +340,8 @@ def build_context(run, out_dir: Path) -> dict:
                 item["description"] = f"{item['description']}, for whole-die slots on the run (not Tiny Tapeout projects)"
         timeline = sorted(timeline + tinytapeout.timeline_items(tinytapeout.load_shuttle(run.repo_dir)),
                           key=lambda item: item["date"])
-    cob = external.cob_pages(run)
+    # Only the dies on these pages: the bonding repository also holds private designs (AF02 on Run 1).
+    cob = {code: url for code, url in external.cob_pages(run).items() if code in {d.code for d in stats.designs}}
     photos = external.die_photos(run, site_dir)
     package_photos = external.package_photos(run, site_dir, [d.code for d in stats.designs])
     details = projects.load(out_dir)
@@ -417,7 +435,9 @@ def build_context(run, out_dir: Path) -> dict:
         "best_peak": best_peak,
         "median_utilisation": statistics.median(utilisations) if utilisations else 0,
         "best_utilisation": max(digital, key=lambda d: d.utilisation, default=None),
-        "open_source": sum(1 for d in stats.designs if d.project.repository),
+        # A public repository whose declared licence is proprietary is not open source.
+        "open_source": sum(1 for d in stats.designs if d.project.repository and
+                           ((details.get(d.code) or {}).get("licence", {}).get("declared") or "").lower() != "proprietary"),
         "pads": sum(d.bond_pads for d in stats.designs),
         "probe_pads": sum(d.probe_pads for d in stats.designs),
         "design_by_code": {d.code: d for d in stats.designs},
@@ -541,7 +561,8 @@ def build_site(run, out_dir: Path) -> Path:
     env.globals.update(static_version=digest.hexdigest()[:10])
     env.globals.update(area_bar=_area_bar, heatmap=_heatmap, photo_credit=lambda target=None: _photo_credit(run, target))
     env.globals.update(related=lambda design: related.for_slot(run, design.project))
-    env.globals.update(author=_author)
+    env.globals.update(author=_author, min_logic=report.MINIMAL_LOGIC_CELLS, area_text=_area_text)
+    env.filters.update(autolink=_autolink)
     env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id,
                        runs_linked=links.runs_linked)
     # Where a reader goes next: the Tiny Tapeout GF180MCU chips taking projects, and the wafer.space run taking orders.

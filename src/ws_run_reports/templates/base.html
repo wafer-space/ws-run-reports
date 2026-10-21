@@ -112,7 +112,7 @@
                 <a href="https://github.com/wafer-space/ws-run-reports">ws-run-reports</a>. Sizes, cells and
                 {% if collection is defined %}transistors are measured from the public layouts; dates come from the
                 published schedules. Each chip's data files are linked from its page.{% else %}transistors are measured
-                from the <a href="{{ run.source_url }}">public layout</a>; dates come from the published schedules. The
+                from the <a href="{{ run.source_url }}">public layout</a>; dates come from {{ run.site.timeline_source or "the published schedules" }}. The
                 data files are linked from <a href="{{ root }}index.html#data">the overview</a>.{% endif %}</p>
             </div>
           </div>

@@ -68,6 +68,13 @@ CELL_DESCRIPTIONS = {
     "dlya": "Delay buffer", "dlyc": "Delay buffer", "dlyd": "Delay buffer",
     "addh": "Half adder", "addf": "Full adder", "icgtp": "Clock gating cell", "bufz": "Tri-state buffer",
     "invz": "Tri-state inverter", "hold": "Bus hold cell",
+    "and4": "4-input AND gate", "or4": "4-input OR gate",
+    "aoi222": "AND-OR-Invert (2x2x2 inputs)", "oai222": "OR-AND-Invert (2x2x2 inputs)",
+    "aoi32": "AND-OR-Invert compound gate", "oai32": "OR-AND-Invert compound gate",
+    "aoi33": "AND-OR-Invert compound gate", "oai33": "OR-AND-Invert compound gate",
+    "aoi21b": "AND-OR-Invert, one input inverted", "oai21b": "OR-AND-Invert, one input inverted",
+    "dfxtn": "D flip-flop (falling edge)", "dfsrtp": "D flip-flop with set and reset", "dff": "D flip-flop (1 bit storage)",
+    "dffr": "D flip-flop with reset", "dffs": "D flip-flop with set",
 }
 
 # Supply voltage of the SRAM macro families: the foundry macros are 5 V, Open Circuit Design's 3.3 V.
@@ -129,10 +136,12 @@ def library_long_label(library: str) -> str:
 
 
 def describe_cell(cell_type: str) -> str:
+    # A copy of a cell made under a new name keeps it with a suffix: "dffrnq_1_0" is dffrnq_1.
+    cell_type = re.sub(r"(_\d+)_\d+$", r"\1", cell_type)
     base, _, drive = cell_type.rpartition("_")
     text = CELL_DESCRIPTIONS.get(base or cell_type, "")
     if text and drive.isdigit() and int(drive) > 1:
-        text += f" ({drive}x drive)"
+        text = f"{text[:-1]}, {drive}x drive)" if text.endswith(")") else f"{text} ({drive}x drive)"
     return text
 
 
