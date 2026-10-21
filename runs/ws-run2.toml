@@ -23,3 +23,7 @@ seal_ring_um = 26
 # FC01 is "test pads for flip chip bonding trials": all its pads are for bonding,
 # including the four in the middle of the die.
 all_bond_pads = ["FC01_*"]
+
+# Categories the keyword rules get wrong (classify.py).
+[categories]
+SALU = "Other digital"

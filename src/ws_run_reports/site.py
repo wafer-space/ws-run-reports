@@ -254,7 +254,7 @@ def _author(name: str, repository: str) -> Markup:
     """A Tiny Tapeout project's author, then the GitHub account that owns its repository when that is a person's:
     the account is named as the repository's owner, not taken to be every author's."""
     user = external.github_user(repository) if name else ""
-    account = Markup(' <a class="small text-muted run-nowrap" href="https://github.com/{0}" title="Owner of the project\'s repository">@{0}</a>')
+    account = Markup(' <span class="small run-account run-nowrap">· repository <a href="https://github.com/{0}" title="The GitHub account that owns the project\'s repository">@{0}</a></span>')
     return escape(name) + (account.format(user) if user else "")
 
 
@@ -436,7 +436,7 @@ def build_context(run, out_dir: Path) -> dict:
         "median_utilisation": statistics.median(utilisations) if utilisations else 0,
         "best_utilisation": max(digital, key=lambda d: d.utilisation, default=None),
         # A public repository whose declared licence is proprietary is not open source.
-        "open_source": sum(1 for d in stats.designs if d.project.repository and
+        "open_source": sum(1 for d in stats.designs if external.repository_public(d.project.repository) and
                            ((details.get(d.code) or {}).get("licence", {}).get("declared") or "").lower() != "proprietary"),
         "pads": sum(d.bond_pads for d in stats.designs),
         "probe_pads": sum(d.probe_pads for d in stats.designs),
@@ -561,7 +561,7 @@ def build_site(run, out_dir: Path) -> Path:
     env.globals.update(static_version=digest.hexdigest()[:10])
     env.globals.update(area_bar=_area_bar, heatmap=_heatmap, photo_credit=lambda target=None: _photo_credit(run, target))
     env.globals.update(related=lambda design: related.for_slot(run, design.project))
-    env.globals.update(author=_author, min_logic=report.MINIMAL_LOGIC_CELLS, area_text=_area_text)
+    env.globals.update(repository_public=external.repository_public, author=_author, min_logic=report.MINIMAL_LOGIC_CELLS, area_text=_area_text)
     env.filters.update(autolink=_autolink)
     env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id,
                        runs_linked=links.runs_linked)

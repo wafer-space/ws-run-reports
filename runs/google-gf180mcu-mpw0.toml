@@ -7,6 +7,9 @@ slots = 40
 md5 = "366739415ab37e49a4330761db15c940"
 
 [site]
+# Slots whose published final layout holds only Caravel's template example user project (user_proj_example, a small
+# counter) inside user_project_wrapper, not the design itself: checked in the stitched layout, 2026-10-21.
+template_only = ["472A", "EB3D", "F4D8"]
 # Why a wafer.space customer would care, under "What was built" (HTML).
 intro = '''One of the free open-source GF180MCU shuttles that Google sponsored and Efabless ran. Each design sat in the user area of the <a href="https://caravel-harness.readthedocs.io/">Caravel</a> harness, which took 55% of every die for its management SoC, pads and wiring. Its designs are measured here the same way as wafer.space's own runs, so you can compare them with a wafer.space die, where everything inside the pad ring is your design. The other Google shuttle measured here is <a href="https://wafer.space/google-gf180mcu-mpw18h1/">MPW-18H1</a>.'''
 # The short name labels the shuttle elsewhere ("Google GFMPW-0").
@@ -42,3 +45,11 @@ core_cell = "user_project_wrapper"
 # Everything on a Caravel die except the user's user_project_wrapper (kept above).
 caravel_harness = ["caravel_core", "caravel_power_routing", "chip_io", "caravel_logo", "caravel_motto",
            "copyright_block", "open_source", "user_id_textblock"]
+
+# Categories the keyword rules get wrong (classify.py).
+[categories]
+5FF2 = "Other digital"
+66AD = "Other digital"
+A3A3 = "Other digital"
+45D6 = "FPGA"
+4515 = "Test structures"

@@ -70,13 +70,20 @@
       </div>
 
       <div class="col-lg-5">
+        {% if design.code in run.site.get("template_only", []) %}
+        <div class="alert alert-warning run-alert mb-20" role="note"><strong>Not this design's layout.</strong> The final
+          layout published for this slot holds only Caravel's template example user project, a small counter, not
+          the design described below. So the figures on this page measure that example.</div>
+        {% endif %}
         {% if info and info.description %}
         <div class="run-description">{% for para in info.description.split('\n') if para.strip() %}<p{% if loop.first %} class="lead"{% endif %}>{{ para | autolink }}</p>{% endfor %}</div>
         {% elif design.project.details %}<p class="lead">{{ design.project.details | autolink }}</p>{% endif %}
         {# One button, the source; the rest as plain links. A chip tinytapeout.com has pages for links them there. #}
         {% set tt_pages = tt and tt.chip_url.startswith("https://tinytapeout.com/") %}
         <p class="run-design-links">
-          {% if design.project.repository %}
+          {% if design.project.repository and not repository_public(design.project.repository) %}
+          <span class="d-inline-block small text-muted mb-10 me-10">Source repository no longer public</span>
+          {% elif design.project.repository %}
           <a class="btn btn-s mb-10 me-10" href="{{ design.project.repository }}{% if tt and design.project.extra.COMMIT and design.project.repository.startswith("https://github.com/") %}/tree/{{ design.project.extra.COMMIT }}{% endif %}">Source repository</a>
           {% endif %}
           {% if tt_pages and not netlist_projects %}<a href="{{ tt.chip_url }}{{ design.project.top }}">Its page on Tiny Tapeout</a>{% endif %}

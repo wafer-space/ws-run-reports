@@ -63,6 +63,32 @@ def github_user(repository: str) -> str:
     return owner if accounts[owner] == "User" else ""
 
 
+GITHUB_REPOS = Path(__file__).resolve().parents[2] / "out" / "github_repos.json"
+
+
+@functools.cache
+def _github_repos() -> dict:
+    return json.loads(GITHUB_REPOS.read_text()) if GITHUB_REPOS.exists() else {}
+
+
+def repository_public(repository: str) -> bool:
+    """Whether a project's repository can still be opened: a GitHub repository that answers 404 cannot. Anything
+    not on GitHub, or not looked up for another reason, counts as public. Kept in GITHUB_REPOS once looked up."""
+    m = re.match(r"https://github\.com/([^/]+/[^/#?]+)", repository or "")
+    if not m:
+        return bool(repository)
+    name, repos = m.group(1).removesuffix(".git"), _github_repos()
+    if name not in repos:
+        result = subprocess.run(["gh", "api", f"repos/{name}", "--jq", ".private"], capture_output=True, text=True)
+        if result.returncode != 0 and "HTTP 404" not in result.stderr:
+            print(f"  warning: GitHub repository {name} unavailable: {result.stderr.strip()}")
+            return True
+        repos[name] = result.returncode == 0 and result.stdout.strip() == "false"
+        GITHUB_REPOS.parent.mkdir(parents=True, exist_ok=True)
+        GITHUB_REPOS.write_text(json.dumps(repos, indent=1, sort_keys=True) + "\n")
+    return repos[name]
+
+
 def clock_24h(text: str) -> str:
     """A schedule's "30 April 2026 @ 11:59 PM AoE" as "30 April 2026, 23:59 AoE"."""
     def convert(m):

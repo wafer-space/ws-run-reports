@@ -47,3 +47,7 @@ core_cell = "user_project_wrapper"
 # Everything on a Caravel die except the user's user_project_wrapper (kept above).
 caravel_harness = ["caravel_core", "caravel_power_routing", "chip_io", "caravel_logo", "caravel_motto",
            "copyright_block", "open_source", "user_id_textblock"]
+
+# Categories the keyword rules get wrong (classify.py).
+[categories]
+0003 = "Test structures"

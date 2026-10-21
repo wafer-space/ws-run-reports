@@ -24,6 +24,8 @@ tt_store_url = "https://store.tinytapeout.com/products/TTGF0p2-Development-Kit-P
 tt_chip = "ttgf0p2"
 heading = ["Tiny Tapeout GF 0.2", "Die TTP2 on wafer.space Run 1: the standard edition"]
 # Told apart from the other GF 0.2 die on cards that show only the first heading line.
+# How this edition differs from the other, under "What was built" (HTML).
+intro = '''This is the standard edition of Tiny Tapeout GF 0.2. The same 52 projects were also made on a <a href="https://wafer.space/tinytapeouts/ttgf0p2/ws-run1-ttpg/">power-gated edition</a>, which can switch off the power to the projects that are not selected.'''
 edition = "standard"
 slot_labels = false
 # The run's schedule, with the Tiny Tapeout shuttle's own milestones (data/tt_shuttle.json) merged in.

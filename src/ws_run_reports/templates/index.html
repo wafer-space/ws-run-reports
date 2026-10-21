@@ -101,7 +101,7 @@
       {{ stat(open_source, 'Open source', 'with a public repository and an open licence' if details else 'with a public repository') }}
       {% else %}
       {% set filled = slot_types | sum(attribute="dies") if slot_types else 0 %}
-      {{ stat(stats.designs | length, 'Public designs', ('filling all ' ~ filled ~ ' slots' if filled == run.slots else 'in ' ~ filled ~ ' of the reticle\'s ' ~ run.slots ~ ' slots') if filled else ('of ' ~ run.slots ~ ' reticle slots')) }}
+      {{ stat(stats.designs | length, 'Public designs', ('filling all ' ~ filled ~ ' slots' if filled == run.slots else 'in ' ~ filled ~ ' of the reticle\'s ' ~ run.slots ~ ' slot positions') if filled else ('of ' ~ run.slots ~ ' reticle slots')) }}
       {{ stat(open_source, 'Open source', 'with a public repository and an open licence' if details else 'with a public repository') }}
       {% endif %}
       {{ stat(stats.transistors | count, 'Transistors', 'across the unique designs') }}
@@ -119,8 +119,8 @@
       multiplexer), the cell tests and the pad test buffer. The pads and the fill are left out.</p>
     {% elif tt %}
     <p class="text-center text-muted small mb-0">Counted inside the projects only, so these totals are smaller than
-      the die's own figures on {% if parent_die %}<a href="{{ parent_die.run.pages_url }}#reticle">its run's page</a>{% else %}its run's page{% endif %}: the pads, Tiny Tapeout's multiplexer, controller and power switches,
-      and the fill are left out.</p>
+      the die's own figures on {% if parent_die %}<a href="{{ parent_die.run.pages_url }}#reticle">its run's page</a>{% else %}its run's page{% endif %}: the pads, Tiny Tapeout's multiplexer and controller{% if run.site.edition == "power-gated" %}, the power
+      switches{% endif %} and the fill are left out.</p>
     {% else %}
     <p class="text-center text-muted small mb-0">Private designs on the reticle are not in the <a href="{{ run.source_url }}">public layout</a> and are
       not counted. Designs placed more than once are counted once.</p>
@@ -512,7 +512,8 @@
         <div class="box bg-white shadow p-30 h-100">
           <h3 class="mb-5 color-dark">{{ median_density | k }}</h3>
           <p class="mb-0 font-weight-600 color-dark">Typical {{ words.die }}</p>
-          <p class="mb-0 small text-muted">median logic cells/mm² of core across {{ digital | length }} digital {{ words.dies if digital | length != 1 else words.die }}</p>
+          <p class="mb-0 small text-muted">median logic cells/mm² of core across {{ digital | length }} digital {{ words.dies if digital | length != 1 else words.die }}
+            (1,000 or more logic cells)</p>
           <p class="mb-0 small text-muted">{{ median_utilisation | pct }} of the core covered by logic cells</p>
         </div>
       </div>
@@ -554,7 +555,7 @@
         {% macro ref(cell) %}{{ link(cell.cell_type, links.cell(mx.library, cell.cell_type), mono=true) if cell else "none used" }}{% endmacro %}
         <thead><tr class="run-groups">
           <th colspan="4"></th>
-          <th colspan="2" class="run-group">Logic cells in its {{ 'projects' if tt else 'designs' }}</th>
+          <th colspan="2" class="run-group">Logic cells in its digital {{ 'projects' if tt else 'designs' }}<span class="run-note">1,000 or more logic cells</span></th>
           <th colspan="{{ 3 if window_is_mm else 2 }}" class="run-group">Logic cells at this {{ 'chip' if tt else 'run' }}'s density</th>
           <th colspan="2" class="run-group">Theoretical maximum{% if mx.library %}, {{ mx.library | library_label }} cells{% endif %}</th>
         </tr><tr>
@@ -685,6 +686,7 @@
     </div>
     {% if index_rows | length > INDEX_SHOWN %}<label for="run-index-all" class="run-index-more"><span class="run-show">Show all
       {{ index_rows | length }} {{ 'projects' if tt else 'designs' }}</span><span class="run-hide">Show the first {{ INDEX_SHOWN }} only</span></label>{% endif %}
+    <p class="d-sm-none small text-muted mt-10 mb-0">Swipe the table sideways for more columns.</p>
     <div class="mb-40"></div>
     {% endif %}
     {% if histories %}
@@ -701,7 +703,7 @@
     {% if tt_dies and not tt %}
     <div class="box bg-white shadow p-30 mb-40 run-tt-dies">
       <h4 class="mb-10">{{ tt_dies | length }} {{ 'die is a Tiny Tapeout chip' if tt_dies | length == 1 else 'dies are Tiny Tapeout chips' }}</h4>
-      <p class="mb-15">{% for code, children_of in tt_dies %}<a href="{{ children_of[0].pages_url }}">{{ children_of[0].heading[0] }}</a>
+      <p class="mb-15">{% for code, children_of in tt_dies %}<a href="{{ children_of[0].pages_url }}">{{ children_of[0].heading[0] }}{% if children_of[0].site.edition %}, {{ children_of[0].site.edition }}{% endif %}</a>
         ({{ code }}){{ ", " if loop.revindex > 2 else " and " if loop.revindex == 2 }}{% endfor %} each hold dozens of small
         projects from <a href="{{ website }}/tinytapeouts/">Tiny Tapeout</a>, the cheaper way to make a first chip. Each has pages of its own, project by project.</p>
       <p class="mb-0"><a class="btn btn-s" href="{{ website }}/tinytapeouts/">Tiny Tapeout chips on wafer.space</a>

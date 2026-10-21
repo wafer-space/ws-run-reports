@@ -208,6 +208,9 @@ def build(out: Path) -> dict:
         for design in s.designs:
             if not (_slot_type(run, design) and design.logic_cells):
                 continue
+            # A slot whose published layout is only the template example measures the example, not the design.
+            if design.code in run.site.get("template_only", []):
+                continue
             # One project made twice from the same commit counts once: GF 0.2's two editions, TTP2 and the
             # power-gated TTPG, hold the same 52 projects.
             same = (design.project.repository, design.project.extra.get("COMMIT"), design.project.top)

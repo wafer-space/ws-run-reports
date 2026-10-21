@@ -11,7 +11,7 @@
   <div class="container inner text-center">
     <p class="mb-10"><a class="run-crumb" href="{{ root }}index.html">{{ short_title }}</a></p>
     <h1 class="page-title">{{ design.name }}</h1>
-    <p class="lead"><span class="run-code-inline">{{ design.code }}</span> · {{ design.category }} · {{ design.slot_label }} {{ 'tile' if words.slot == 'tiles' and design.slot_label == '1 × 1' else words.slot }}</p>
+    <p class="lead"><span class="run-code-inline">{{ design.code }}</span> · {{ design.category }} · <span class="run-nowrap">{{ design.slot_label }} {{ 'tile' if words.slot == 'tiles' and design.slot_label == '1 × 1' else words.slot }}</span></p>
     {% if tt and design.project.extra.AUTHOR %}<p class="mb-0">by {{ author(design.project.extra.AUTHOR, design.project.repository) }}</p>{% endif %}
   </div>
 </div>
