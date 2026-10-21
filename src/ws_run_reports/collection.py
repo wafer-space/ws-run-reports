@@ -32,7 +32,7 @@ def load(name: str) -> SimpleNamespace:
         name=name, title=data["title"], repo=data["repo"], heading=list(data.get("heading") or [data["title"]]),
         intro=" ".join(data.get("intro", "").split()), site={"kind": data.get("kind", "")},
         other=[{**item, "description": " ".join(item.get("description", "").split())} for item in data.get("other", [])],
-        short_title=" · ".join([data["heading"][0], " ".join(data["heading"][1:])]) if data.get("heading") else data["title"],
+        short_title=data.get("short_title") or (" · ".join([data["heading"][0], " ".join(data["heading"][1:])]) if data.get("heading") else data["title"]),
         github_url=f"https://github.com/{data['repo']}", source_url=f"https://github.com/{data['repo']}",
         report_url=f"https://github.com/{data['repo']}/tree/density-report", pages_url=f"https://wafer.space/{repo_name}/")
 

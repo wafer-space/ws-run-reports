@@ -28,7 +28,7 @@
 {# Where to get and try this chip: one button (buy it, or the store's kits), then plain links. #}
 {% macro chip_links(t) %}
 <p class="mb-0">
-  {% if t.for_sale %}<a class="btn btn-s mb-10 me-10" href="{{ t.store_url }}">{{ "Buy this chip" if t.store_own_page else "Tiny Tapeout kits" }}</a>{% endif %}
+  {% if t.for_sale %}<a class="btn btn-s mb-10 me-10" href="{{ t.store_url }}">{{ "Buy this chip" if t.store_own_page else "Buy a chip and board" }}</a>{% endif %}
   {% if t.fpgas_url %}<a class="me-15" href="{{ t.fpgas_url }}">Try it online at fpgas.online</a>{% endif %}
   {% if t.chip_url %}<a href="{{ t.chip_url }}">{{ t.chip_label }}</a>{% endif %}
 </p>
@@ -69,11 +69,11 @@
     {% elif t and not t.for_sale %}
     <h5>Get a Tiny Tapeout chip</h5>
     <p>This test chip was not sold. The Tiny Tapeout chips made since come on a board you can plug in and try.</p>
-    <a class="btn btn-s" href="{{ links.tinytapeout('kits') }}">Tiny Tapeout kits</a>
+    <a class="btn btn-s" href="{{ links.tinytapeout('kits') }}">Buy a chip and board</a>
     {% else %}
     <h5>Get a Tiny Tapeout chip</h5>
     <p>Every Tiny Tapeout chip comes on a board you can plug in, with all of its projects ready to try.</p>
-    <a class="btn btn-s" href="{{ links.tinytapeout('kits') }}">Tiny Tapeout kits</a>
+    <a class="btn btn-s" href="{{ links.tinytapeout('kits') }}">Buy a chip and board</a>
     {% endif %}
   </div>
 {% endmacro %}

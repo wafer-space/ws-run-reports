@@ -151,7 +151,7 @@
     <div class="row gutter-50 align-items-start justify-content-center">
       <div class="col-lg-7 mb-30">{{ tiny.about() }}
         <p class="mt-30 mb-0"><a class="btn btn-s me-10" href="{{ links.tinytapeout('digital_design') }}">Start your first design</a>
-          <a href="{{ links.tinytapeout('kits') }}">Get a chip and board</a></p></div>
+          <a href="{{ links.tinytapeout('kits') }}">Buy a chip and board</a></p></div>
       <div class="col-md-8 col-lg-4 mb-30">{{ tiny.board({"store_url": links.tinytapeout("kits"), "store_own_page": false}, "") }}</div>
     </div>
     {% if other %}<p class="small text-muted mt-20">{% for c in other %}{{ link(c.name or c.run, c.url or c.repo) }}{% if c.description %}:

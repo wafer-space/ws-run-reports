@@ -399,3 +399,5 @@
 .run-more-inline[open] > summary { display: block; margin-bottom: 4px; }
 /* Design names in a table cell may be one long word (openframe_caravel_picorv32): let them break. */
 .run-which { overflow-wrap: anywhere; }
+/* A card title may be one long word (FA25_Engn2912e_Saligane...): wrap it rather than cut it off. */
+.run-card .post-title { overflow-wrap: anywhere; }

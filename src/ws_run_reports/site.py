@@ -154,7 +154,9 @@ def _slot_types(stats, renders):
 def _area_bar(breakdown):
     total = sum(breakdown.values()) or 1
     return [{"label": label, "mm2": breakdown[label], "share": breakdown[label] / total,
-             "colour": AREA_COLOURS[label]} for label in AREA_ORDER if label in breakdown]
+             "colour": AREA_COLOURS[label]} for label in AREA_ORDER
+            # Parts the design has none of (no SRAM, no pad ring) are left out of the bar and its key.
+            if label in breakdown and breakdown[label] >= 0.0005 * total]
 
 
 def _precheck_table(checks: dict):

@@ -26,6 +26,10 @@ PAD_RING_MM = 0.442
 # The seal ring around a die, which no design can use ([measure] seal_ring_um; the template's is 26 um).
 SEAL_RING_MM = 0.0
 
+# Names spelled the usual way on the pages, whatever a project's own record says.
+DISPLAY_SPELLINGS = [(r"\bRisc-?V\b|\bRISCV\b", "RISC-V"), (r"\bWafer\.space\b", "wafer.space"),
+                     (r"\bTinyTapeout\b", "Tiny Tapeout")]
+
 # A design counts as using several libraries when a second library holds at
 # least this share of its logic cells.
 MIXED_LIBRARY_SHARE = 0.01
@@ -250,7 +254,14 @@ class Design:
 
     @property
     def name(self) -> str:
-        return self.project.name or self.code
+        """The project's name as the pages show it: the usual spelling of a few names ("RISC-V", "wafer.space"),
+        and without its own code in front ("AS04 AS04 Multi-Project die" reads "AS04 Multi-Project die")."""
+        name = self.project.name or self.code
+        if name.startswith(self.code + " ") and len(name) > len(self.code) + 1:
+            name = name[len(self.code) + 1:]
+        for wrong, right in DISPLAY_SPELLINGS:
+            name = re.sub(wrong, right, name)
+        return name
 
     @property
     def sram_macros(self) -> int:

@@ -27,3 +27,14 @@ def test_inside_the_seal_ring_counts_the_pad_ring_against_the_design():
     d = design(seal_ring_mm=0.026)
     assert round(d.usable_area_mm2, 2) == round(3.880 * 5.070, 2)
     assert d.usable_density < d.core_density
+
+
+def test_names_are_shown_with_the_usual_spellings_and_no_repeated_code():
+    def named(code, name):
+        return Design(code=code, cell_name="x", project=Project(code, name), width_mm=1, height_mm=1, pads=0,
+                      sram_blocks=0, logic_cells=0, transistors=0).name
+    assert named("TQVA", "TinyQV Risc-V SoC") == "TinyQV RISC-V SoC"
+    assert named("WSLG", "Wafer.space Logo VGA Screensaver") == "wafer.space Logo VGA Screensaver"
+    assert named("001", "TinyTapeout Factory Test") == "Tiny Tapeout Factory Test"
+    assert named("AS04", "AS04 Multi-Project die using 3.3V SCL") == "Multi-Project die using 3.3V SCL"
+    assert named("X", "") == "X"

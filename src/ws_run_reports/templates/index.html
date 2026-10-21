@@ -73,7 +73,7 @@
       of {{ runs_linked(parent_run) }}{% endif %}</p>
     {% endif %}
     <p class="mb-0 run-hero-actions">
-      {% if tt.for_sale %}<a class="btn btn-s" href="{{ tt.store_url }}">{{ "Buy this chip" if tt.store_own_page else "Tiny Tapeout kits" }}</a>{% endif %}
+      {% if tt.for_sale %}<a class="btn btn-s" href="{{ tt.store_url }}">{{ "Buy this chip" if tt.store_own_page else "Buy a chip and board" }}</a>{% endif %}
       {% if next_tt %}<a class="btn btn-s btn-white" href="{{ next_tt[0].url }}">Put your design on the next one</a>{% endif %}
       {% if tt.fpgas_url %}<a class="btn btn-s btn-white" href="{{ tt.fpgas_url }}">Try it online</a>{% endif %}
       {% if tt.chip_url %}<a class="btn btn-s btn-white" href="{{ tt.chip_url }}">{{ tt.chip_label }}</a>{% endif %}</p>

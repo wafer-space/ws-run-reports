@@ -102,7 +102,7 @@
           <a class="btn btn-s mb-10 me-10" href="{{ design.project.repository }}{% if tt and design.project.extra.COMMIT and design.project.repository.startswith("https://github.com/") %}/tree/{{ design.project.extra.COMMIT }}{% endif %}">Source repository</a>
           {% endif %}
           {% if tt_pages and not netlist_projects %}<a href="{{ tt.chip_url }}{{ design.project.top }}">Its page on Tiny Tapeout</a>{% endif %}
-          {% if tt and tt.for_sale %}<a href="{{ tt.store_url }}">{{ "Buy this chip" if tt.store_own_page else "Tiny Tapeout kits" }}</a>{% endif %}
+          {% if tt and tt.for_sale %}<a href="{{ tt.store_url }}">{{ "Buy this chip" if tt.store_own_page else "Buy a chip and board" }}</a>{% endif %}
           {% if tt and tt.fpgas_url %}<a href="{{ tt.fpgas_url }}">Try it online</a>{% endif %}
           {% for child in children.get(design.code, []) if not idp %}<a href="{{ child.pages_url }}">Every project on {{ child.heading[0] }}</a>{% endfor %}
           {% if photo %}<a href="#{{ idp }}photo">Die photograph</a>{% endif %}
@@ -243,7 +243,7 @@
     <div class="row gutter-50">
       <div class="col-lg-7 mb-30">
         <h3 id="{{ idp }}area" class="mb-10">Where the area went{{ anchor(idp ~ "area") }}</h3>
-        <p class="small text-muted mb-10">How this design's area splits between working logic, memory, filler and the pad ring.</p>
+        <p class="small text-muted mb-10">How this {{ 'project' if tt else 'design' }}'s area splits{% set parts = area_bar(design.area_breakdown) | map(attribute='label') | list %} between {% for p in parts %}{{ p if p == 'SRAM' else p | lower }}{{ ', ' if loop.revindex > 2 else ' and ' if loop.revindex == 2 }}{% endfor %}.</p>
         <div class="run-bar run-bar-large mb-10">
           {% for part in area_bar(design.area_breakdown) if part.share > 0.001 %}
           <div style="width: {{ '%.2f' | format(part.share * 100) }}%; background: {{ part.colour }}"
