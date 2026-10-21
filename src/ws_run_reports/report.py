@@ -404,9 +404,12 @@ def build_report(stats) -> str:
         "overlap without forming transistors.\n"
         + (f"- **Core area** is the area of each design's `{stats.meta['core_cell']}` cell.\n"
            if stats.meta.get("core_cell") else
-           f"- **Core area** is (die width − {2 * stats_module.PAD_RING_MM:.2f}mm) x (die height − "
-           f"{2 * stats_module.PAD_RING_MM:.2f}mm), removing a {stats_module.PAD_RING_MM * 1000:.0f}um pad ring "
-           "from each side.\n") +
+           "- **Core area** is each design's whole area.\n"
+           if stats.designs and not stats.designs[0].pad_ring_mm else
+           "- **Core area** is each design's `CORE_AREA`, read from its own LibreLane config at the commit that "
+           "was checked; where that could not be read, (die width − "
+           f"{2 * stats_module.PAD_RING_MM:.3f}mm) x (die height − {2 * stats_module.PAD_RING_MM:.3f}mm), the "
+           f"project template's core {stats_module.PAD_RING_MM * 1000:.0f}um in from each edge.\n") +
         "- **Cell dimensions** are the width and height of each standard cell's placement boundary (GDS 0/0), "
         "measured from the cells present in this layout.\n"
         "- **Theoretical maximum** = (1000um / cell width) x (1000um / row height).\n"

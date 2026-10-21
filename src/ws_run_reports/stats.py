@@ -12,14 +12,19 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import cores
 from .classify import classify
 from .features import FEATURES, FEATURE_LABELS, MIM_VIA_LEVELS
 from .config import Project, Run
 
 OUTPUT_STEM = "reticle_analysis"
 
-# Width of the I/O pad ring on each side of a die. GF180MCU I/O cells are 350 um deep.
-PAD_RING_MM = 0.35
+# How far a die's core is from its edge on each side, when the design's own config does not say (cores.py): the
+# wafer.space project template's CORE_AREA, 442 um in (the 26 um seal ring, the 350 um deep GF180MCU I/O cells and
+# the space between them and the core).
+PAD_RING_MM = 0.442
+# The seal ring around a die, which no design can use ([measure] seal_ring_um; the template's is 26 um).
+SEAL_RING_MM = 0.0
 
 # A design counts as using several libraries when a second library holds at
 # least this share of its logic cells.
@@ -228,7 +233,8 @@ class Design:
     sram_rects: list = field(default_factory=list)      # (macro, x0, y0, x1, y1) in mm from the die corner
     windows: dict = field(default_factory=dict)         # kind -> densest 1 mm window, from _windows.csv
     window_mm: float = 1.0                              # side of the map squares and windows ([measure] grid_um)
-    pad_ring_mm: float = PAD_RING_MM                    # [measure] pad_ring_um; 0 makes the whole design its core
+    pad_ring_mm: float = PAD_RING_MM                    # core inset ([measure] pad_ring_um); 0: the design is all core
+    seal_ring_mm: float = SEAL_RING_MM                  # [measure] seal_ring_um
     page_url: str = ""                                  # the design's page on the run's site
     features: dict = field(default_factory=dict)        # feature -> (count, area_um2), designer-drawn only
     mim_top_levels: list = field(default_factory=list)  # from the usage output: e.g. ["Metal4-Metal5"]
@@ -238,6 +244,9 @@ class Design:
     category: str = ""
     # Area of the run's core cell (e.g. a Caravel user_project_wrapper), when it names one.
     measured_core_mm2: float | None = None
+    # The CORE_AREA in the design's own LibreLane config, and the config's path (cores.py), when it has one.
+    config_core_mm2: float | None = None
+    config_core_source: str = ""
 
     @property
     def name(self) -> str:
@@ -272,10 +281,25 @@ class Design:
 
     @property
     def core_area_mm2(self) -> float:
-        """Die area inside the I/O pad ring, or the area of the run's core cell."""
+        """The area the design's logic is placed in: the run's core cell, else the CORE_AREA of the design's own
+        config, else the die less the template's inset on each side."""
         if self.measured_core_mm2 is not None:
             return self.measured_core_mm2
+        if self.config_core_mm2 is not None:
+            return self.config_core_mm2
         return max(0.0, self.width_mm - 2 * self.pad_ring_mm) * max(0.0, self.height_mm - 2 * self.pad_ring_mm)
+
+    @property
+    def core_source(self) -> str:
+        """Where :attr:`core_area_mm2` comes from: "core cell", "design config" or "template"."""
+        if self.measured_core_mm2 is not None:
+            return "core cell"
+        return "design config" if self.config_core_mm2 is not None else "template"
+
+    @property
+    def usable_area_mm2(self) -> float:
+        """The die inside its seal ring: all the silicon a slot gives its designer, pad ring included."""
+        return max(0.0, self.width_mm - 2 * self.seal_ring_mm) * max(0.0, self.height_mm - 2 * self.seal_ring_mm)
 
     @property
     def outside_core_label(self) -> str:
@@ -283,8 +307,13 @@ class Design:
 
     @property
     def core_density(self) -> float:
-        """Logic standard cells per mm2 of core area."""
+        """Logic standard cells per mm2 of core area: what the design itself packed."""
         return self.logic_cells / self.core_area_mm2 if self.core_area_mm2 else 0.0
+
+    @property
+    def usable_density(self) -> float:
+        """Logic standard cells per mm2 inside the seal ring: what the slot as a whole held, pad ring and all."""
+        return self.logic_cells / self.usable_area_mm2 if self.usable_area_mm2 else 0.0
 
     @property
     def core_transistor_density(self) -> float:
@@ -625,6 +654,7 @@ def load(run: Run, out_dir: Path) -> RunStats:
     # peak densities are always given per mm².
     window_mm = float(meta.get("grid_um", 1000)) / 1000
     pad_ring_mm = float(meta["pad_ring_um"]) / 1000 if "pad_ring_um" in meta else PAD_RING_MM
+    seal_ring_mm = float(run.measure.get("seal_ring_um", SEAL_RING_MM * 1000)) / 1000
     per_mm2 = 1 / (window_mm * window_mm)
 
     projects = run.projects()
@@ -644,7 +674,7 @@ def load(run: Run, out_dir: Path) -> RunStats:
             pad_labels=int(r.get("pad_label_count") or 0),
             sram_blocks=int(r["sram_block_count"]), logic_cells=int(r["stdcell_count"]),
             transistors=int(r["transistor_count"]), positions=[position], window_mm=window_mm,
-            pad_ring_mm=pad_ring_mm, page_url=f"{run.pages_url}projects/{code}.html")
+            pad_ring_mm=pad_ring_mm, seal_ring_mm=seal_ring_mm, page_url=f"{run.pages_url}projects/{code}.html")
     first_cell = {d.cell_name: d for d in designs.values()}
 
     for r in _read(Path(f"{stem}_cells.csv")):
@@ -737,6 +767,14 @@ def load(run: Run, out_dir: Path) -> RunStats:
             d.pad_area_mm2 = float(r["pad_area_mm2"])
             if r.get("core_area_mm2"):
                 d.measured_core_mm2 = float(r["core_area_mm2"])
+
+    # Each design's own CORE_AREA, where its repository records one (a run whose designs are all core has none).
+    if pad_ring_mm:
+        for code, plan in cores.load(out_dir).items():
+            if code in designs:
+                x0, y0, x1, y1 = plan["core_um"]
+                designs[code].config_core_mm2 = (x1 - x0) * (y1 - y0) / 1e6
+                designs[code].config_core_source = plan["source"]
 
     for r in _read(Path(f"{stem}_slot_macros.csv")):
         d = first_cell.get(r["cell_name"])

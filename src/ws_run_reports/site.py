@@ -443,7 +443,12 @@ def build_context(run, out_dir: Path) -> dict:
                            # [measure] pad_ring_um = 0: a Tiny Tapeout project or block is all core.
                            f"Core area is the whole {TERMS['tiny-tapeout']['die'] if not run.site.get('terms') else run.site['terms']['die']}."
                            if run.measure.get("pad_ring_um") == 0 else
-                           f"Core area is the die minus a {stats_module.PAD_RING_MM * 1000:.0f} µm pad ring on each side."),
+                           "Core area is each design's CORE_AREA, read from its own LibreLane config at the commit"
+                           " that was checked; where that could not be read, the project template's, "
+                           f"{stats_module.PAD_RING_MM * 1000:.0f} µm in from each edge of the die."
+                           + (f" Density inside the seal ring is over the whole die less its"
+                              f" {float(run.measure['seal_ring_um']):.0f} µm seal ring: all the silicon a slot gives"
+                              " its designer, pad ring included." if run.measure.get("seal_ring_um") else "")),
     }
 
 

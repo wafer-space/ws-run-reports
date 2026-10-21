@@ -66,8 +66,15 @@
           <tbody>
             {# Units go in the headings, so that no value carries a ² that could read as a footnote. #}
             {# The share of the buffer maximum only where this run has one for the design's library. #}
-            <tr><th>Core average<br><span class="small text-muted fw-normal">logic cells per mm²</span></th><td>{{ design.core_density | k }}
-              {% if design.pct_of_buffer_max %}<span class="text-muted">({{ design.pct_of_buffer_max | pct }} of buffer maximum)</span>{% endif %}</td></tr>
+            {# Two averages: over the core the design's logic is placed in, and over all the silicon its slot gives
+               it inside the seal ring, pad ring included. #}
+            <tr><th>{{ 'Inside the core' if design.seal_ring_mm else 'Core average' }}<br><span class="small text-muted fw-normal">logic cells per mm²</span></th><td>{{ design.core_density | k }}
+              {% if design.pct_of_buffer_max %}<span class="text-muted">({{ design.pct_of_buffer_max | pct }} of buffer maximum)</span>{% endif %}
+              {% if design.seal_ring_mm %}<br><span class="small text-muted">over the {{ '%.2f' | format(design.core_area_mm2) }} mm² core: what the design itself packed</span>{% endif %}</td></tr>
+            {% if design.seal_ring_mm %}
+            <tr><th>Inside the seal ring<br><span class="small text-muted fw-normal">logic cells per mm²</span></th><td>{{ design.usable_density | k }}
+              <br><span class="small text-muted">over all {{ '%.2f' | format(design.usable_area_mm2) }} mm² of the slot, pad ring included</span></td></tr>
+            {% endif %}
             {% set windowed_peak = design.peak_cells >= design.core_density %}
             {% if windowed_peak %}
             <tr><th>{{ window_name | capitalize }}<br><span class="small text-muted fw-normal">logic cells per mm²</span></th><td>{{ design.peak_cells | k }}
@@ -134,7 +141,12 @@
             {% if x.CLOCK_HZ and x.CLOCK_HZ != "0" %}{% set hz = x.CLOCK_HZ | int %}<tr><th>Clock</th><td>{{ ('%g MHz' | format(hz / 1e6)) if hz >= 1000000 else ('%g kHz' | format(hz / 1e3)) if hz >= 1000 else hz ~ ' Hz' }}</td></tr>{% endif %}
             {% if x.FLOW_VERSION or x.PDK_VERSION %}<tr><th>Built with</th><td>{% if x.FLOW_VERSION %}{{ link("LibreLane", links.tool("LibreLane")) }} {{ link(x.FLOW_VERSION, links.librelane(x.FLOW_VERSION)) }}{% endif %}{% if x.FLOW_VERSION and x.PDK_VERSION %}, {% endif %}{% if x.PDK_VERSION %}open_pdks {{ link(x.PDK_VERSION[:12], links.open_pdks(x.PDK_VERSION), mono=true) }}{% endif %}</td></tr>{% endif %}
             {% else %}
-            <tr><th>Core area</th><td>{{ '%.1f' | format(design.core_area_mm2) }} mm² inside the pad ring</td></tr>
+            <tr><th>Core area</th><td>{{ '%.2f' | format(design.core_area_mm2) }} mm² inside the pad ring
+              <br><span class="small text-muted">{% if design.core_source == "design config" %}the design's CORE_AREA, from
+                {{ link(design.config_core_source, links.repo_file(design.project.repository, info.licence.repo_commit, design.config_core_source) if info and info.licence else "", mono=true) }}{% elif design.core_source == "core cell" %}its
+                {{ stats.meta.core_cell }} cell{% else %}the project template's, {{ '%.0f' | format(design.pad_ring_mm * 1000) }} µm in from each edge{% endif %}</span></td></tr>
+            {% if design.seal_ring_mm %}<tr><th>Inside the seal ring</th><td>{{ '%.2f' | format(design.usable_area_mm2) }} mm²
+              <span class="text-muted">(the die less its {{ '%.0f' | format(design.seal_ring_mm * 1000) }} µm seal ring)</span></td></tr>{% endif %}
             {% set mine = placements | selectattr("code", "equalto", design.code) | list %}
             <tr><th>Placements</th><td>{{ design.placements }} on the reticle{% if mine and mine[0].label %}, in
               {{ "slots" if mine | length > 1 else "slot" }} {% for p in mine %}<a class="run-mono" href="{{ root }}index.html#reticle">{{ p.label }}</a>{{ ", " if not loop.last }}{% endfor %}{% endif %}

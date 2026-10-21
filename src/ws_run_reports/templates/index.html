@@ -544,16 +544,22 @@
     {% endif %}
 
     <h3 id="densities" class="mb-10">Logic density of every digital design{{ anchor("densities") }}</h3>
-    <p class="text-muted small mb-20">Solid bar: average over the core. Outlined bar: the {{ window_name }} outside SRAM{{ ', per mm²' if not window_is_mm }} (a dash where memory covers most of the design). The scale
-      ends at the buffer theoretical maximum ({{ scale_max | k }} cells/mm²).</p>
+    {% set sealed = digital and digital[0].seal_ring_mm %}
+    <p class="text-muted small mb-20">Solid bar: average over the core{% if sealed %}. Dark line inside it: average
+      over all the silicon inside the seal ring, pad ring included{% endif %}. Outlined bar: the {{ window_name }}
+      outside SRAM{{ ', per mm²' if not window_is_mm }} (a dash where memory covers most of the design). The scale
+      ends at the buffer theoretical maximum ({{ scale_max | k }} cells/mm²). The numbers are
+      {{ 'seal ring / ' if sealed }}core / densest, in logic cells per mm².</p>
     {% macro density_row(d) %}
       <a class="run-row" href="{{ design_href(d.code) }}" title="{{ d.code }} {{ d.name }} — {{ d.library_label }}">
         <span class="run-row-label"><strong>{{ d.code }}</strong> <span class="text-muted">{{ d.name }}</span></span>
         <span class="run-density">
           <i class="peak" style="width: {{ '%.2f' | format([d.peak_cells / scale_max, 1] | min * 100) }}%"></i>
           <i class="core" style="width: {{ '%.2f' | format([d.core_density / scale_max, 1] | min * 100) }}%"></i>
+          {% if d.seal_ring_mm %}<i class="usable" style="width: {{ '%.2f' | format([d.usable_density / scale_max, 1] | min * 100) }}%"></i>{% endif %}
         </span>
-        <span class="run-row-value">{{ d.core_density | k }} <span class="text-muted">/ {{ d.peak_cells | k if d.peak_cells >= d.core_density else "—" }}</span></span>
+        <span class="run-row-value">{% if d.seal_ring_mm %}<span class="text-muted">{{ d.usable_density | k }} /</span> {% endif %}{{ d.core_density | k }}
+          <span class="text-muted">/ {{ d.peak_cells | k if d.peak_cells >= d.core_density else "—" }}</span></span>
       </a>
     {% endmacro %}
     <div class="run-rows">
@@ -565,6 +571,33 @@
       <div class="run-rows">{% for d in digital[SHOWN:] %}{{ density_row(d) }}{% endfor %}</div>
     </details>
     {% endif %}
+    {# The same figures, and the areas they are over, as a table to read across or copy. #}
+    <details class="run-more">
+      <summary>Every digital {{ words.die }}'s densities as a table</summary>
+      <div class="table-responsive">
+      <table class="table table-sm run-table">
+        <thead><tr><th>{{ 'Project' if tt else 'Design' }}</th><th>{{ 'Tiles' if tt else 'Slot' }}</th><th>Library</th><th class="text-end">Logic cells</th>
+          {% if sealed %}<th class="text-end">Inside seal ring<br><span class="fw-normal text-muted">per mm²</span></th>{% endif %}
+          <th class="text-end">Inside core<br><span class="fw-normal text-muted">per mm²</span></th>
+          <th class="text-end">{{ window_name | capitalize }}<br><span class="fw-normal text-muted">per mm²</span></th>
+          <th class="text-end">Core covered</th><th class="text-end">Core<br><span class="fw-normal text-muted">mm²</span></th></tr></thead>
+        <tbody>
+        {% for d in digital %}
+        <tr><td><a href="{{ design_href(d.code) }}">{{ d.name }}</a> <span class="text-muted run-mono">{{ d.code }}</span></td>
+          <td class="run-nowrap">{{ d.slot_label }}</td><td class="run-nowrap">{{ d.library_label }}</td>
+          <td class="text-end">{{ '{:,}'.format(d.logic_cells) }}</td>
+          {% if sealed %}<td class="text-end">{{ '{:,.0f}'.format(d.usable_density) }}</td>{% endif %}
+          <td class="text-end">{{ '{:,.0f}'.format(d.core_density) }}</td>
+          <td class="text-end">{{ '{:,.0f}'.format(d.peak_cells) if d.peak_cells >= d.core_density else "—" }}</td>
+          <td class="text-end">{{ d.utilisation | pct }}</td>
+          <td class="text-end">{{ '%.2f' | format(d.core_area_mm2) }}{% if d.core_source == "template" %}*{% endif %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% if digital | selectattr("core_source", "equalto", "template") | list and sealed %}<p class="small text-muted">* The
+        project template's core: the design's own config could not be read.</p>{% endif %}
+    </details>
   </div>
 </div>
 

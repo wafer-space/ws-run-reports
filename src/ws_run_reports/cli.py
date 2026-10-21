@@ -51,6 +51,12 @@ def cmd_import(args, run):
     print(f"Wrote {path}")
 
 
+def cmd_cores(args, run):
+    from . import cores
+    path = cores.write(run, out_dir(args, run))
+    print(f"Wrote {path}")
+
+
 def cmd_publish(args, run):
     from . import publish
     publish.publish(run, out_dir(args, run), args.target, push=args.push)
@@ -69,6 +75,7 @@ COMMANDS = {
     "site": (cmd_site, "build the web page for the run"),
     "all": (cmd_all, "analyze, report, render and site in one go"),
     "import": (cmd_import, "import project details from a platform export and a repository licence audit"),
+    "cores": (cmd_cores, "read each design's core area from its repository's LibreLane config"),
     "publish": (cmd_publish, "commit the results to a branch of the run repository"),
 }
 

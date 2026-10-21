@@ -144,8 +144,11 @@ def _design_row(run, design, s, details: dict, tt_cache: dict) -> dict:
     row = {"run": label,
            "run_url": run.pages_url, "kind": _run_kind(run), "code": design.code, "name": design.name,
            "url": f"{run.pages_url}projects/{design.code}.html", "group": group, "slot": slot,
-           "core_mm2": round(design.core_area_mm2, 4), "logic_cells": design.logic_cells,
-           "core_density": round(design.core_density),
+           "core_mm2": round(design.core_area_mm2, 4), "core_source": design.core_source,
+           "logic_cells": design.logic_cells, "core_density": round(design.core_density),
+           # Over all the silicon inside the seal ring, pad ring included, where the run has one (wafer.space).
+           "usable_mm2": round(design.usable_area_mm2, 4) if design.seal_ring_mm else None,
+           "usable_density": round(design.usable_density) if design.seal_ring_mm else None,
            "peak_density": round(design.peak_cells) if design.peak_cells >= design.core_density else None,
            "utilisation": round(design.utilisation, 3), "library": library_label(lib) if lib else "",
            "volts": library_voltage(lib) if lib else None, "sram_bits": design.sram_bits,
@@ -169,16 +172,20 @@ def _summary(rows: list, best_key: str = "logic_cells") -> dict:
     median_density = statistics.median(r["core_density"] for r in pool)
     typical = min(pool, key=lambda r: abs(r["core_density"] - median_density))
     peaks = [r for r in pool if r["peak_density"]]
+    usable = [r["usable_density"] for r in pool if r.get("usable_density")]
     return {"designs": len(rows), "digital": len(digital),
             "core_mm2": round(statistics.median(r["core_mm2"] for r in rows), 4),
             "median_logic_cells": round(median_cells), "median_density": round(median_density),
+            "median_usable_density": round(statistics.median(usable)) if usable else None,
+            "best_usable_density": max(usable) if usable else None,
             "median_utilisation": round(statistics.median(r["utilisation"] for r in pool), 3),
             "most_cells": _pick(best), "densest": _pick(densest), "typical": _pick(typical),
             "densest_window": _pick(max(peaks, key=lambda r: r["peak_density"])) if peaks else None}
 
 
 def _pick(row: dict) -> dict:
-    keep = ("run", "code", "name", "url", "slot", "core_mm2", "logic_cells", "core_density", "peak_density",
+    keep = ("run", "code", "name", "url", "slot", "core_mm2", "usable_mm2", "logic_cells", "core_density",
+            "usable_density", "peak_density",
             "utilisation", "library", "volts", "target_density_pct", "clock_period_ns", "sram_bits")
     return {k: row[k] for k in keep if k in row and row[k] is not None}
 

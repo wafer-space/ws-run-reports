@@ -13,6 +13,8 @@ runs_yml_key = "gf180mcu_run_2"
 campaign_url = "https://www.crowdsupply.com/wafer-space/gf180mcu-run-2"
 
 [measure]
+# The project template's seal ring, 26 um on each side (its DIE_AREA "including 26um for the sealring").
+seal_ring_um = 26
 # FC01 is "test pads for flip chip bonding trials": all its pads are for bonding,
 # including the four in the middle of the die.
 all_bond_pads = ["FC01_*"]
