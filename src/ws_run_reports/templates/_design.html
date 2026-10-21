@@ -316,19 +316,13 @@
              stay readable when the map is scaled down to the column. #}
           {% set columns = map.width * s %}
           {% for c in map.cells if c.sram is not sameas true and c.w * s > 0.6 and c.h * s > 0.6 %}
-          <text x="{{ '%.3f' | format((c.x + c.w / 2) * s) }}" y="{{ '%.3f' | format((c.y + c.h / 2) * s) }}" class="{{ 'light' if c.level > 0.55 else '' }}"
+          <text x="{{ '%.3f' | format((c.x + c.w / 2) * s) }}" y="{{ '%.3f' | format((c.y + c.h / 2) * s) }}" class="{{ 'light' if c.level > 0.55 else 'pale' if c.level < 0.25 else '' }}"
                 style="font-size: {{ '%.3f' | format([0.22, 0.026 * columns] | max) }}px">{{ (c.cells / (design.window_mm * design.window_mm)) | k }}</text>
           {% endfor %}
-          {% if map.window %}
-          {% set fs = [0.22, 0.026 * columns] | max %}
-          {% set ty = map.window.y * s - fs * 0.75 if map.window.y * s > fs * 1.3 else (map.window.y + map.window.h) * s + fs * 0.75 %}
-          <text x="{{ '%.3f' | format((map.window.x + map.window.w / 2) * s) }}" y="{{ '%.3f' | format(ty) }}" class="window-label"
-                style="font-size: {{ '%.3f' | format(fs) }}px">{{ design.peak_cells | k }}</text>
-          {% endif %}
         </svg>
         <p class="small text-muted mb-0">Logic cells per mm² in each {{ 'square millimetre' if window_is_mm else window_side ~ ' square' }} of the
           {{ words.die }}{{ ' (counted in the square, scaled up to a mm²)' if not window_is_mm }}. {% if map.rects or map.window %}Hatched
-          outlines are SRAM macros{% if map.window %}; the red outline, labelled in red, is the {{ window_name }} that avoids them, found by sliding a
+          outlines are SRAM macros{% if map.window %}; the red outline is the {{ window_name }} that avoids them ({{ design.peak_cells | k }} logic cells per mm²), found by sliding a
           {{ window_side }} square over the {{ words.die }} in {{ window_step }} steps, so it can straddle the fixed squares and find more than any one of them{% endif %}.{% else %}Hatched squares overlap an
           SRAM macro and are not counted.{% endif %} Squares at the edges are partial, so they read low.</p>
         {% endif %}
