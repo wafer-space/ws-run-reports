@@ -22,7 +22,7 @@ from pathlib import Path
 
 import yaml
 
-from . import config, external, projects, related, report
+from . import config, external, links, projects, related, report
 from . import stats as stats_module
 from .stats import REFERENCE_CELLS, THIN_OXIDE, library_label, library_voltage
 
@@ -187,7 +187,7 @@ def _summary(rows: list, best_key: str = "logic_cells") -> dict:
 
 
 def _pick(row: dict) -> dict:
-    keep = ("run", "code", "name", "url", "slot", "core_mm2", "usable_mm2", "logic_cells", "core_density",
+    keep = ("run", "run_url", "code", "name", "url", "slot", "core_mm2", "usable_mm2", "logic_cells", "core_density",
             "usable_density", "peak_density",
             "utilisation", "library", "volts", "target_density_pct", "clock_period_ns", "sram_bits")
     return {k: row[k] for k in keep if k in row and row[k] is not None}
@@ -224,7 +224,8 @@ def build(out: Path) -> dict:
         candidates = [(lib, e[label]) for lib, e in library.items() if label in e]
         if candidates:
             lib, best = max(candidates, key=lambda c: c[1]["per_mm2"])
-            process[label] = {"what": what, "library": library_label(lib), **best}
+            process[label] = {"what": what, "library": library_label(lib), **best,
+                              "library_url": links.library(lib), "cell_url": links.cell(lib, best["cell"])}
     transistor_best = max(((lib, label, e) for lib, entries in library.items() for label, e in entries.items()
                            if e["transistors_per_mm2"]), key=lambda t: t[2]["transistors_per_mm2"])
     sram = _sram_maxima(all_stats)
