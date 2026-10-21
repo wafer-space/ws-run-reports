@@ -380,3 +380,6 @@
 /* Run names linked in a hero's title stay white, underlined. */
 .run-hero .page-title-sub a, [data-theme="dark"] .run-hero .page-title-sub a { color: inherit; text-decoration: underline;
   text-underline-offset: 4px; text-decoration-thickness: 1px; }
+/* The shuttle status's two lists: done so far, still to come. */
+.run-status-head { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--run-muted); margin: 0 0 12px; }
+.run-reticle-frame { margin-inline: auto; }

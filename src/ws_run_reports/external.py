@@ -33,6 +33,14 @@ def _try(label, function, default):
         return default
 
 
+def clock_24h(text: str) -> str:
+    """A schedule's "30 April 2026 @ 11:59 PM AoE" as "30 April 2026, 23:59 AoE"."""
+    def convert(m):
+        hour = int(m.group(1)) % 12 + (12 if (m.group(3) or "").upper() == "PM" else 0)
+        return f", {hour:02d}:{m.group(2)}" if m.group(3) else f", {int(m.group(1)):02d}:{m.group(2)}"
+    return re.sub(r"\s*@\s*(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?", convert, text or "")
+
+
 def timeline(run) -> list:
     """Milestones for this run from the wafer.space website's ``_data/runs.yml``.
 
@@ -54,7 +62,7 @@ def timeline(run) -> list:
         data = yaml.safe_load(text)
         entry = data["runs"][key]
         return [
-            {"title": item["title"], "date": str(item["date"]), "display_date": item.get("display_date", ""),
+            {"title": item["title"], "date": str(item["date"]), "display_date": clock_24h(item.get("display_date", "")),
              "description": item.get("description", ""), "status": item.get("status", ""), "done": item.get("done")}
             for item in entry.get("timeline", [])
         ]

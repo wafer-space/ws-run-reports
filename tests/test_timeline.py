@@ -1,5 +1,6 @@
-"""Which timeline milestones count as having happened."""
+"""Which timeline milestones count as having happened, and how their times read."""
 
+from ws_run_reports.external import clock_24h
 from ws_run_reports.site import milestone_done
 
 TODAY = "2026-10-19"
@@ -26,3 +27,10 @@ def test_rough_dates_in_past_years_are_done():
     assert milestone_done({"date": "2024-06-01", "display_date": "2024"}, TODAY)
     assert milestone_done({"date": "2025-06-01", "display_date": "June – July 2025"}, TODAY)
     assert not milestone_done({"date": "2025-06-01", "display_date": "2025", "done": False}, TODAY)
+
+
+def test_times_are_24_hour_without_an_at_sign():
+    assert clock_24h("30 April 2026 @ 11:59 PM AoE") == "30 April 2026, 23:59 AoE"
+    assert clock_24h("5 December 2022 @ 11:59 PT") == "5 December 2022, 11:59 PT"
+    assert clock_24h("1 March 2026 @ 12:00 AM UTC") == "1 March 2026, 00:00 UTC"
+    assert clock_24h("Early Q4 2026") == "Early Q4 2026"

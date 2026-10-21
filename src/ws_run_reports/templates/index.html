@@ -128,10 +128,12 @@
 <div id="reticle" class="wrapper gray-wrapper">
   <div class="container inner">
     <div class="row gutter-50">
-      <div class="col-lg-8 mb-30">
-        <h2 class="section-title mb-20">The {{ words.reticle }}{{ anchor("reticle") }}</h2>
+      <div class="col-12 mb-40">
+        <h2 class="section-title mb-20 text-center">The {{ words.reticle }}{{ anchor("reticle") }}</h2>
         {% if renders %}
-        <div class="run-reticle-frame{{ ' with-labels' if slot_columns else '' }}">
+        {# As wide as the column, but no taller than about a screen: a tall die (a Tiny Tapeout chip) is narrower. #}
+        {% set aspect = renders.reticle.width_px / renders.reticle.height_px %}
+        <div class="run-reticle-frame{{ ' with-labels' if slot_columns else '' }}" style="max-width: {{ [900, (720 * aspect) | round | int] | min }}px">
           {% if slot_columns %}
           <style>
             {% for c in slot_columns %}.run-reticle-frame:has(.run-reticle-slot[data-col="{{ loop.index0 }}"]:is(:hover, :focus-visible)) .run-reticle-cols [data-col="{{ loop.index0 }}"]{{ ',' if not loop.last }}
@@ -157,7 +159,7 @@
             {% endfor %}
           </div>
         </div>
-        <p class="small text-muted mt-10 mb-0">Every design rendered from the layout at the same scale and placed where
+        <p class="small text-muted mt-10 mb-0 text-center run-measure mx-auto">Every design rendered from the layout at the same scale and placed where
           it sits on the {{ renders.reticle.width_mm | round(1) | string | replace(".0", "") }} × {{ renders.reticle.height_mm | round(1) | string | replace(".0", "") }} mm
           {{ words.reticle }}.{% if framed %} It is drawn on a {{ '%.0f' | format(renders.reticle.frame_width_mm) }} × {{ '%.1f' | format(renders.reticle.frame_height_mm) }} mm
           frame, so that the dies appear at the same scale as on the other runs' pages.{% endif %}{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}
@@ -166,7 +168,7 @@
         <p class="text-muted">Renders have not been generated for this run yet.</p>
         {% endif %}
       </div>
-      <div class="col-lg-4">
+      <div class="col-lg-4 mb-30">
         {% if slot_types %}
         <h2 id="slots" class="section-title mb-10">{{ words.Slots }}{{ anchor("slots") }}</h2>
         <p class="small text-muted mb-15">{% if netlist_projects %}The blocks on the die, by size.{% elif tt %}How many
@@ -181,6 +183,10 @@
           <tfoot><tr><th>Total</th><th class="text-end">{{ slot_types | sum(attribute="dies") }}</th></tr></tfoot>
         </table>
         {% endif %}
+        <p class="mb-0"><a class="btn btn-s me-10 mb-10" href="{{ run.source_url }}">Layout on GitHub</a>
+          {% if run.site.campaign_url %}<a href="{{ run.site.campaign_url }}">The run on Crowd Supply</a>{% endif %}</p>
+      </div>
+      <div class="col-lg-8">
         <h2 id="status" class="section-title mb-10">Shuttle status{{ anchor("status") }}</h2>
         {% if not tt %}<p class="small text-muted mb-15">{% if timeline and timeline | rejectattr("done") | list %}Where this
           run is now, from opening orders to shipping parts.{% else %}How this run went, from the call for designs to
@@ -192,12 +198,19 @@
           collects the projects and builds the die, then <span class="run-owner run-owner-ws">wafer.space</span>
           manufactures it on {{ runs_linked(tt.parent.title.split(" (")[0]) if tt and tt.parent.title else "its run" }} and ships the parts.</p>
         {% endif %}
+        {# Two columns on wide screens: what is done, then today and what is still to come (or, for a finished
+           run, its history in two halves). #}
+        {% set done_items = timeline | selectattr("done") | list %}
+        {% set split = done_items | length if done_items | length < timeline | length else (timeline | length + 1) // 2 %}
+        <div class="row">
+        {% for part in [timeline[:split], timeline[split:]] if part %}
+        <div class="col-md-6">
+        {% if done_items | length < timeline | length %}<h3 class="run-status-head">{{ "Done so far" if part[0].done else "Still to come" }}</h3>{% endif %}
         <ul class="run-timeline">
-          {% set marker = namespace(shown=false) %}
-          {% for item in timeline %}
-          {% if not item.done and not marker.shown %}{% set marker.shown = true %}
+          {% if not loop.first or split == 0 %}{% if done_items | length < timeline | length %}
           <li class="run-today"><span class="run-today-rocket" aria-hidden="true"></span>
-            <span class="run-timeline-date">Today, {{ today.display }}</span></li>{% endif %}
+            <span class="run-timeline-date">Today, {{ today.display }}</span></li>{% endif %}{% endif %}
+          {% for item in part %}
           <li class="{{ 'done' if item.done else 'pending' }} run-timeline-{{ item.status }}{% if owners | length > 1 %} run-timeline-{{ 'tt' if item.owner == 'Tiny Tapeout' else 'ws' }}{% endif %}">
             <span class="run-timeline-date">{% if owners | length > 1 %}<span class="run-owner run-owner-{{ 'tt' if item.owner == 'Tiny Tapeout' else 'ws' }}">{{ item.owner }}</span>
               {% endif %}{{ item.display_date or item.date }}</span>
@@ -205,9 +218,12 @@
             <span class="small text-muted">{{ item.description }}</span>
           </li>
           {% endfor %}
-          {% if not marker.shown %}<li class="run-today"><span class="run-today-rocket" aria-hidden="true"></span>
+          {% if loop.last and done_items | length == timeline | length %}<li class="run-today"><span class="run-today-rocket" aria-hidden="true"></span>
             <span class="run-timeline-date">Today, {{ today.display }}</span></li>{% endif %}
         </ul>
+        </div>
+        {% endfor %}
+        </div>
         {% if tt and next_tt %}<p class="small mb-10"><strong>Missed this one?</strong> {{ next_tt_names }}
           take projects until {{ next_tt[0].closes }}: <a href="{{ next_tt[0].url }}">submit a project</a>.</p>
         {% elif not tt and next_ws and next_ws.key != run.site.runs_yml_key and run.site.campaign_url %}<p class="small mb-10"><strong>Missed
@@ -223,9 +239,6 @@
         {% else %}
         <p class="text-muted">No schedule is published for this run.</p>
         {% endif %}
-        <div class="space20"></div>
-        <a class="btn btn-s me-10" href="{{ run.source_url }}">Layout on GitHub</a>
-        {% if run.site.campaign_url %}<a href="{{ run.site.campaign_url }}">The run on Crowd Supply</a>{% endif %}
       </div>
     </div>
   </div>
