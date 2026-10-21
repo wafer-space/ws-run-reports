@@ -14,6 +14,9 @@ seal_ring_um = 26
 heading = ["wafer.space Run 1"]
 # The shuttle timeline: this run's key in the wafer.space website's _data/runs.yml.
 runs_yml_key = "gf180mcu_run_1"
+# The schedule after fabrication, from the planning sheet, is in website PR #145; back to the default
+# (main) once it merges.
+runs_yml_url = "https://raw.githubusercontent.com/wafer-space/wafer-space.github.io/run-timelines-after-fab/_data/runs.yml"
 campaign_url = "https://www.crowdsupply.com/wafer-space/gf180mcu-run-1"
 # Chip-on-board bonding results, one directory per project code.
 cob_repo = "wafer-space/ws-run1-cob"
