@@ -63,13 +63,14 @@ def _tt_dies() -> dict:
 
 
 # Timeline events that mark when a run's designs were handed in, in the order they are looked for.
-SUBMISSION_EVENTS = ("Design Submission", "Submission Deadline", "Tapeout Deadline", "Designs Submitted")
+# Milestone titles, compared in lower case: the timeline shows them in sentence case ("Submission deadline").
+SUBMISSION_EVENTS = ("design submission", "submission deadline", "tapeout deadline", "designs submitted")
 
 
 @cache
 def submitted(run_name: str) -> str:
     """The ISO date a run's designs were due, from its timeline, or ""."""
-    events = {e.get("title"): e.get("date", "") for e in external.timeline(_runs()[run_name])}
+    events = {e.get("title", "").lower(): e.get("date", "") for e in external.timeline(_runs()[run_name])}
     return next((events[t] for t in SUBMISSION_EVENTS if events.get(t)), "")
 
 

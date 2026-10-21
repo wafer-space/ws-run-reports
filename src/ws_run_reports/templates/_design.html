@@ -321,7 +321,7 @@
         <h3 id="{{ idp }}sram" class="mt-30 mb-10">SRAM macros{{ anchor(idp ~ "sram") }}</h3>
         <p class="small text-muted mb-10">The ready-made memory blocks this design uses.</p>
         <div class="table-responsive">
-        <table class="table table-sm run-table bg-white">
+        <table class="table table-sm run-table run-macros bg-white">
           <thead><tr><th>Macro</th><th class="text-end">Count</th><th class="text-end">Bits each</th></tr></thead>
           <tbody>
             {% for name, n in design.macros | dictsort %}

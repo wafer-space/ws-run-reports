@@ -237,7 +237,7 @@ def _author(name: str, repository: str) -> Markup:
     """A Tiny Tapeout project's author, then the GitHub account that owns its repository when that is a person's:
     the account is named as the repository's owner, not taken to be every author's."""
     user = external.github_user(repository) if name else ""
-    account = Markup(' <a class="small text-muted" href="https://github.com/{0}" title="Owner of the project\'s repository">@{0}</a>')
+    account = Markup(' <a class="small text-muted run-nowrap" href="https://github.com/{0}" title="Owner of the project\'s repository">@{0}</a>')
     return escape(name) + (account.format(user) if user else "")
 
 

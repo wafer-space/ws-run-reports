@@ -53,10 +53,11 @@ def github_user(repository: str) -> str:
     owner, accounts = m.group(1), _github_accounts()
     if owner not in accounts:
         result = subprocess.run(["gh", "api", f"users/{owner}", "--jq", ".type"], capture_output=True, text=True)
-        if result.returncode != 0:
+        if result.returncode != 0 and "HTTP 404" not in result.stderr:
             print(f"  warning: GitHub account {owner} unavailable: {result.stderr.strip()}")
             return ""
-        accounts[owner] = result.stdout.strip()
+        # A deleted account is kept as "" (none), so that it is not looked up again.
+        accounts[owner] = result.stdout.strip() if result.returncode == 0 else ""
         GITHUB_ACCOUNTS.parent.mkdir(parents=True, exist_ok=True)
         GITHUB_ACCOUNTS.write_text(json.dumps(accounts, indent=1, sort_keys=True) + "\n")
     return owner if accounts[owner] == "User" else ""

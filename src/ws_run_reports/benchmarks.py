@@ -261,7 +261,8 @@ def build(out: Path) -> dict:
                        "libraries": [{"library": library_label(lib), "name": lib, "cells": entries}
                                      for lib, entries in library.items()],
                        "sram": sram},
-            "achieved": {"designs": len(rows), "runs": sorted({r["run"] for r in rows}),
+            "achieved": {"designs": len(rows),
+                         "runs": [{"name": n, "url": u} for n, u in sorted({(r["run"], r["run_url"]) for r in rows})],
                          "with_flow_settings": sum(1 for r in rows if "target_density_pct" in r),
                          "by_slot": by_slot, "per_mm2": per_mm2,
                          "densest": [_pick(r) for r in top], "densest_windows": [_pick(r) for r in top_windows],
