@@ -7,7 +7,7 @@ slots = 54
 md5 = "57fa57f52eac82835a051f2a353e5a30"
 
 [site]
-heading = ["GF180MCU Run 2"]
+heading = ["wafer.space Run 2"]
 # The shuttle timeline: this run's key in the wafer.space website's _data/runs.yml.
 runs_yml_key = "gf180mcu_run_2"
 campaign_url = "https://www.crowdsupply.com/wafer-space/gf180mcu-run-2"

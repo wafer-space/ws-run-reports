@@ -177,8 +177,8 @@
             <tr><th>Licence</th><td>{% if lic.declared %}{{ link(lic.declared, declared_url) }}{% else %}not declared{% endif %} <span class="text-muted">declared</span>
               {% if lic.status == "match" %}<br><span class="text-muted">Repository: {{ found() }}
                 {% if not lic_files %}(in {{ link("source file headers", links.repo_tree(lic_repo, lic.repo_commit)) }}){% endif %} — agrees</span>
-              {% elif lic.status == "mismatch" %}<br><span class="run-warn">Repository: {{ found() }} — differs from the declared licence</span>
-              {% elif lic.status == "no licence file" %}<br><span class="run-warn">The repository has no licence file</span>
+              {% elif lic.status == "mismatch" %}<br><span class="text-muted">Repository: {{ found() }}, not the declared licence</span>
+              {% elif lic.status == "no licence file" %}<br><span class="text-muted">The repository has no licence file</span>
               {% elif lic.status == "no repository" %}<br><span class="text-muted">No public repository</span>{% endif %}
               {% if lic.repo_commit %}<br><span class="small text-muted">Repository checked at {{ link(lic.repo_commit[:12], links.repo_commit(lic_repo, lic.repo_commit), mono=true) }}</span>{% endif %}</td></tr>
             {% if info.template and info.template.repo %}
@@ -338,24 +338,21 @@
       {% set on_runs = runs_linked(ws_runs[:-1] | join(", ") ~ " and " ~ ws_runs[-1] if ws_runs | length > 1 else ws_runs[0]) %}
       {% if rel.started_on_tiny_tapeout %}
       <h4 class="alert-heading mb-10">From Tiny Tapeout tiles to a die of its own</h4>
-      <p>{{ rel.name }} {{ 'began as tiles on' if rel.tiny_tapeout_lead else 'was tried on' }}
+      <p class="mb-0">{{ rel.name }} {{ 'began as tiles on' if rel.tiny_tapeout_lead else 'was tried on' }}
         <a class="alert-link" href="{{ first.chip_url }}">{{ first.shuttle }}</a>{% if rel.other_shuttles and not rel.tiny_tapeout_lead %} and a
-        Google shuttle{% endif %}, and {{ 'now has' if rel.tiny_tapeout_lead else 'went on to' }} {{ 'a die' if dies | length == 1 else 'dies' }} of its own on {{ on_runs }}.
-        Your next version can have one too{% if next_ws %}: {{ runs_linked(next_ws.name) }} takes orders until {{ next_ws.deadline }}{% endif %}.</p>
+        Google shuttle{% endif %}, and {{ 'now has' if rel.tiny_tapeout_lead else 'went on to' }} {{ 'a die' if dies | length == 1 else 'dies' }} of its own on {{ on_runs }}.</p>
       {% else %}
       <h4 class="alert-heading mb-10">Parts of this design are on Tiny Tapeout chips too</h4>
-      <p>Tiny Tapeout puts many small designs on one chip, so trying out a block costs a fraction of a whole die:
+      <p class="mb-0"><a class="alert-link" href="{{ website }}/tinytapeouts/">Tiny Tapeout</a> puts many small designs on one chip, so trying out a block costs a fraction of a whole die:
         a cheap way to test one piece of a bigger design before it goes on a die of its own.</p>
       {% endif %}
-      <p class="mb-0">{% if next_ws %}<a class="btn btn-s mb-5 me-10" href="{{ next_ws.url }}">Reserve a slot on {{ next_ws.name }}</a>{% endif %}
-        <a class="alert-link" href="{{ next_tt[0].url if next_tt else links.tinytapeout('home') }}">New to chip design? Start with a
-        Tiny Tapeout tile{% if next_tt %}, by {{ next_tt[0].closes }}{% endif %}</a></p>
     </div>
     {% elif tt and rel.wafer_space %}
     {% set runs = rel.wafer_space | map(attribute="run") | unique | list %}
     <div class="alert alert-primary">
       <h4 class="alert-heading mb-10">From a Tiny Tapeout tile to a whole die</h4>
-      <p>{{ rel.name }} started as a few tiles on Tiny Tapeout and went on to {{ 'a die' if rel.wafer_space | length == 1 else 'dies' }}
+      <p>{% set first_tt = rel.tiny_tapeout | first %}{{ rel.name }} started as a few tiles on
+        {{ link(first_tt.shuttle, first_tt.chip_url) if first_tt else 'Tiny Tapeout' }} and went on to {{ 'a die' if rel.wafer_space | length == 1 else 'dies' }}
         of its own on {{ runs_linked(runs[:-1] | join(", ") ~ " and " ~ runs[-1] if runs | length > 1 else runs[0]) }}. When your
         design outgrows its tiles, a whole die on a wafer.space run is the next step.</p>
       {% if next_ws %}<p class="mb-0"><a class="btn btn-s" href="{{ next_ws.url }}">Reserve a slot on {{ next_ws.name }}</a></p>{% endif %}

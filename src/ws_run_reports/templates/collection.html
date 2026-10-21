@@ -12,7 +12,7 @@
      data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
   <div class="container inner text-center">
     <h1 class="page-title">{{ collection.heading[0] }}{% for line in collection.heading[1:] %}<span class="page-title-sub">{{ line }}</span>{% endfor %}</h1>
-    <p class="lead">{{ entries | length }} chips · {{ chips | sum(attribute="projects") }} projects</p>
+    <p class="lead">{{ entries | length }} chips · {{ chips | sum(attribute="projects") }} different projects</p>
     {% if tt %}
     <p class="mb-0 run-hero-actions">
       {% if next_tt %}<a class="btn btn-s" href="{{ next_tt[0].url }}">Submit your design by {{ next_tt[0].closes }}</a>{% endif %}
@@ -66,19 +66,22 @@
     {% endif %}
     {% if planned %}
     <h3 class="mt-20 mb-15 text-center">Planned</h3>
+    {# Which wafer.space run makes each: a column once any is known, else one line under the table. #}
+    {% set runs_known = planned | selectattr("ws_run") | list %}
     <div class="table-responsive run-planned">
     <table class="table run-table bg-white">
-      <thead><tr><th>Chip</th><th>Projects close</th><th>Shipping</th><th class="d-none d-md-table-cell">Made on</th></tr></thead>
+      <thead><tr><th>Chip</th><th>Projects close</th><th>Shipping</th>{% if runs_known %}<th>Made on</th>{% endif %}</tr></thead>
       <tbody>
       {% for c in planned %}
-      <tr><td class="run-nowrap">{{ link(tiny_name(c.run), c.url) }}</td>
+      <tr><td>{{ link(tiny_name(c.run), c.url) }}</td>
         <td>{{ c.dates.closes or c.dates["submission deadline"] }}{% if c.section == "future" %} <span class="text-muted">(estimated)</span>{% endif %}</td>
         <td>{{ c.dates["estimated shipping date"] or c.dates["chips expected"] }}</td>
-        <td class="d-none d-md-table-cell">{% if c.ws_run %}{{ runs_linked(c.ws_run) }}{% else %}<span class="text-muted">not yet announced</span>{% endif %}</td></tr>
+        {% if runs_known %}<td>{% if c.ws_run %}{{ runs_linked(c.ws_run) }}{% else %}<span class="text-muted">not yet announced</span>{% endif %}</td>{% endif %}</tr>
       {% endfor %}
       </tbody>
     </table>
     </div>
+    {% if not runs_known %}<p class="small text-muted text-center mb-10">Which wafer.space run will make each is not yet announced.</p>{% endif %}
     {% endif %}
     <p class="small text-muted text-center mb-0">Dates and tile counts come from Tiny Tapeout and were last updated
       {{ generated }}. For the latest, see {{ tiny.tt("chips", "Tiny Tapeout's chip schedule") }}.</p>
@@ -102,10 +105,14 @@
             </figure>
           </a>
           <div class="run-card-body">
-            <h5 class="post-title mb-5"><a href="{{ r.path }}/index.html">{{ r.heading[0] }}</a></h5>
-            <p class="mb-5 text-muted small">{{ runs_linked(r.heading[1:] | join(" ")) }}</p>
+            {# The two GF 0.2 dies are told apart in the title; the subtitle then needs only the die and run. #}
+            <h5 class="post-title mb-5"><a href="{{ r.path }}/index.html">{{ r.heading[0] }}</a>{% if r.site.edition %}<span
+              class="run-nowrap">, {{ r.site.edition }}</span>{% endif %}</h5>
+            {% set subtitle = r.heading[1:] | join(" ") %}
+            <p class="mb-5 text-muted small">{{ runs_linked(subtitle.split(":")[0] if r.site.edition else subtitle) }}</p>
             <p class="mb-5 text-muted small">{{ e.projects }} projects{% if e.stats %} · {{ '{:,}'.format(e.stats.logic_cells) }} logic cells{% endif %}</p>
-            {% if e.next %}<p class="mb-0 small"><span class="text-muted">Next:</span> {{ e.next.title }}
+            {% if not e.links.for_sale %}<p class="mb-0 small"><span class="text-muted">A test chip, never sold</span></p>
+            {% elif e.next %}<p class="mb-0 small"><span class="text-muted">Next:</span> {{ e.next.title }}
               <span class="text-muted">({{ e.next.display_date or e.next.date }})</span></p>
             {% elif e.status %}<p class="mb-0 small"><span class="text-muted">Latest:</span> {{ e.status.title }}
               <span class="text-muted">({{ e.status.display_date or e.status.date }})</span></p>{% endif %}
@@ -113,9 +120,10 @@
           {# The card's own page first: every project on the chip, measured. Buying and files come second. #}
           <div class="run-card-actions">
             <a class="btn btn-s" href="{{ r.path }}/index.html">See all {{ e.projects }} projects →</a>
-            {% if e.links.for_sale and e.links.store_own_page %}<a href="{{ e.links.store_url }}">Buy this chip</a>{% endif %}
-            {% if e.links.fpgas_url %}<a href="{{ e.links.fpgas_url }}">Try it online</a>{% endif %}
-            <a href="{{ r.source_url }}">Layout files</a>
+            <span class="run-card-links">
+              {% if e.links.for_sale and e.links.store_own_page %}<a href="{{ e.links.store_url }}">Buy this chip</a>{% endif %}
+              {% if e.links.fpgas_url %}<a href="{{ e.links.fpgas_url }}">Try it online</a>{% endif %}
+              <a href="{{ r.source_url }}">Layout files</a></span>
           </div>
         </div>
       </div>

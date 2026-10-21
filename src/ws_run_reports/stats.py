@@ -591,6 +591,14 @@ def _library_cells(library: str) -> list:
     return _library_cell_cache.get(base, [])
 
 
+def process_reference_cell(pattern: str):
+    """The smallest cell of a reference type in any standard cell library for the process: the process maximum,
+    the same on every page whichever libraries a run used."""
+    _library_cells("")
+    matches = [c for cells in _library_cell_cache.values() for c in cells if re.fullmatch(pattern, c.cell_type)]
+    return min(matches, key=lambda c: (c.area_um2, c.library, c.cell_type)) if matches else None
+
+
 def load(run: Run, out_dir: Path) -> RunStats:
     """Build the statistics for a run from the CSV files in ``out_dir``."""
     stem = out_dir / OUTPUT_STEM

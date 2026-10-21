@@ -342,7 +342,9 @@ def build_context(run, out_dir: Path) -> dict:
             if cell:
                 entries.append({"library": library_label(lib), "cell": cell})
         if entries:
-            reference.append({"label": label, "what": what, "entries": entries,
+            # Two levels: the process's maximum (any library, the same on every page), then this run's libraries'.
+            process = stats_module.process_reference_cell(pattern)
+            reference.append({"label": label, "what": what, "entries": entries, "process": process,
                               "best": max(e["cell"].per_mm2 for e in entries)})
 
     digital = [d for d in stats.by_core_density if d.logic_cells >= report.MINIMAL_LOGIC_CELLS]

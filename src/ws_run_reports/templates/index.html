@@ -70,7 +70,7 @@
       {% if tt.fpgas_url %}<a class="btn btn-s btn-white" href="{{ tt.fpgas_url }}">Try it online</a>{% endif %}
       {% if tt.chip_url %}<a class="btn btn-s btn-white" href="{{ tt.chip_url }}">{{ tt.chip_label }}</a>{% endif %}</p>
     {% else %}
-    <p class="lead">{{ stats.designs | length }} public designs on one {{ run.process }} reticle · shuttle {{ run.shuttle }}</p>
+    <p class="lead">{{ stats.designs | length }} public designs on one {{ run.process }} reticle</p>
     {% if next_ws and next_ws.key != run.site.runs_yml_key and run.site.campaign_url %}
     <p class="mb-0 run-hero-actions"><a class="btn btn-s" href="{{ next_ws.url }}">Reserve a slot on {{ next_ws.name }}</a>
       <a class="btn btn-s btn-white" href="#next">Or start with Tiny Tapeout</a></p>
@@ -93,7 +93,8 @@
       {{ stat(stats.designs | length, 'Projects', 'on the chip') }}
       {{ stat(open_source, 'Open source', 'with a public repository') }}
       {% else %}
-      {{ stat(stats.designs | length, 'Public designs', 'of ' ~ run.slots ~ ' reticle slots') }}
+      {% set filled = slot_types | sum(attribute="dies") if slot_types else 0 %}
+      {{ stat(stats.designs | length, 'Public designs', ('in ' ~ filled ~ ' of the reticle\'s ' ~ run.slots ~ ' slots') if filled else ('of ' ~ run.slots ~ ' reticle slots')) }}
       {{ stat(open_source, 'Open source', 'with a public repository') }}
       {% endif %}
       {{ stat(stats.transistors | count, 'Transistors', 'across the unique designs') }}
@@ -118,7 +119,7 @@
       a chip of your own{% endif %}{{ anchor("next") }}</h2>
     <p class="lead text-center mb-40">{% if tt %}Tiny Tapeout puts many small designs on one chip. Start with a tile,
       then come back with a whole die.{% else %}Start small with a Tiny Tapeout tile, or go straight to a whole die
-      on the next run, as the designers here did.{% endif %}</p>
+      on the next wafer.space run.{% endif %}</p>
     {{ tiny.next_steps(tt, tt_page=tt is not none) }}
   </div>
 </div>
@@ -181,13 +182,15 @@
         </table>
         {% endif %}
         <h2 id="status" class="section-title mb-10">Shuttle status{{ anchor("status") }}</h2>
-        {% if not tt %}<p class="small text-muted mb-15">Where this run is now, from opening orders to shipping parts.</p>{% endif %}
+        {% if not tt %}<p class="small text-muted mb-15">{% if timeline and timeline | rejectattr("done") | list %}Where this
+          run is now, from opening orders to shipping parts.{% else %}How this run went, from the call for designs to
+          the finished chips.{% endif %}</p>{% endif %}
         {% if timeline %}
         {% set owners = timeline | map(attribute="owner") | select | unique | list %}
         {% if owners | length > 1 %}
         <p class="small text-muted mb-15">Two schedules meet here: <span class="run-owner run-owner-tt">Tiny Tapeout</span>
           collects the projects and builds the die, then <span class="run-owner run-owner-ws">wafer.space</span>
-          manufactures it on {{ runs_linked(tt.parent.title) if tt and tt.parent.title else "its run" }} and ships the parts.</p>
+          manufactures it on {{ runs_linked(tt.parent.title.split(" (")[0]) if tt and tt.parent.title else "its run" }} and ships the parts.</p>
         {% endif %}
         <ul class="run-timeline">
           {% set marker = namespace(shown=false) %}
@@ -426,10 +429,11 @@
   <div class="container inner">
     <div class="row">
       <div class="col-lg-8 offset-lg-2 text-center">
-        <h2 class="title-color color-white">What fits on 1&nbsp;mm² of {{ run.process }} silicon?{{ anchor("density") }}</h2>
+        <h2 class="section-title color-white mb-10">What fits on 1&nbsp;mm² of {{ run.process }} silicon?{{ anchor("density") }}</h2>
         <h3 class="display-3">Theoretical maximum against what designers achieved</h3>
         <p class="lead">The maximum packs one cell type edge to edge with no room for wiring. Real designs need
-          the wiring.</p>
+          the wiring. Each box gives the most of a cell that fits with any {{ run.process }} library, then with the
+          libraries this {{ 'chip' if tt else 'run' }} used.</p>
         <div class="space20"></div>
       </div>
     </div>
@@ -437,11 +441,14 @@
       {% for ref in reference %}
       <div class="col-md-6 col-lg-3 mb-30">
         <div class="box bg-white shadow p-30 h-100">
-          <h3 class="mb-5 color-dark">~{{ '{:,.0f}'.format(ref.best) }}</h3>
+          <h3 class="mb-5 color-dark">~{{ '{:,.0f}'.format(ref.process.per_mm2 if ref.process else ref.best) }}</h3>
           <p class="mb-0 font-weight-600 color-dark">{{ ref.label }}s per mm²</p>
-          <p class="mb-10 small text-muted">theoretical maximum</p>
+          <p class="mb-10 small text-muted">{{ run.process }} maximum{% if ref.process %},<br>with <span class="run-nowrap">
+            {{ link(ref.process.library | library_label, links.library(ref.process.library)) }}
+            {{ link(ref.process.cell_type, links.cell(ref.process.library, ref.process.cell_type), mono=true) }}</span>{% endif %}</p>
+          <p class="mb-0 small text-muted">With this {{ 'chip' if tt else 'run' }}'s libraries:</p>
           {% for e in ref.entries %}
-          <p class="mb-0 small text-muted">{{ link(e.library, links.library(e.cell.library)) }}: {{ e.cell.per_mm2 | k }} {{ link(e.cell.cell_type, links.cell(e.cell.library, e.cell.cell_type), mono=true) }}</p>
+          <p class="mb-0 small text-muted run-nowrap">{{ link(e.library, links.library(e.cell.library)) }}: {{ e.cell.per_mm2 | k }} {{ link(e.cell.cell_type, links.cell(e.cell.library, e.cell.cell_type), mono=true) }}</p>
           {% endfor %}
         </div>
       </div>
@@ -595,11 +602,11 @@
     {% endif %}
     {% if histories %}
     <h3 id="grew" class="run-category-title">Designs that grew{{ anchor("grew") }}</h3>
-    <p class="mb-20 run-measure">{% if tt %}Some designers on this chip kept going: they made their design again on
-      later Tiny Tapeout chips, and several now have a whole die of their own on a wafer.space run.{% else %}These
+    <p class="mb-20 run-measure">{% if tt %}Some designs on this chip have been made many times, on earlier and later
+      Tiny Tapeout chips, and several now have a whole die of their own on a wafer.space run.{% else %}These
       designs have been made more than once: first as a Tiny Tapeout tile or on a Google shuttle, then on wafer.space,
       or improved and made again on a later run. Start small, then come back bigger.{% endif %}
-      Newest first; the ringed dot is {{ 'this chip' if tt else 'this run' }}.</p>
+      Newest first; the ringed marker is {{ 'this chip' if tt else 'this run' }}.</p>
     {{ history.timeline(grew_chart, here='this chip' if tt else 'this run') }}
     <div class="mb-40"></div>
     {% endif %}
