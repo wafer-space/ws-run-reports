@@ -54,7 +54,7 @@ FEATURES = [
     ("res_diffusion", "Diffusion resistors", "device"),
     ("res_nwell", "N-well resistors", "device"),
     ("res_metal", "Metal resistors", "device"),
-    ("diode", "Diodes (DIODE_MK)", "device"),
+    ("diode", "Diodes", "device"),
     ("well_diode", "Well diodes", "device"),
     ("dnwell", "Deep N-well", "device"),
     ("bjt", "Bipolar transistors", "device"),

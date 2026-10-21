@@ -36,8 +36,8 @@
       <p class="mb-0 small run-card-icons">
         {% if d.code in photos %}<span title="Die photograph available"><i class="jam jam-camera"></i> photo</span>{% endif %}
         {% if d.code in cob %}<span title="Chip-on-board bonding results available"><i class="jam jam-cpu"></i> bonded</span>{% endif %}
-        {% if d.placements > 1 %}<span title="Placed {{ d.placements }} times on the {{ words.reticle }}">× {{ d.placements }}</span>{% endif %}
-        {% if d.code in details and details[d.code].chip_on_board %}<span title="Chip-on-board packaging selected">CoB</span>{% endif %}
+        {% if d.placements > 1 %}<span title="Placed {{ d.placements }} times on the {{ words.reticle }}">placed {{ d.placements }} times</span>{% endif %}
+        {% if d.code in details and details[d.code].chip_on_board %}<span title="Chip-on-board packaging selected">chip-on-board</span>{% endif %}
       </p>
       {% if d.voltages %}<p class="mb-0 small text-muted run-card-features">{{ d.voltages | join(" · ") }}
         {% for key in d.device_features %}<span class="run-chip">{{ feature_labels[key] }}</span>{% endfor %}</p>{% endif %}
@@ -67,10 +67,8 @@
       OSU on this process.</p>
     {% else %}
     {% set parent_run = (tt.parent.title or "").split(" (")[0] %}
-    <p class="lead">{{ stats.designs | length }} projects{% if parent_run %} on
-      {# The die's own section below: its slot's page on the run redirects back here. #}
-      {% if parent_die %}<a href="#die">die {{ run.shuttle }}</a>{% else %}die {{ run.shuttle }}{% endif %}
-      of {{ runs_linked(parent_run) }}{% endif %}</p>
+    <p class="lead">{{ stats.designs | length }} projects on one chip{% if parent_die %}, measured
+      <a href="#projects">one by one</a> and as <a href="#die">a whole die</a>{% endif %}</p>
     {% endif %}
     <p class="mb-0 run-hero-actions">
       {% if tt.for_sale %}<a class="btn btn-s" href="{{ tt.store_url }}">{{ "Buy this chip" if tt.store_own_page else "Buy a chip and board" }}</a>{% endif %}
@@ -102,7 +100,7 @@
       {{ stat(open_source, 'Open source', 'with a public repository') }}
       {% else %}
       {% set filled = slot_types | sum(attribute="dies") if slot_types else 0 %}
-      {{ stat(stats.designs | length, 'Public designs', ('in ' ~ filled ~ ' of the reticle\'s ' ~ run.slots ~ ' slots') if filled else ('of ' ~ run.slots ~ ' reticle slots')) }}
+      {{ stat(stats.designs | length, 'Public designs', ('filling all ' ~ filled ~ ' slots' if filled == run.slots else 'in ' ~ filled ~ ' of the reticle\'s ' ~ run.slots ~ ' slots') if filled else ('of ' ~ run.slots ~ ' reticle slots')) }}
       {{ stat(open_source, 'Open source', 'with a public repository') }}
       {% endif %}
       {{ stat(stats.transistors | count, 'Transistors', 'across the unique designs') }}
@@ -110,7 +108,8 @@
       {% if stats.sram_bits %}{{ stat('%.0f KiB' | format(stats.sram_bits / 8 / 1024) if stats.sram_bits >= 8192 else '%d bytes' | format(stats.sram_bits // 8), 'SRAM', 'in foundry and custom macros') }}{% endif %}
       {% if not tt %}
       {% set whole = slot_types | selectattr("label", "equalto", "1 × 1") | map(attribute="dies") | sum if slot_types else 0 %}
-      {% if whole %}{{ stat(whole, 'Whole dies', 'and ' ~ ((slot_types | sum(attribute="dies")) - whole) ~ ' half and quarter slots') }}
+      {% set parts = (slot_types | sum(attribute="dies")) - whole if slot_types else 0 %}
+      {% if whole %}{{ stat(whole, 'Whole dies', ('and ' ~ parts ~ ' half and quarter slots') if parts else 'every slot a whole die') }}
       {% else %}{{ stat(pads | count, 'Bond pads', 'and ' ~ probe_pads | count ~ ' probe pads' if probe_pads else '') }}{% endif %}
       {% endif %}
     </div>
@@ -202,7 +201,7 @@
         </table>
         {% endif %}
         <p class="mb-0"><a class="btn btn-s me-10 mb-10" href="{{ run.source_url }}">Layout on GitHub</a>
-          {% if run.site.campaign_url %}<a href="{{ run.site.campaign_url }}">The run on Crowd Supply</a>{% endif %}</p>
+          {% if run.site.campaign_url %}<a class="run-nowrap" href="{{ run.site.campaign_url }}">The run on Crowd Supply</a>{% endif %}</p>
       </div>
       <div class="col-lg-8">
         <h2 id="status" class="section-title mb-10">Shuttle status{{ anchor("status") }}</h2>
@@ -219,7 +218,7 @@
         {# Two columns on wide screens: what is done, then today and what is still to come (or, for a finished
            run, its history in two halves). #}
         {% set done_items = timeline | selectattr("done") | list %}
-        {% set split = done_items | length if done_items | length < timeline | length else (timeline | length + 1) // 2 %}
+        {% set split = done_items | length if done_items | length < timeline | length else timeline | length %}
         <div class="row">
         {% for part in [timeline[:split], timeline[split:]] if part %}
         <div class="col-md-6">
@@ -273,7 +272,7 @@
       {% for part in total_area if part.share > 0.001 %}
       <div style="width: {{ '%.2f' | format(part.share * 100) }}%; background: {{ part.colour }}"
            title="{{ part.label }}: {{ '%.1f' | format(part.mm2) }} mm² ({{ part.share | pct }})">
-        {% if part.share > 0.06 %}<span>{{ part.share | pct }}</span>{% endif %}
+        {% if part.share > 0.1 %}<span>{{ part.share | pct }}</span>{% endif %}
       </div>
       {% endfor %}
     </div>
@@ -424,9 +423,13 @@
       </div>
       <div class="col-lg-6 mb-30">
         <h3 id="precheck" class="mb-10">Packaging and precheck{{ anchor("precheck") }}</h3>
-        <p class="small text-muted mb-15">How the designs will be packaged, and whether they passed the design-rule checks before manufacture.</p>
+        {% set finished = timeline and not (timeline | rejectattr("done") | list) %}
+        <p class="small text-muted mb-15">How the designs {{ 'were' if finished else 'will be' }} packaged, and whether they passed the design-rule checks before manufacture.</p>
         <ul class="run-method">
-          <li><strong>{{ cob_selected }}</strong> of {{ details | length }} designs selected chip-on-board packaging.</li>
+          {% if cob_selected %}<li><strong>{{ cob_selected }}</strong> of {{ details | length }} designs selected chip-on-board packaging.</li>
+          {% elif cob %}<li>Which designs chose chip-on-board packaging was not recorded for this run; <a href="#bonding">{{ cob | length }}
+            dies have bonding results</a>.</li>
+          {% else %}<li>No design selected chip-on-board packaging.</li>{% endif %}
           {% if precheck.imported %}
           {% set pc = precheck %}
           <li><strong>{{ pc.accepted_passed }}</strong> of {{ details | length }} designs passed the {{ link("platform", links.site("platform.wafer.space")) }} {{ link("precheck", links.precheck("")) }} they were
@@ -471,7 +474,7 @@
       {% for ref in reference %}
       <div class="col-md-6 col-lg-3 mb-30">
         <div class="box bg-white shadow p-30 h-100">
-          <h3 class="mb-5 color-dark">~{{ '{:,.0f}'.format(ref.process.per_mm2 if ref.process else ref.best) }}</h3>
+          <h3 class="mb-5 color-dark">~{{ (ref.process.per_mm2 if ref.process else ref.best) | k }}</h3>
           <p class="mb-0 font-weight-600 color-dark">{{ ref.label }}s per mm²</p>
           <p class="mb-10 small text-muted">{{ run.process }} maximum{% if ref.process %},<br>with <span class="run-nowrap">
             {{ link(ref.process.library | library_label, links.library(ref.process.library)) }}
@@ -490,7 +493,7 @@
       <div class="col-md-4 mb-20">
         <div class="box bg-white shadow p-30 h-100">
           <h3 class="mb-5 color-dark">{{ digital[0].core_density | k }}</h3>
-          <p class="mb-0 font-weight-600 color-dark">{{ 'Best design average' if tt else 'Best whole-die average' }}</p>
+          <p class="mb-0 font-weight-600 color-dark">Best core average</p>
           <p class="mb-0 small text-muted">logic cells/mm² of core{% if digital[0].pct_of_buffer_max %} — {{ digital[0].pct_of_buffer_max | pct }} of the buffer maximum{% endif %}</p>
           <p class="mb-0 small"><a href="{{ design_href(digital[0].code) }}">{{ digital[0].name }}</a></p>
         </div>
@@ -507,7 +510,7 @@
         <div class="box bg-white shadow p-30 h-100">
           <h3 class="mb-5 color-dark">{{ median_density | k }}</h3>
           <p class="mb-0 font-weight-600 color-dark">Typical {{ words.die }}</p>
-          <p class="mb-0 small text-muted">median logic cells/mm² of core across {{ digital | length }} digital {{ words.dies }}</p>
+          <p class="mb-0 small text-muted">median logic cells/mm² of core across {{ digital | length }} digital {{ words.dies if digital | length != 1 else words.die }}</p>
           <p class="mb-0 small text-muted">{{ median_utilisation | pct }} of the core covered by logic cells</p>
         </div>
       </div>
@@ -537,14 +540,14 @@
         <thead><tr class="run-groups">
           <th colspan="4"></th>
           <th colspan="2" class="run-group">Logic cells in its {{ 'projects' if tt else 'designs' }}</th>
-          <th colspan="3" class="run-group">Logic cells at this {{ 'chip' if tt else 'run' }}'s density</th>
-          <th colspan="2" class="run-group">Theoretical maximum</th>
+          <th colspan="{{ 3 if window_is_mm else 2 }}" class="run-group">Logic cells at this {{ 'chip' if tt else 'run' }}'s density</th>
+          <th colspan="2" class="run-group">Theoretical maximum{% if mx.library %}, {{ mx.library | library_label }} cells{% endif %}</th>
         </tr><tr>
           {{ head('Tiles' if tt else 'Slot', cls="") }}{{ head('Size' if tt else 'Die', cls="") }}
           {{ head("Core area") }}{{ head('Projects' if tt else 'Designs') }}
           {{ head("Most", cls="text-end run-group-start") }}{{ head("Median") }}
           {{ head("Typical", per_mm2(median_density), cls="text-end run-group-start") }}{{ head("Best", per_mm2(best_density)) }}
-          {{ head("Densest", per_mm2(mx.densest)) }}
+          {% if window_is_mm %}{{ head("Densest", per_mm2(mx.densest)) }}{% endif %}
           {{ head("NAND gates", ref(mx.nand), cls="text-end run-group-start") }}{{ head("Flip-flops", ref(mx.flop)) }}
         </tr></thead>
         <tbody>
@@ -554,16 +557,17 @@
             <td class="text-end run-group-start">{{ num(row.best) }}</td><td class="text-end">{{ num(row.median) }}</td>
             <td class="text-end run-group-start">{{ num(row.at_median_density) }}</td>
             <td class="text-end">{{ num(row.at_best_density) }}</td>
-            <td class="text-end">{{ num(row.at_densest) }}</td>
+            {% if window_is_mm %}<td class="text-end">{{ num(row.at_densest) }}</td>{% endif %}
             <td class="text-end run-group-start">{{ num(row.max_nand) if mx.nand else "—" }}</td>
             <td class="text-end">{{ num(row.max_flop) if mx.flop else "—" }}</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+    <p class="d-md-none small text-muted mt-10 mb-10">Swipe the table sideways for more columns.</p>
     <p class="small text-muted mb-40">{{ core_area_text }} "Typical"
-      and "best" multiply the core area by this {{ 'chip' if tt else 'run' }}'s median and best {{ 'design' if tt else 'whole-die' }} logic densities, and "densest" by the
-      densest {{ '1 mm²' if window_is_mm else window_side ~ ' square' }} any design on this {{ 'chip' if tt else 'run' }} reached; SRAM and analog
+      and "best" multiply the core area by this {{ 'chip' if tt else 'run' }}'s median and best core densities{% if window_is_mm %}, and "densest" by the
+      densest {{ '1 mm²' if window_is_mm else window_side ~ ' square' }} any design on this {{ 'chip' if tt else 'run' }} reached{% endif %}; SRAM and analog
       blocks take their area out of that. The theoretical maxima fill the core with nothing but that one cell of
       {{ link(maxima.library | library_label, links.library(maxima.library)) if maxima.library else "the main library" }}, the
       library most used on this {{ 'chip' if tt else 'run' }}, edge to edge with no routing.</p>
@@ -579,7 +583,7 @@
       over all the silicon inside the seal ring, pad ring included{% endif %}. Outlined bar: the {{ window_name }}
       outside SRAM{{ ', per mm²' if not window_is_mm }} (a dash where memory covers most of the design). The scale
       ends at the buffer theoretical maximum ({{ scale_max | k }} cells/mm²). The numbers are
-      {{ 'seal ring / ' if sealed }}core / densest, in logic cells per mm².</p>
+      core{{ ' / seal ring' if sealed }} / densest, in logic cells per mm².</p>
     {% macro density_row(d) %}
       <a class="run-row" href="{{ design_href(d.code) }}" title="{{ d.code }} {{ d.name }} — {{ d.library_label }}">
         <span class="run-row-label"><strong>{{ d.code }}</strong> <span class="text-muted">{{ d.name }}</span></span>
@@ -588,7 +592,7 @@
           <i class="core" style="width: {{ '%.2f' | format([d.core_density / scale_max, 1] | min * 100) }}%"></i>
           {% if d.seal_ring_mm %}<i class="usable" style="width: {{ '%.2f' | format([d.usable_density / scale_max, 1] | min * 100) }}%"></i>{% endif %}
         </span>
-        <span class="run-row-value">{% if d.seal_ring_mm %}<span class="text-muted">{{ d.usable_density | k }} /</span> {% endif %}{{ d.core_density | k }}
+        <span class="run-row-value">{{ d.core_density | k }}{% if d.seal_ring_mm %} <span class="text-muted">/ {{ d.usable_density | k }}</span>{% endif %}
           <span class="text-muted">/ {{ d.peak_cells | k if d.peak_cells >= d.core_density else "—" }}</span></span>
       </a>
     {% endmacro %}
@@ -607,8 +611,8 @@
       <div class="table-responsive">
       <table class="table table-sm run-table">
         <thead><tr><th>{{ 'Project' if tt else 'Design' }}</th><th>{{ 'Tiles' if tt else 'Slot' }}</th><th>Library</th><th class="text-end">Logic cells</th>
-          {% if sealed %}<th class="text-end">Inside seal ring<br><span class="fw-normal text-muted">per mm²</span></th>{% endif %}
           <th class="text-end">Inside core<br><span class="fw-normal text-muted">per mm²</span></th>
+          {% if sealed %}<th class="text-end">Inside seal ring<br><span class="fw-normal text-muted">per mm²</span></th>{% endif %}
           <th class="text-end">{{ window_name | capitalize }}<br><span class="fw-normal text-muted">per mm²</span></th>
           <th class="text-end">Core covered</th><th class="text-end">Core<br><span class="fw-normal text-muted">mm²</span></th></tr></thead>
         <tbody>
@@ -616,8 +620,8 @@
         <tr><td><a href="{{ design_href(d.code) }}">{{ d.name }}</a> <span class="text-muted run-mono">{{ d.code }}</span></td>
           <td class="run-nowrap">{{ d.slot_label }}</td><td class="run-nowrap">{{ d.library_label }}</td>
           <td class="text-end">{{ '{:,}'.format(d.logic_cells) }}</td>
-          {% if sealed %}<td class="text-end">{{ '{:,.0f}'.format(d.usable_density) }}</td>{% endif %}
           <td class="text-end">{{ '{:,.0f}'.format(d.core_density) }}</td>
+          {% if sealed %}<td class="text-end">{{ '{:,.0f}'.format(d.usable_density) }}</td>{% endif %}
           <td class="text-end">{{ '{:,.0f}'.format(d.peak_cells) if d.peak_cells >= d.core_density else "—" }}</td>
           <td class="text-end">{{ d.utilisation | pct }}</td>
           <td class="text-end">{{ '%.2f' | format(d.core_area_mm2) }}{% if d.core_source == "template" %}*{% endif %}</td></tr>
@@ -637,24 +641,25 @@
     <h2 class="section-title mb-10 text-center">The projects{{ anchor("projects") }}</h2>
     <p class="lead text-center mb-40">Every {{ 'project on this chip' if tt else 'design on this run' }}: an index,
       then grouped by what it does. Select one for its layout, its measurements and any die photographs.</p>
-    {% if tt and not netlist_projects %}
-    {# The chip's project index, in multiplexer-address order, as on Tiny Tapeout's own chip pages. #}
+    {% if not netlist_projects %}
+    {# Every project: a chip's in multiplexer-address order, as on Tiny Tapeout's own chip pages; a run's by code. #}
     {% set index_rows = stats.designs | sort(attribute="code") | list %}
-    <h3 id="index" class="run-category-title">Project index{{ anchor("index") }}</h3>
-    <p class="mb-20 run-measure">All {{ index_rows | length }} projects by their address on the chip's multiplexer, with
-      how many tiles each took and how much logic it packs.</p>
+    <h3 id="index" class="run-category-title">{{ 'Project' if tt else 'Design' }} index{{ anchor("index") }}</h3>
+    <p class="mb-20 run-measure">{% if tt %}All {{ index_rows | length }} projects by their address on the chip's multiplexer, with
+      how many tiles each took and how much logic it packs.{% else %}All {{ index_rows | length }} public designs by their
+      code, with the slot each took and how much logic it packs.{% endif %}</p>
     {% set INDEX_SHOWN = 16 %}
     {% if index_rows | length > INDEX_SHOWN %}<input type="checkbox" id="run-index-all" class="run-index-toggle">{% endif %}
     <div class="table-responsive run-index">
     <table class="table table-sm run-table">
-      <thead><tr><th>Address</th><th>Project</th><th class="d-none d-md-table-cell">Author</th><th>Tiles</th>
+      <thead><tr><th>{{ 'Address' if tt else 'Code' }}</th><th>{{ 'Project' if tt else 'Design' }}</th>{% if tt %}<th class="d-none d-md-table-cell">Author</th>{% endif %}<th>{{ 'Tiles' if tt else 'Slot' }}</th>
         <th class="d-none d-lg-table-cell">What it is</th><th class="text-end">Logic cells</th>
         <th class="text-end d-none d-sm-table-cell">Cells per mm²</th></tr></thead>
       <tbody>
       {% for d in index_rows %}
       <tr{% if loop.index > INDEX_SHOWN %} class="run-extra"{% endif %}><td class="run-mono">{{ d.code }}</td>
         <td><a href="{{ design_href(d.code) }}">{{ d.name }}</a></td>
-        <td class="d-none d-md-table-cell">{{ d.project.extra.AUTHOR }}</td>
+        {% if tt %}<td class="d-none d-md-table-cell">{{ d.project.extra.AUTHOR }}</td>{% endif %}
         <td class="run-nowrap">{{ d.slot_label }}</td>
         <td class="d-none d-lg-table-cell run-nowrap"><a href="#{{ category_id(d.category) }}">{{ d.category }}</a></td>
         <td class="text-end">{{ '{:,}'.format(d.logic_cells) }}</td>
@@ -664,7 +669,7 @@
     </table>
     </div>
     {% if index_rows | length > INDEX_SHOWN %}<label for="run-index-all" class="run-index-more"><span class="run-show">Show all
-      {{ index_rows | length }} projects</span><span class="run-hide">Show the first {{ INDEX_SHOWN }} only</span></label>{% endif %}
+      {{ index_rows | length }} {{ 'projects' if tt else 'designs' }}</span><span class="run-hide">Show the first {{ INDEX_SHOWN }} only</span></label>{% endif %}
     <div class="mb-40"></div>
     {% endif %}
     {% if histories %}
@@ -673,7 +678,7 @@
       Tiny Tapeout chips, and several now have a whole die of their own on a wafer.space run.{% else %}These
       designs have been made more than once: first as a Tiny Tapeout tile or on a Google shuttle, then on wafer.space,
       or improved and made again on a later run. Start small, then come back bigger.{% endif %}
-      Newest first; the ringed marker is {{ 'this chip' if tt else 'this run' }}.</p>
+      The ringed marker is {{ 'this chip' if tt else 'this run' }}.</p>
     {{ history.timeline(grew_chart, here='this chip' if tt else 'this run') }}
     <div class="mb-40"></div>
     {% endif %}

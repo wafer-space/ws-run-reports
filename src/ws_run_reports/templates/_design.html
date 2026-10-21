@@ -82,7 +82,7 @@
             {% endif %}
             <tr><th>Core covered by logic</th><td>{{ design.utilisation | pct }}</td></tr>
             <tr><th>Transistor density<br><span class="small text-muted fw-normal">transistors per mm²</span></th><td>{{ design.core_transistor_density | k }} average{% if windowed_peak %},
-              {{ design.peak_transistors | k }} in the {{ window_name }}{% endif %}</td></tr>
+              {{ design.peak_transistors | k }} in the {{ window_name }} of logic{% endif %}</td></tr>
           </tbody>
         </table>
         {% endif %}
@@ -142,8 +142,8 @@
             {% if x.FLOW_VERSION or x.PDK_VERSION %}<tr><th>Built with</th><td>{% if x.FLOW_VERSION %}{{ link("LibreLane", links.tool("LibreLane")) }} {{ link(x.FLOW_VERSION, links.librelane(x.FLOW_VERSION)) }}{% endif %}{% if x.FLOW_VERSION and x.PDK_VERSION %}, {% endif %}{% if x.PDK_VERSION %}open_pdks {{ link(x.PDK_VERSION[:12], links.open_pdks(x.PDK_VERSION), mono=true) }}{% endif %}</td></tr>{% endif %}
             {% else %}
             <tr><th>Core area</th><td>{{ '%.2f' | format(design.core_area_mm2) }} mm² inside the pad ring
-              <br><span class="small text-muted">{% if design.core_source == "design config" %}the design's CORE_AREA, from
-                {{ link(design.config_core_source, links.repo_file(design.project.repository, info.licence.repo_commit, design.config_core_source) if info and info.licence else "", mono=true) }}{% elif design.core_source == "core cell" %}its
+              <br><span class="small text-muted">{% if design.core_source == "design config" %}as set in
+                {{ link("the design's own layout settings", links.repo_file(design.project.repository, info.licence.repo_commit, design.config_core_source) if info and info.licence else "") }}{% elif design.core_source == "core cell" %}its
                 {{ stats.meta.core_cell }} cell{% else %}the project template's, {{ '%.0f' | format(design.pad_ring_mm * 1000) }} µm in from each edge{% endif %}</span></td></tr>
             {% if design.seal_ring_mm %}<tr><th>Inside the seal ring</th><td>{{ '%.2f' | format(design.usable_area_mm2) }} mm²
               <span class="text-muted">(the die less its {{ '%.0f' | format(design.seal_ring_mm * 1000) }} µm seal ring)</span></td></tr>{% endif %}
@@ -322,7 +322,7 @@
         </svg>
         <p class="small text-muted mb-0">Logic cells per mm² in each {{ 'square millimetre' if window_is_mm else window_side ~ ' square' }} of the
           {{ words.die }}{{ ' (counted in the square, scaled up to a mm²)' if not window_is_mm }}. {% if map.rects or map.window %}Hatched
-          outlines are SRAM macros{% if map.window %}; the bold outline is the {{ window_name }} that avoids them, found by sliding a
+          outlines are SRAM macros{% if map.window %}; the red outline is the {{ window_name }} that avoids them, found by sliding a
           {{ window_side }} square over the {{ words.die }} in {{ window_step }} steps{% endif %}.{% else %}Hatched squares overlap an
           SRAM macro and are not counted.{% endif %} Squares at the edges are partial, so they read low.</p>
         {% endif %}
@@ -371,7 +371,7 @@
     {% set runs = rel.wafer_space | map(attribute="run") | unique | list %}
     <div class="alert alert-primary">
       <h4 class="alert-heading mb-10">From a Tiny Tapeout tile to a whole die</h4>
-      <p>{% set first_tt = rel.tiny_tapeout | first %}{{ rel.name }} started as a few tiles on
+      <p>{% set first_tt = rel.tiny_tapeout | selectattr("date") | sort(attribute="date") | first %}{{ rel.name }} started as a few tiles on
         {{ link(first_tt.shuttle, first_tt.chip_url) if first_tt else 'Tiny Tapeout' }} and went on to {{ 'a die' if rel.wafer_space | length == 1 else 'dies' }}
         of its own on {{ runs_linked(runs[:-1] | join(", ") ~ " and " ~ runs[-1] if runs | length > 1 else runs[0]) }}. When your
         design outgrows its tiles, a whole die on a wafer.space run is the next step.</p>

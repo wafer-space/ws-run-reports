@@ -218,7 +218,7 @@ def _lanes(dots: list, key: str, close: float) -> int:
     for i, dot in enumerate(dots):
         taken = {d[key] for d in dots[:i] if dot["x"] - d["x"] < close}
         dot[key] = next((dy for dy in LANES if dy not in taken), 0)
-    return max(40, 2 * max((abs(d[key]) for d in dots), default=0) + 16)
+    return max(40, 2 * max((abs(d[key]) for d in dots), default=0) + 26)
 
 
 def timeline_chart(rows: list) -> dict:
@@ -242,7 +242,10 @@ def timeline_chart(rows: list) -> dict:
         for stage in r["stages"]:
             if not stage["date"]:
                 continue
-            sizes = ", ".join(dict.fromkeys(s["size"] for s in stage["steps"] if s["size"]))
+            # One size per die when a run has several of the design ("TQVA ½ × ½ slot, TQVC 1 × ½ slot").
+            several = len(stage["steps"]) > 1 and stage["kind"] == "wafer_space"
+            sizes = ", ".join(dict.fromkeys((f"{s['code']} {s['size']}" if several else s["size"])
+                                            for s in stage["steps"] if s["size"]))
             titles = list(dict.fromkeys((s.get("title") or f"{s['code']} {s['name']}") for s in stage["steps"]))
             # The tooltip says what was made, not every die's name: "TinyQV RISC-V SoC" or "3 dies".
             unit = "dies" if stage["kind"] == "wafer_space" else "projects"
@@ -261,16 +264,16 @@ def timeline_chart(rows: list) -> dict:
 
 
 def _size(step: dict) -> str:
-    """"1×1 tile", "8×2 tiles" or "1×0.5 slot"; "" when not known."""
+    """"1 × 1 tile", "8 × 2 tiles" or "1 × ½ slot", written as on the rest of the pages; "" when not known."""
     if step.get("shared"):
         return "in a shared block"
     if step["kind"] == "tiny_tapeout":
         tiles = step.get("tiles", "")
-        return f"{tiles.replace('x', '×')} tile{'' if tiles == '1x1' else 's'}" if tiles else ""
+        return f"{tiles.replace('x', ' × ')} tile{'' if tiles == '1x1' else 's'}" if tiles else ""
     if step["kind"] == "other_shuttles":
         return "Caravel chip"
-    slot = (step.get("slot") or "").replace("p", ".")
-    return f"{slot.replace('x', '×')} slot" if slot else ""
+    slot = (step.get("slot") or "").replace("0p5", "½").replace("p", ".")
+    return f"{slot.replace('x', ' × ')} slot" if slot else ""
 
 
 # Each kind's class suffix on the pages. Not "wafer-space": the theme's plugins.css styles every class containing

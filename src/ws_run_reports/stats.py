@@ -28,7 +28,7 @@ SEAL_RING_MM = 0.0
 
 # Names spelled the usual way on the pages, whatever a project's own record says.
 DISPLAY_SPELLINGS = [(r"\bRisc-?V\b|\bRISCV\b", "RISC-V"), (r"\bWafer\.space\b", "wafer.space"),
-                     (r"\bTinyTapeout\b", "Tiny Tapeout")]
+                     (r"\bTinyTapeout\b", "Tiny Tapeout"), (r"\bGF (\d)p(\d)\b", r"GF \1.\2")]
 
 # A design counts as using several libraries when a second library holds at
 # least this share of its logic cells.

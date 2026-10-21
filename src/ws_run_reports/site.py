@@ -577,8 +577,13 @@ def build_site(run, out_dir: Path) -> Path:
     def history_row(h):
         """A design's row in the timeline: its page here, or for a shared block's project its latest die's page."""
         if h["designs"]:
-            return {"name": h["rel"]["name"], "url": f"projects/{h['designs'][0].code}.html#related",
-                    "note": ", ".join(d.code for d in h["designs"]), "stages": h["rel"]["stages"]}
+            # The note says which of this page's projects it is, by its own name where that differs from the design's
+            # ("Expresso Ethernet switch" is "099 Until heat death do us part" on this chip).
+            designs = h["designs"]
+            note = (f"{designs[0].code} {designs[0].name}" if context["tt"] and len(designs) == 1 and designs[0].name != h["rel"]["name"]
+                    else ", ".join(d.code for d in designs))
+            return {"name": h["rel"]["name"], "url": f"projects/{designs[0].code}.html#related",
+                    "note": note, "stages": h["rel"]["stages"]}
         latest = max(h["rel"]["wafer_space"], key=lambda s: s["date"], default=None)
         return {"name": h["rel"]["name"], "url": f"{latest['url']}#related" if latest else h["anchor"],
                 "note": "", "stages": h["rel"]["stages"]}
