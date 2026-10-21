@@ -20,6 +20,9 @@ import re
 RULES = [
     # Before "Multi-project die": Tiny Tapeout's own factory test project is named after Tiny Tapeout.
     ("Test structures", r"factory test"),
+    # Workshop tiles: Tiny Tapeout's template, copied and renamed ("Tiny Tapeout Template Copy", "Pacos first design").
+    ("First designs", r"\btemplate\b|workshop|\bfirst\b.*\b(design|wokwi|worki|tiny ?tapeout)|first tiny ?tapeout"
+                      r"|\bcopia\b|primer diseño|diseño ?curso|testtest|^test\d*$"),
     ("Multi-project die", r"tiny ?tapeout|multi[- ]?project|multiple (users|projects)|\bprojects from\b"),
     ("Art and logos", r"\blogo\b|artwork|\bmeme\b"),
     ("FPGA", r"\bfpga\b|fabulous"),
@@ -44,6 +47,7 @@ CATEGORY_ORDER = list(reversed(dict.fromkeys(reversed([category for category, _ 
 
 # One-word page anchors for the categories, so links to them survive a rewording of the name.
 CATEGORY_IDS = {
+    "First designs": "first",
     "Multi-project die": "multiproject",
     "Art and logos": "art",
     "FPGA": "fpga",
@@ -64,16 +68,19 @@ def category_id(category: str) -> str:
     return CATEGORY_IDS.get(category) or re.sub(r"[^a-z0-9]+", "", category.lower())
 
 
-def classify(design, overrides=None) -> str:
+def classify(design, overrides=None, tiles: bool = False) -> str:
     """Return the category name for a :class:`~ws_run_reports.stats.Design`.
 
-    ``overrides`` maps project codes to categories and comes from the run configuration.
+    ``overrides`` maps project codes to categories and comes from the run configuration. ``tiles``: the design is
+    a project on a Tiny Tapeout chip, which is never a multi-project die however often it names Tiny Tapeout.
     """
     if overrides and design.code in overrides:
         return overrides[design.code]
 
     for text in (design.project.name, design.project.details):
         for category, pattern in RULES:
+            if tiles and category == "Multi-project die":
+                continue
             if re.search(pattern, text, re.IGNORECASE):
                 return category
     return classify_by_layout(design)

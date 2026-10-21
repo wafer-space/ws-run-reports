@@ -433,6 +433,8 @@ def build_context(run, out_dir: Path) -> dict:
         "window_side": stats_module.length_label(stats.window_um),
         "window_step": stats_module.length_label(stats.step_um),
         "window_is_mm": stats.window_um == 1000,
+        # What the densest window is called everywhere: a 1 mm window on runs, a smaller one on Tiny Tapeout chips.
+        "window_name": "densest mm²" if stats.window_um == 1000 else f"densest {stats_module.length_label(stats.window_um)} square",
         "windowed": report.windowed(stats),
         "core_area_text": (f"Core area is the area of each die's {stats.meta['core_cell']} cell."
                            if stats.meta.get("core_cell") else

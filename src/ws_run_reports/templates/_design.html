@@ -70,12 +70,12 @@
               {% if design.pct_of_buffer_max %}<span class="text-muted">({{ design.pct_of_buffer_max | pct }} of buffer maximum)</span>{% endif %}</td></tr>
             {% set windowed_peak = design.peak_cells >= design.core_density %}
             {% if windowed_peak %}
-            <tr><th>Densest {{ 'mm²' if window_is_mm else window_side ~ ' square' }}<br><span class="small text-muted fw-normal">logic cells per mm²</span></th><td>{{ design.peak_cells | k }}
+            <tr><th>{{ window_name | capitalize }}<br><span class="small text-muted fw-normal">logic cells per mm²</span></th><td>{{ design.peak_cells | k }}
               {% if design.peak_pct_of_buffer_max %}<span class="text-muted">({{ design.peak_pct_of_buffer_max | pct }} of buffer maximum)</span>{% endif %}</td></tr>
             {% endif %}
             <tr><th>Core covered by logic</th><td>{{ design.utilisation | pct }}</td></tr>
             <tr><th>Transistor density<br><span class="small text-muted fw-normal">transistors per mm²</span></th><td>{{ design.core_transistor_density | k }} average{% if windowed_peak %},
-              {{ design.peak_transistors | k }} in the densest {{ 'mm²' if window_is_mm else window_side ~ ' square' }}{% endif %}</td></tr>
+              {{ design.peak_transistors | k }} in the {{ window_name }}{% endif %}</td></tr>
           </tbody>
         </table>
         {% endif %}

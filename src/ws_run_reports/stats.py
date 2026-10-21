@@ -753,5 +753,5 @@ def load(run: Run, out_dir: Path) -> RunStats:
                      boundary_sources=Counter(r.get("boundary_source") or "layout" for r in library_rows))
     for d in stats.designs:
         d.buffer_max_per_mm2 = stats.buffer_max(d.primary_library) if d.libraries else 0.0
-        d.category = classify(d, run.categories)
+        d.category = classify(d, run.categories, tiles=run.site.get("kind") == "tiny-tapeout")
     return stats

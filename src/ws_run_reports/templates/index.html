@@ -461,8 +461,8 @@
       <div class="col-md-4 mb-20">
         <div class="box bg-white shadow p-30 h-100">
           <h3 class="mb-5 color-dark">{{ best_peak.peak_cells | k }}</h3>
-          <p class="mb-0 font-weight-600 color-dark">Best single mm²</p>
-          <p class="mb-0 small text-muted">logic cells{% if best_peak.peak_pct_of_buffer_max %} — {{ best_peak.peak_pct_of_buffer_max | pct }} of the buffer maximum{% endif %}</p>
+          <p class="mb-0 font-weight-600 color-dark">{{ window_name | capitalize }}</p>
+          <p class="mb-0 small text-muted">logic cells{{ ' per mm²' if not window_is_mm }}{% if best_peak.peak_pct_of_buffer_max %} — {{ best_peak.peak_pct_of_buffer_max | pct }} of the buffer maximum{% endif %}</p>
           <p class="mb-0 small"><a href="{{ design_href(best_peak.code) }}">{{ best_peak.name }}</a></p>
         </div>
       </div>
@@ -537,7 +537,7 @@
     {% endif %}
 
     <h3 id="densities" class="mb-10">Logic density of every digital design{{ anchor("densities") }}</h3>
-    <p class="text-muted small mb-20">Solid bar: average over the core. Outlined bar: the densest single mm² outside SRAM (a dash where memory covers most of the die). The scale
+    <p class="text-muted small mb-20">Solid bar: average over the core. Outlined bar: the {{ window_name }} outside SRAM{{ ', per mm²' if not window_is_mm }} (a dash where memory covers most of the design). The scale
       ends at the buffer theoretical maximum ({{ scale_max | k }} cells/mm²).</p>
     {% macro density_row(d) %}
       <a class="run-row" href="{{ design_href(d.code) }}" title="{{ d.code }} {{ d.name }} — {{ d.library_label }}">
@@ -710,8 +710,8 @@
             for chip-on-board bonding; <strong>probe pads</strong> are the others, next to the blocks they test.
             Letters and logos on the pad layer are not pads.</li>
           <li><strong>Theoretical maximum</strong> tiles one cell at its placement boundary with no routing.</li>
-          {% if windowed %}<li><strong>Densest mm²</strong> is the best {{ window_side }} square anywhere in each die, sliding in
-            {{ window_step }} steps and avoiding SRAM{{ ', given per mm²' if not window_is_mm }}.</li>{% else %}<li><strong>Densest mm²</strong> is the best cell of a {{ window_side }} grid
+          {% if windowed %}<li><strong>{{ window_name | capitalize }}</strong> is the best {{ window_side }} square anywhere in each die, sliding in
+            {{ window_step }} steps and avoiding SRAM{{ ', given per mm²' if not window_is_mm }}.</li>{% else %}<li><strong>{{ window_name | capitalize }}</strong> is the best cell of a {{ window_side }} grid
             over each die, skipping SRAM.</li>{% endif %}
         </ul>
       </div>
