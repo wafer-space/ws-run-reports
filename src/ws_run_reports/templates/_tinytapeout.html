@@ -166,7 +166,7 @@
   <tr id="p{{ p.CODE }}">
     <td class="run-mono">{{ p.CODE }}</td>
     <td>{% if p.REPOSITORY %}<a href="{{ p.REPOSITORY }}">{{ p.PROJECT }}</a>{% else %}{{ p.PROJECT }}{% endif %}</td>
-    <td class="d-none d-md-table-cell">{{ p.AUTHOR }}</td>
+    <td class="d-none d-md-table-cell">{{ author(p.AUTHOR, p.REPOSITORY) }}</td>
     <td class="text-end d-none d-md-table-cell">{{ p.ORIGINAL_TILES | replace("x", "×") }}</td>
     <td class="text-end run-nowrap">{{ '{:,}'.format(n) if p.LOGIC_CELLS else "in the shared logic" }}</td>
     <td class="text-end d-none d-md-table-cell">{{ '{:,}'.format(p.FLIP_FLOPS | int) if p.LOGIC_CELLS else "" }}</td>

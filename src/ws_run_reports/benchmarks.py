@@ -144,6 +144,8 @@ def _design_row(run, design, s, details: dict, tt_cache: dict) -> dict:
     row = {"run": label,
            "run_url": run.pages_url, "kind": _run_kind(run), "code": design.code, "name": design.name,
            "url": f"{run.pages_url}projects/{design.code}.html", "group": group, "slot": slot,
+           # The website's slots.yml id of a wafer.space slot ("1x0p5"), to join the two.
+           "slot_id": design.project.slot_size if kind == "wafer.space" else "",
            "core_mm2": round(design.core_area_mm2, 4), "core_source": design.core_source,
            "logic_cells": design.logic_cells, "core_density": round(design.core_density),
            # Over all the silicon inside the seal ring, pad ring included, where the run has one (wafer.space).
@@ -175,6 +177,7 @@ def _summary(rows: list, best_key: str = "logic_cells") -> dict:
     usable = [r["usable_density"] for r in pool if r.get("usable_density")]
     return {"designs": len(rows), "digital": len(digital),
             "core_mm2": round(statistics.median(r["core_mm2"] for r in rows), 4),
+            "usable_mm2": round(statistics.median(u), 4) if (u := [r["usable_mm2"] for r in rows if r.get("usable_mm2")]) else None,
             "median_logic_cells": round(median_cells), "median_density": round(median_density),
             "median_usable_density": round(statistics.median(usable)) if usable else None,
             "best_usable_density": max(usable) if usable else None,
@@ -235,12 +238,14 @@ def build(out: Path) -> dict:
             r["core_mm2"] for r in kv[1]))):
         summary = _summary(group_rows)
         core = summary["core_mm2"]
-        summary.update(group=group, slot=slot,
+        summary.update(group=group, slot=slot, slot_id=group_rows[0]["slot_id"],
                        max_cells={label: round(core * p["per_mm2"]) for label, p in process.items()})
         by_slot.append(summary)
 
     digital = [r for r in rows if r["digital"]]
-    per_mm2 = {"all": _summary(digital, "core_density"), "by_library": []}
+    per_mm2 = {"all": _summary(digital, "core_density"), "by_library": [],
+               "by_group": [{"group": g, **_summary(g_rows, "core_density")} for g in order
+                            if (g_rows := [r for r in digital if r["group"] == g])]}
     for lib in sorted({r["library"] for r in digital}):
         lib_rows = [r for r in digital if r["library"] == lib]
         if len(lib_rows) >= 3:
@@ -259,7 +264,12 @@ def build(out: Path) -> dict:
             "achieved": {"designs": len(rows), "runs": sorted({r["run"] for r in rows}),
                          "with_flow_settings": sum(1 for r in rows if "target_density_pct" in r),
                          "by_slot": by_slot, "per_mm2": per_mm2,
-                         "densest": [_pick(r) for r in top], "densest_windows": [_pick(r) for r in top_windows]}}
+                         "densest": [_pick(r) for r in top], "densest_windows": [_pick(r) for r in top_windows],
+                         # Every digital design, densest first, for a chart of where they all fall.
+                         "digital": [{k: r[k] for k in ("group", "run", "code", "name", "url", "slot", "library",
+                                                        "core_density", "usable_density", "peak_density")
+                                      if r.get(k) is not None}
+                                     for r in sorted(digital, key=lambda r: -r["core_density"])]}}
 
 
 def write(out: Path, output: Path) -> Path:

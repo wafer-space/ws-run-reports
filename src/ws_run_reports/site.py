@@ -17,7 +17,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from jinja2 import Environment, PackageLoader, select_autoescape
-from markupsafe import Markup
+from markupsafe import Markup, escape
 
 from . import config, external, links, projects, related, report, reticle, tinytapeout
 from . import stats as stats_module
@@ -231,6 +231,14 @@ CAMPAIGN_RE = re.compile(r"crowd ?supply|campaign|early bird|purchase", re.I)
 # A milestone whose shown date names a day ("28 April 2026") rather than a rough time ("Early Q4 2026").
 EXACT_DATE_RE = re.compile(r"\b\d{1,2} (January|February|March|April|May|June|July|August|September|October|"
                            r"November|December) \d{4}\b")
+
+
+def _author(name: str, repository: str) -> Markup:
+    """A Tiny Tapeout project's author, then the GitHub account that owns its repository when that is a person's:
+    the account is named as the repository's owner, not taken to be every author's."""
+    user = external.github_user(repository) if name else ""
+    account = Markup(' <a class="small text-muted" href="https://github.com/{0}" title="Owner of the project\'s repository">@{0}</a>')
+    return escape(name) + (account.format(user) if user else "")
 
 
 def milestone_done(item: dict, today: str) -> bool:
@@ -533,6 +541,7 @@ def build_site(run, out_dir: Path) -> Path:
     env.globals.update(static_version=digest.hexdigest()[:10])
     env.globals.update(area_bar=_area_bar, heatmap=_heatmap, photo_credit=lambda target=None: _photo_credit(run, target))
     env.globals.update(related=lambda design: related.for_slot(run, design.project))
+    env.globals.update(author=_author)
     env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id,
                        runs_linked=links.runs_linked)
     # Where a reader goes next: the Tiny Tapeout GF180MCU chips taking projects, and the wafer.space run taking orders.

@@ -673,7 +673,7 @@
       {% for d in index_rows %}
       <tr{% if loop.index > INDEX_SHOWN %} class="run-extra"{% endif %}><td class="run-mono">{{ d.code }}</td>
         <td><a href="{{ design_href(d.code) }}">{{ d.name }}</a></td>
-        {% if tt %}<td class="d-none d-md-table-cell">{{ d.project.extra.AUTHOR }}</td>{% endif %}
+        {% if tt %}<td class="d-none d-md-table-cell">{{ author(d.project.extra.AUTHOR, d.project.repository) }}</td>{% endif %}
         <td class="run-nowrap">{{ d.slot_label }}</td>
         <td class="d-none d-lg-table-cell run-nowrap"><a href="#{{ category_id(d.category) }}">{{ d.category }}</a></td>
         <td class="text-end">{{ '{:,}'.format(d.logic_cells) }}</td>

@@ -9,6 +9,7 @@ import functools
 import io
 import json
 import re
+import subprocess
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -19,6 +20,8 @@ WEBSITE_URL = "https://wafer.space"
 # Words a milestone title keeps capitalised in sentence case: names, not words of the sentence.
 PROPER_WORDS = {"Tiny", "Tapeout", "Crowd", "Supply", "Run", "GlobalFoundries", "Google", "Efabless", "Caravel"}
 PHOTO_PREVIEW_PX = 1100
+# Each GitHub account's type ("User" or "Organization"), as looked up; kept between builds.
+GITHUB_ACCOUNTS = Path(__file__).resolve().parents[2] / "out" / "github_accounts.json"
 PACKAGE_PREVIEW_PX = 600
 
 
@@ -34,6 +37,29 @@ def _try(label, function, default):
     except (urllib.error.URLError, OSError, ValueError, KeyError) as error:
         print(f"  warning: {label} unavailable: {error}")
         return default
+
+
+@functools.cache
+def _github_accounts() -> dict:
+    return json.loads(GITHUB_ACCOUNTS.read_text()) if GITHUB_ACCOUNTS.exists() else {}
+
+
+def github_user(repository: str) -> str:
+    """The GitHub account that owns ``repository`` when it is a person's, else "" (an organisation's, not on
+    GitHub, or not found). Looked up with ``gh api`` once, then kept in GITHUB_ACCOUNTS."""
+    m = re.match(r"https://github\.com/([^/]+)/", repository or "")
+    if not m:
+        return ""
+    owner, accounts = m.group(1), _github_accounts()
+    if owner not in accounts:
+        result = subprocess.run(["gh", "api", f"users/{owner}", "--jq", ".type"], capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"  warning: GitHub account {owner} unavailable: {result.stderr.strip()}")
+            return ""
+        accounts[owner] = result.stdout.strip()
+        GITHUB_ACCOUNTS.parent.mkdir(parents=True, exist_ok=True)
+        GITHUB_ACCOUNTS.write_text(json.dumps(accounts, indent=1, sort_keys=True) + "\n")
+    return owner if accounts[owner] == "User" else ""
 
 
 def clock_24h(text: str) -> str:
