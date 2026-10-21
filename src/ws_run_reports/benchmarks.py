@@ -139,7 +139,7 @@ def _design_row(run, design, s, details: dict, tt_cache: dict) -> dict:
     group, slot = _slot_type(run, design)
     lib = design.primary_library
     kind = _run_kind(run)
-    label = (f"Google {run.heading[0]}" if kind == "google" else run.heading[0] if kind == "tiny-tapeout"
+    label = (f"Google {run.site.get('short_name', run.heading[0])}" if kind == "google" else run.heading[0] if kind == "tiny-tapeout"
              else related.run_label(run))
     row = {"run": label,
            "run_url": run.pages_url, "kind": _run_kind(run), "code": design.code, "name": design.name,

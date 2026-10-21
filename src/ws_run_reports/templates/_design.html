@@ -45,8 +45,13 @@
             {% for volts, sources in design.voltages.items() %}
             <tr><th>{{ link(volts, links.voltage(volts)) }}</th><td>{% for s in sources %}{{ link(s, links.library(design.voltage_libraries[s]) if s in design.voltage_libraries else "") }}{{ ", " if not loop.last }}{% endfor %}</td></tr>
             {% endfor %}
-            {% if design.voltage_group %}<tr><th>Gate oxides</th><td>{{ design.voltage_group }}{% if design.pad_voltages and design.voltage_group_with_pads != design.voltage_group %}
-              <br><span class="text-muted">{{ design.voltage_group_with_pads }} with the pad ring</span>{% endif %}</td></tr>{% endif %}
+            {% set OXIDES = {"3.3 V and 5 V/6 V": "Thin (3.3 V) and thick (5 V/6 V)", "3.3 V only": "Thin only (3.3 V)",
+                             "5 V/6 V only": "Thick only (5 V/6 V)"} %}
+            {% if design.voltage_group %}<tr><th>Gate oxides</th><td>{{ OXIDES[design.voltage_group] }} in the design itself{% if design.pad_voltages and design.voltage_group_with_pads != design.voltage_group %}
+              {% set added = design.pad_voltages | reject("in", design.voltages) | sort | list %}
+              {% set thin = "3.3 V" in added %}{% set thick = added | reject("equalto", "3.3 V") | list %}
+              <br><span class="text-muted">the pad ring adds {{ 'thin-oxide ' if not thick else 'thick-oxide ' if not thin }}({{ added | join(", ") }})
+                transistors</span>{% endif %}</td></tr>{% endif %}
             {% for key in design.device_features %}
             <tr><th>{{ link(feature_labels[key], links.feature(key)) }}</th><td>{{ '{:,}'.format(design.features[key][0]) }}
               <span class="text-muted">({{ '{:,.0f}'.format(design.features[key][1]) }} µm²{% if key == "mim" and design.mim_levels %}, between {{ design.mim_levels | join(", ") | replace("-", " and ") }}{% endif %})</span>

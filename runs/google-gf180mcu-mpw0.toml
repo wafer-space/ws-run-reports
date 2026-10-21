@@ -7,7 +7,9 @@ slots = 40
 md5 = "366739415ab37e49a4330761db15c940"
 
 [site]
-heading = ["GFMPW-0", "Google & Efabless", "GF180MCU Open MPW Shuttle"]
+# The short name labels the shuttle elsewhere ("Google GFMPW-0").
+short_name = "GFMPW-0"
+heading = ["Google GF180MCU open shuttle (GFMPW-0)", "Run by Google and Efabless"]
 # Slots as in Efabless's manifest: rows lettered from the top, columns numbered from the right.
 slot_origin = "top-right"
 slot_letters = "rows"

@@ -489,7 +489,8 @@
     </div>
     <div class="space30"></div>
     <div class="row justify-content-center text-center gutter-30">
-      {% if digital %}
+      {% set FEW = 3 %}
+      {% if digital | length >= FEW %}
       <div class="col-md-4 mb-20">
         <div class="box bg-white shadow p-30 h-100">
           <h3 class="mb-5 color-dark">{{ digital[0].core_density | k }}</h3>
@@ -514,6 +515,14 @@
           <p class="mb-0 small text-muted">{{ median_utilisation | pct }} of the core covered by logic cells</p>
         </div>
       </div>
+      {# 26: why the buffer maximum is the yardstick. #}
+      <p class="small mb-0 run-measure">Percentages compare with the buffer maximum for each design's own library:
+        buffers are among the smallest and most common logic cells, so a design made only of buffers, packed edge to
+        edge with no wiring, would reach 100%.</p>
+      {% elif digital %}
+      <div class="col-lg-8"><p class="lead mb-0">This {{ 'chip' if tt else 'shuttle' }} has only {{ digital | length }}
+        digital {{ words.die if digital | length == 1 else words.dies }}, too few for a best or typical figure.
+        For densities across dozens of designs, see {{ runs_linked("wafer.space Run 2") }}.</p></div>
       {% endif %}
     </div>
   </div>
@@ -526,6 +535,11 @@
     <p class="lead text-center mb-50 run-measure">This chip had no tiles: its projects shared one block, so it cannot
       tell you what a tile holds. For tile sizes, see the later chips, from
       <a href="{{ website }}/tinytapeouts/ttgf0p2/ws-run1-ttp2/">Tiny Tapeout GF 0.2</a> on.</p>
+    {% elif digital | length < 3 %}
+    <p class="lead text-center mb-50 run-measure">With only {{ digital | length }} digital
+      {{ words.die if digital | length == 1 else words.dies }}, this {{ 'chip' if tt else 'shuttle' }} cannot say what a
+      {{ 'tile' if tt else 'slot' }} typically holds. {{ runs_linked("wafer.space Run 2") }}'s page sizes each slot from
+      dozens of designs.</p>
     {% else %}
     <p class="lead text-center mb-40">What each {{ 'tile size' if tt else 'slot size' }} held on this {{ 'chip' if tt else 'run' }}, and what it would hold at its densities</p>
     <div class="table-responsive">

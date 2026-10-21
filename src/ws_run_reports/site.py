@@ -324,8 +324,8 @@ def build_context(run, out_dir: Path) -> dict:
     campaign = run.site.get("campaign_url", "")
     for item in timeline:
         item["done"] = milestone_done(item, today)
-        # The milestones of buying a slot happen on the run's Crowd Supply campaign.
-        if campaign and not item.get("url") and CAMPAIGN_RE.search(f"{item['title']} {item.get('description', '')}"):
+        # The milestones of buying a slot happen on the run's Crowd Supply campaign, not today's shop.
+        if campaign and CAMPAIGN_RE.search(f"{item['title']} {item.get('description', '')}"):
             item["url"] = campaign
 
     categories = sorted(stats.by_category.items(),

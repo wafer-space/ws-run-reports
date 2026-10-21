@@ -86,7 +86,7 @@ def _slot(key: str, design: dict) -> dict | None:
     if not run or not project:
         return None
     kind = "other_shuttles" if key in design.get("other_shuttles", []) else "wafer_space"
-    label = f"Google {run.heading[0]}" if kind == "other_shuttles" else run_label(run)
+    label = f"Google {run.site.get('short_name', run.heading[0])}" if kind == "other_shuttles" else run_label(run)
     return {"key": key, "kind": kind, "run": label, "run_url": run.pages_url, "code": code,
             "name": project.name, "slot": project.slot_size, "date": submitted(run_name),
             "url": f"{run.pages_url}projects/{code}.html", "note": design.get("notes", {}).get(key, "")}

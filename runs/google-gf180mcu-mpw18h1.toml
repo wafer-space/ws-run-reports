@@ -7,7 +7,9 @@ slots = 4
 md5 = "e65f93005a41a1c997298f8b4abfc07c"
 
 [site]
-heading = ["MPW-18H1", "Google", "GF180MCU Test Shuttle (GlobalFoundries private MPW)"]
+# The short name labels the shuttle elsewhere ("Google MPW-18H1").
+short_name = "MPW-18H1"
+heading = ["Google GF180MCU test shuttle (MPW-18H1)", "Made on a private GlobalFoundries MPW run"]
 # The 2 x 2 arrangement is synthetic, so the slots get no row and column labels.
 slot_labels = false
 # Draw the 2 x 2 on a wafer.space-sized reticle frame, so the dies appear at the

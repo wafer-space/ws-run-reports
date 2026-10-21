@@ -15,6 +15,9 @@ from pathlib import Path
 
 USER_AGENT = "ws-run-reports (https://github.com/wafer-space/ws-run-reports)"
 RUNS_YML_URL = "https://raw.githubusercontent.com/wafer-space/wafer-space.github.io/main/_data/runs.yml"
+WEBSITE_URL = "https://wafer.space"
+# Words a milestone title keeps capitalised in sentence case: names, not words of the sentence.
+PROPER_WORDS = {"Tiny", "Tapeout", "Crowd", "Supply", "Run", "GlobalFoundries", "Google", "Efabless", "Caravel"}
 PHOTO_PREVIEW_PX = 1100
 PACKAGE_PREVIEW_PX = 600
 
@@ -41,6 +44,29 @@ def clock_24h(text: str) -> str:
     return re.sub(r"\s*@\s*(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?", convert, text or "")
 
 
+def sentence_case(title: str) -> str:
+    """A schedule's "Early Bird Deadline" as "Early bird deadline": later plain capitalised words lowercased,
+    names (PROPER_WORDS) and acronyms ("GDS", "Q4") kept."""
+    words = title.split(" ")
+    return " ".join([words[0]] + [w.lower() if re.fullmatch(r"[A-Z][a-z]+", w) and w not in PROPER_WORDS else w
+                                  for w in words[1:]])
+
+
+def _deadline_pages(entry: dict) -> dict:
+    """The page each of a run's deadline entries points to ("Submission Deadline": the platform), by title."""
+    pages = {}
+    for value in entry.values():
+        if isinstance(value, dict) and value.get("title") and value.get("button_url"):
+            url = value["button_url"]
+            pages[value["title"]] = url if url.startswith("http") else WEBSITE_URL + url
+    return pages
+
+
+def _page_for(title: str, pages: dict) -> str:
+    """The deadline page for a milestone: by its title, or one that starts the other ("Design Submission")."""
+    return pages.get(title) or next((url for name, url in pages.items() if name.startswith(title) or title.startswith(name)), "")
+
+
 def timeline(run) -> list:
     """Milestones for this run from the wafer.space website's ``_data/runs.yml``.
 
@@ -61,11 +87,13 @@ def timeline(run) -> list:
             text = fetch(run.site.get("runs_yml_url", RUNS_YML_URL))
         data = yaml.safe_load(text)
         entry = data["runs"][key]
+        pages = _deadline_pages(entry)
         return [
-            {"title": item["title"], "date": str(item["date"]), "display_date": clock_24h(item.get("display_date", "")),
+            {"title": sentence_case(item["title"]), "date": str(item["date"]), "display_date": clock_24h(item.get("display_date", "")),
              "description": item.get("description", ""), "status": item.get("status", ""), "done": item.get("done"),
              # Where the milestone is recorded, when a schedule names it (the Google shuttles' sources).
-             **({"url": item["url"]} if item.get("url") else {})}
+             # else the page the run's matching deadline entry sends people to.
+             **({"url": item.get("url") or _page_for(item["title"], pages)} if item.get("url") or _page_for(item["title"], pages) else {})}
             for item in entry.get("timeline", [])
         ]
 
