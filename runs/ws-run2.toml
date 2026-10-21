@@ -12,6 +12,11 @@ heading = ["wafer.space Run 2"]
 runs_yml_key = "gf180mcu_run_2"
 campaign_url = "https://www.crowdsupply.com/wafer-space/gf180mcu-run-2"
 
+# Names for projects whose own name says too little or is a raw repository name.
+[site.display_names]
+AS16 = "AS16 16-bit RISC CPU"
+ISHI = "ISHI-KAI multi-project die 2"
+
 [measure]
 # The project template's seal ring, 26 um on each side (its DIE_AREA "including 26um for the sealring").
 seal_ring_um = 26

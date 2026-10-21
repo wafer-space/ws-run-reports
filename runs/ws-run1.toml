@@ -30,6 +30,11 @@ photos_licence_url = "https://creativecommons.org/licenses/by-sa/4.0/"
 # The photographer's zoomable viewer of one die; the first link on a project page.
 photos_viewer_url = "https://infosecdj.net/map/wafer-space/gf180mcu-ws1-{code}/infosecdj_{setup}/"
 
+# The two Tiny Tapeout GF 0.2 dies, named as on the Tiny Tapeout pages.
+[site.display_names]
+TTP2 = "Tiny Tapeout GF 0.2, standard"
+TTPG = "Tiny Tapeout GF 0.2, power-gated"
+
 [report.notes]
 "Difference from the March 2026 Run 1 report" = """
 The first version of the Run 1 report measured cell width and row height from each cell's overall

@@ -16,6 +16,19 @@ from pathlib import Path
 
 RUNS_DIR = Path(__file__).resolve().parents[2] / "runs"
 
+# Names spelled the usual way on the pages, whatever a project's own record says, and plain typos in them.
+DISPLAY_SPELLINGS = [(r"\bRisc-?V\b|\bRISCV\b", "RISC-V"), (r"(?i:\bwafer\.space\b)", "wafer.space"),
+                     (r"\bTinyTapeout\b", "Tiny Tapeout"), (r"\bGF (\d)p(\d)\b", r"GF \1.\2"),
+                     (r"Mpbs\b", "Mbps"), (r"\bFashioMNIST\b", "FashionMNIST"), (r"\baperature\b", "aperture"),
+                     (r"\bcut-though\b", "cut-through")]
+
+
+def spelled(name: str) -> str:
+    """``name`` with DISPLAY_SPELLINGS applied."""
+    for wrong, right in DISPLAY_SPELLINGS:
+        name = re.sub(wrong, right, name)
+    return name
+
 # Slot sizes as written in the manifests, as (width, height) fractions of a full slot.
 SLOT_FRACTIONS = {
     "1x1": (1.0, 1.0),
@@ -127,6 +140,9 @@ class Run:
             projects = _projects_from_csv(self.repo_dir / self.manifest["csv"])
         else:
             projects = _projects_from_readme(self.repo_dir / self.manifest["readme"])
+        # [site.display_names]: a name for a project whose own says too little ("AS16 CPU") or is a raw repository name.
+        for p in projects:
+            p.name = self.site.get("display_names", {}).get(p.code, p.name)
         return {p.code: p for p in projects}
 
 

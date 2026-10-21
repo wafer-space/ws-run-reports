@@ -15,7 +15,7 @@ import tomllib
 from functools import cache
 
 from . import config, external, links
-from .config import https_url
+from .config import https_url, spelled
 
 DESIGNS = config.RUNS_DIR / "related" / "designs.toml"
 
@@ -88,7 +88,7 @@ def _slot(key: str, design: dict) -> dict | None:
     kind = "other_shuttles" if key in design.get("other_shuttles", []) else "wafer_space"
     label = f"Google {run.site.get('short_name', run.heading[0])}" if kind == "other_shuttles" else run_label(run)
     return {"key": key, "kind": kind, "run": label, "run_url": run.pages_url, "code": code,
-            "name": project.name, "slot": project.slot_size, "date": submitted(run_name),
+            "name": spelled(project.name), "slot": project.slot_size, "date": submitted(run_name),
             "url": f"{run.pages_url}projects/{code}.html", "note": design.get("notes", {}).get(key, "")}
 
 
@@ -145,7 +145,7 @@ def for_slot(run, project) -> dict | None:
     kind, key = _key(run, project)
     design = next((d for d in designs() if key in d[kind] or key in d["other_shuttles"]), None)
     if design is None:
-        design = {"name": project.name, "notes": {}, "wafer_space": [], "other_shuttles": [], "tiny_tapeout": []}
+        design = {"name": spelled(project.name), "notes": {}, "wafer_space": [], "other_shuttles": [], "tiny_tapeout": []}
     keys = list(design["wafer_space"])
     # Slots with the same repository on other wafer.space runs.
     repo = https_url(project.repository) if kind == "wafer_space" else ""
@@ -204,12 +204,14 @@ def graduated() -> list:
     return sorted(found, key=lambda d: (d["stages"][-1]["date"], len(d["stages"])), reverse=True)
 
 
-# A dot's offsets from its row's line, in px: the line, then lanes above and below it, 13 px apart so that 12 px
-# markers do not touch. The row grows to fit the lanes it uses.
-LANES = (0, -13, 13, -26, 26, -39, 39)
-# How close two dots may be, in percent of the track, before they need different lanes: a marker's width on a
-# desktop's track (about 850 px) and on a phone's (about 360 px).
-CLOSE = {"dy": 1.6, "dym": 3.6}
+# A dot's offsets from its row's line, in px: the line, then lanes above and below it, 18 px apart so that 12 px
+# markers with the 4 px ring of "this run" do not touch. The row grows to fit the lanes it uses.
+LANES = (0, -18, 18, -36, 36, -54, 54)
+# How close two dots may be, in percent of the track, before they need different lanes: a ringed marker's width
+# (20 px) on a desktop's track (about 850 px) and on a phone's (about 360 px).
+CLOSE = {"dy": 2.4, "dym": 5.6}
+# Room between the outermost lane's marker and the row's edges, in px, both sides together.
+LANE_MARGIN = 40
 
 
 def _lanes(dots: list, key: str, close: float) -> int:
@@ -218,7 +220,7 @@ def _lanes(dots: list, key: str, close: float) -> int:
     for i, dot in enumerate(dots):
         taken = {d[key] for d in dots[:i] if dot["x"] - d["x"] < close}
         dot[key] = next((dy for dy in LANES if dy not in taken), 0)
-    return max(40, 2 * max((abs(d[key]) for d in dots), default=0) + 26)
+    return max(40, 2 * max((abs(d[key]) for d in dots), default=0) + LANE_MARGIN)
 
 
 def timeline_chart(rows: list) -> dict:

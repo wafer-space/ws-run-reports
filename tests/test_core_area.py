@@ -38,3 +38,11 @@ def test_names_are_shown_with_the_usual_spellings_and_no_repeated_code():
     assert named("001", "TinyTapeout Factory Test") == "Tiny Tapeout Factory Test"
     assert named("AS04", "AS04 Multi-Project die using 3.3V SCL") == "Multi-Project die using 3.3V SCL"
     assert named("X", "") == "X"
+
+
+def test_typos_in_names_are_fixed_for_display():
+    from ws_run_reports.config import spelled
+    assert spelled("100Mpbs 3 port Ethernet switch") == "100Mbps 3 port Ethernet switch"
+    assert spelled("Wafer.Space Logo") == "wafer.space Logo"
+    assert spelled("trained on FashioMNIST") == "trained on FashionMNIST"
+    assert spelled("Unmanaged cut-though switch") == "Unmanaged cut-through switch"
