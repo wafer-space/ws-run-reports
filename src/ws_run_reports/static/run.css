@@ -93,7 +93,11 @@
 .run-reticle.framed { background: transparent; border-radius: 0; outline: 1px dashed var(--run-line); }
 .run-reticle-slot { position: absolute; display: flex; align-items: flex-end; justify-content: flex-start; border: 1px solid transparent; text-decoration: none; line-height: 1; }
 .run-reticle-slot span { margin: 3px; padding: 1px 4px; border-radius: 2px; background: rgba(10, 12, 20, 0.7); color: #fff; font-size: 10px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; opacity: 0; transition: opacity 0.12s ease; }
+/* Every slot is outlined, so the image reads as blocks to select; hovering one lights it and names it. */
+.run-reticle-slot { border-color: rgba(255, 255, 255, 0.28); }
 .run-reticle-slot:hover, .run-reticle-slot:focus-visible { border-color: #fff; background: rgba(255, 255, 255, 0.12); }
+/* Without hover (tablets), the names show all the time. */
+@media (hover: none) and (min-width: 576px) { .run-reticle-slot span { opacity: 1; } }
 .run-reticle-slot:hover span, .run-reticle-slot:focus-visible span { opacity: 1; }
 
 /* Timeline */
@@ -389,3 +393,9 @@
 /* The shuttle status's two lists: done so far, still to come. */
 .run-status-head { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--run-muted); margin: 0 0 12px; }
 .run-reticle-frame { margin-inline: auto; }
+/* A list behind its count, inside a table cell: the summary reads as a link. */
+.run-more-inline { margin: 0; }
+.run-more-inline > summary { display: inline; cursor: pointer; margin: 0; }
+.run-more-inline[open] > summary { display: block; margin-bottom: 4px; }
+/* Design names in a table cell may be one long word (openframe_caravel_picorv32): let them break. */
+.run-which { overflow-wrap: anywhere; }

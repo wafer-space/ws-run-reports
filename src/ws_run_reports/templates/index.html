@@ -46,6 +46,14 @@
 </div>
 {% endmacro %}
 
+{# Which designs: their names, linked; more than a few go behind their count. key: a device whose reused-IP
+   users are shown faded. #}
+{% macro who(users, key=none) %}
+{% set names %}{% for u in users %}<a class="{{ 'run-ip-only' if key and u.ip_only(key) }}" href="{{ design_href(u.code) }}"
+  {% if key and u.ip_only(key) %}title="Only inside reused {{ u.ip_sources[key] | join(', ') }}"{% endif %}>{{ u.name }}</a>{{ ", " if not loop.last }}{% endfor %}{% endset %}
+{% if users | length <= 6 %}{{ names }}{% else %}<details class="run-more run-more-inline"><summary>{{ users | length }} {{ 'projects' if tt else 'designs' }}</summary>{{ names }}</details>{% endif %}
+{% endmacro %}
+
 {% block content %}
 <div class="wrapper image-wrapper bg-image page-title-wrapper run-hero inverse-text"
      data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
@@ -101,7 +109,9 @@
       {{ stat(stats.logic_cells | count, 'Logic cells', 'gates and flip-flops') }}
       {% if stats.sram_bits %}{{ stat('%.0f KiB' | format(stats.sram_bits / 8 / 1024) if stats.sram_bits >= 8192 else '%d bytes' | format(stats.sram_bits // 8), 'SRAM', 'in foundry and custom macros') }}{% endif %}
       {% if not tt %}
-      {{ stat(pads | count, 'Bond pads', 'and ' ~ probe_pads | count ~ ' probe pads' if probe_pads else '') }}
+      {% set whole = slot_types | selectattr("label", "equalto", "1 × 1") | map(attribute="dies") | sum if slot_types else 0 %}
+      {% if whole %}{{ stat(whole, 'Whole dies', 'and ' ~ ((slot_types | sum(attribute="dies")) - whole) ~ ' half and quarter slots') }}
+      {% else %}{{ stat(pads | count, 'Bond pads', 'and ' ~ probe_pads | count ~ ' probe pads' if probe_pads else '') }}{% endif %}
       {% endif %}
     </div>
     {% if netlist_projects %}
@@ -163,7 +173,7 @@
           it sits on the {{ renders.reticle.width_mm | round(1) | string | replace(".0", "") }} × {{ renders.reticle.height_mm | round(1) | string | replace(".0", "") }} mm
           {{ words.reticle }}.{% if framed %} It is drawn on a {{ '%.0f' | format(renders.reticle.frame_width_mm) }} × {{ '%.1f' | format(renders.reticle.frame_height_mm) }} mm
           frame, so that the dies appear at the same scale as on the other runs' pages.{% endif %}{% if stats.placements < run.slots %} Dark gaps are private designs or empty slots.{% endif %}
-          Select a {{ words.die }} for its details.</p>
+          <span class="d-none d-sm-inline">Point at a {{ words.die }} to see its name, and select it for its details.</span><span class="d-sm-none">Every {{ words.die }} is listed further down.</span></p>
         {% else %}
         <p class="text-muted">Renders have not been generated for this run yet.</p>
         {% endif %}
@@ -340,7 +350,7 @@
         </div>
         {% endfor %}
         <p class="small text-muted mt-10">A design counts for a voltage when its standard cells, SRAM or its own
-          transistors use it. 5 V and 6 V transistors share the thick gate oxide; the V5_XTOR marker tells them apart.</p>
+          transistors use it. 5 V and 6 V transistors share the thick gate oxide; a marker layer in the layout tells them apart.</p>
       </div>
       <div class="col-lg-7 mb-30">
         <h3 id="devices" class="mb-20">Optional devices drawn by designers{{ anchor("devices") }}</h3>
@@ -350,8 +360,7 @@
           <tbody>
             {% for key, label, users in stats.feature_popularity if users %}
             <tr><td>{{ link(label, links.feature(key)) }}</td><td class="text-end">{{ users | length }}</td>
-              <td>{% for u in users %}{% if u.ip_only(key) %}<a class="run-mono run-ip-only" href="{{ design_href(u.code) }}"
-                title="Only inside reused {{ u.ip_sources[key] | join(', ') }}">{{ u.code }}</a>{% else %}<a class="run-mono" href="{{ design_href(u.code) }}">{{ u.code }}</a>{% endif %}{{ " " if not loop.last }}{% endfor %}</td></tr>
+              <td class="run-which">{{ who(users, key) }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -360,7 +369,7 @@
         {% if unused %}<p class="small text-muted mb-0">Not drawn by any design: {% for key, label, _ in unused %}{{ link(label, links.feature(key)) }}{{ ", " if not loop.last }}{% endfor %}.</p>{% endif %}
         <p class="small text-muted">Only devices outside standard cells, SRAM macros and I/O pads count, since every
           die has those. A single test structure counts the same as a large block.{% if stats.designs | selectattr("ip_sources") | list %}
-          <span class="run-mono run-ip-only">Faded</span> codes have the device only inside a reused block; hover
+          <span class="run-ip-only">Faded</span> names have the device only inside a reused block; hover
           over one to see which.{% endif %}</p>
       </div>
     </div>
@@ -377,7 +386,7 @@
               {% set with_pads = padded[loop.index0][1] %}
               <tr><td class="text-nowrap">{{ group }}</td>
                 <td class="text-end">{{ users | length }}</td>{% if has_pads %}<td class="text-end">{{ with_pads | length }}</td>{% endif %}
-                <td>{% for u in users %}<a class="run-mono" href="{{ design_href(u.code) }}">{{ u.code }}</a>{{ " " if not loop.last }}{% endfor %}</td></tr>
+                <td class="run-which">{{ who(users) }}</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -386,7 +395,7 @@
           <p class="small text-muted">3.3 V transistors have the thin gate oxide; 5 V and 6 V ones share the thick one.
             {% if has_pads %}"Own design" counts the standard cells, SRAM and transistors the designer chose; "with the pad ring" adds
             the transistors of the I/O pad cells, measured in each design's pad ring.{% endif %}{% if no_gates %} No transistors of their
-            own: {% for code in no_gates %}<a class="run-mono" href="{{ design_href(code) }}">{{ code }}</a>{{ ", " if not loop.last }}{% endfor %}.{% endif %}</p>
+            own: {% for code in no_gates %}<a href="{{ design_href(code) }}">{{ design_by_code[code].name }}</a>{{ ", " if not loop.last }}{% endfor %}.{% endif %}</p>
       </div>
     </div>
     {% endif %}

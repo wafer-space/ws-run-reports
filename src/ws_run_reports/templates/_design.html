@@ -192,14 +192,21 @@
               {% elif lic.status == "mismatch" %}<br><span class="text-muted">Repository: {{ found() }}, not the declared licence</span>
               {% elif lic.status == "no licence file" %}<br><span class="text-muted">The repository has no licence file</span>
               {% elif lic.status == "no repository" %}<br><span class="text-muted">No public repository</span>{% endif %}
-              {% if lic.repo_commit %}<br><span class="small text-muted">Repository checked at {{ link(lic.repo_commit[:12], links.repo_commit(lic_repo, lic.repo_commit), mono=true) }}</span>{% endif %}</td></tr>
+</td></tr>
             {% if info.template and info.template.repo %}
             {% set tpl = info.template %}
             <tr><th>Template</th><td>{{ link(tpl.repo, links.template(tpl.repo)) }} {% if tpl.versions %}
-              {% for v in tpl.versions %}{{ link(v, links.template(tpl.repo, v)) }}{{ " or " if not loop.last }}{% endfor %}
-              <br><span class="small text-muted">the release{{ "s" if tpl.versions | length > 1 }} whose Makefile pins the same PDK
-              ({% set pin_key, pin_value = (tpl.pin | dictsort | first) %}{{ pin_key }} {{ link(pin_value[:12], links.pdk_pin(pin_key, pin_value), mono=true) }}) at the commit checked</span>{% else %}
+              {% for v in tpl.versions %}{{ link(v, links.template(tpl.repo, v)) }}{{ " or " if not loop.last }}{% endfor %}{% else %}
               <br><span class="small text-muted">from its README</span>{% endif %}</td></tr>
+            {% endif %}
+            {% set tpl = info.template if info.template and info.template.repo and info.template.versions else none %}
+            {% if lic.repo_commit or tpl %}
+            <tr><th>How it was checked</th><td><details class="run-more run-more-inline"><summary>Commit and PDK pin</summary>
+              {% if lic.repo_commit %}The licence and template were read from the repository at commit
+              {{ link(lic.repo_commit[:12], links.repo_commit(lic_repo, lic.repo_commit), mono=true) }}.{% endif %}
+              {% if tpl %}{% set pin_key, pin_value = (tpl.pin | dictsort | first) %}The template release{{ "s" if tpl.versions | length > 1 }}
+              named above {{ "are" if tpl.versions | length > 1 else "is" }} the one{{ "s" if tpl.versions | length > 1 }} whose Makefile pins the same PDK as that
+              commit ({{ pin_key }} {{ link(pin_value[:12], links.pdk_pin(pin_key, pin_value), mono=true) }}).{% endif %}</details></td></tr>
             {% endif %}
             {% set checks = info.checks or {} %}
             <tr><th>Chip-on-board</th><td>{{ "Selected at submission" if info.chip_on_board else "Not selected at submission" }}
