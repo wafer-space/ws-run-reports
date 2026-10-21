@@ -117,6 +117,9 @@ def _tt(key: str, design: dict) -> dict:
             "tiles": project.get("tiles", ""), "date": _tt_closed().get(chip, ""),
             "url": f"https://tinytapeout.com/chips/{chip}/{macro}", "here": _tt_dies().get((chip, macro), ""),
             "note": design.get("notes", {}).get(key, "")}
+    if step["here"]:
+        # The chip as these pages measure it: the die the project is on, not tinytapeout.com's chip page.
+        step["chip_url"] = step["here"].rsplit("projects/", 1)[0]
     if chip in _shared_block_dies():
         # The project's row in the die's table of projects, dated by the release that taped the die out.
         run, released = _shared_block_dies()[chip]

@@ -386,6 +386,15 @@ class Design:
         return {v: found[v] for v in sorted(found, key=lambda v: float(v.split()[0]))}
 
     @property
+    def voltage_libraries(self) -> dict:
+        """Each library named in :attr:`voltages` -> its full name, to link it to its documentation."""
+        found = {f"{library_label(lib)} standard cells": lib for lib in self.libraries}
+        for name in self.macros:
+            family = Macro(name, 0, 0, 0, 0).family
+            found[f"{family} SRAM"] = f"gf180mcu_{family}_ip_sram"
+        return found
+
+    @property
     def voltage_group(self) -> str:
         """Which of the gate oxides the design's own logic and devices use (see :func:`voltage_group`)."""
         return voltage_group(self.voltages)

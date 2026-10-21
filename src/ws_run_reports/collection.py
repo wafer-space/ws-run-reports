@@ -94,10 +94,12 @@ def build(name: str, out: Path) -> Path:
                       autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
     static = Path(__file__).parent / "static"
     digest = hashlib.sha256(b"".join(path.read_bytes() for path in sorted(static.iterdir())))
+    next_tt, next_ws = tinytapeout.next_shuttles(external.tt_chips()), external.next_run()
+    if next_ws:
+        links.upcoming_runs[next_ws["name"]] = next_ws["url"]
     env.globals.update(static_version=digest.hexdigest()[:10], links=links, link=links.html,
                        anchor=site_module._anchor, runs_linked=links.runs_linked,
-                       next_tt=tinytapeout.next_shuttles(external.tt_chips()), next_ws=external.next_run(),
-                       next_tt_names=tinytapeout.shuttle_names(tinytapeout.next_shuttles(external.tt_chips())),
+                       next_tt=next_tt, next_ws=next_ws, next_tt_names=tinytapeout.shuttle_names(next_tt),
                        tiny_name=tinytapeout.chip_name)
     site_dir = out / name / "site"
     site_dir.mkdir(parents=True, exist_ok=True)

@@ -18,7 +18,7 @@
 
 {% macro project_card(d) %}
 <div class="col-6 col-md-4 col-xl-3 mb-30">
-  <a class="run-card box bg-white shadow h-100" href="projects/{{ d.code }}.html">
+  <a class="run-card box bg-white shadow h-100" href="{{ design_href(d.code) }}">
     <figure class="run-card-image">
       {% if renders and renders.designs[d.code] %}
       <img src="renders/{{ renders.designs[d.code].files.thumb }}" alt="Layout render of {{ d.name }}" loading="lazy">
@@ -60,7 +60,8 @@
     {% else %}
     {% set parent_run = (tt.parent.title or "").split(" (")[0] %}
     <p class="lead">{{ stats.designs | length }} projects{% if parent_run %} on
-      {% if tt.parent.url %}<a href="{{ tt.parent.url }}">die {{ run.shuttle }}</a>{% else %}die {{ run.shuttle }}{% endif %}
+      {# The die's own section below: its slot's page on the run redirects back here. #}
+      {% if parent_die %}<a href="#die">die {{ run.shuttle }}</a>{% else %}die {{ run.shuttle }}{% endif %}
       of {{ runs_linked(parent_run) }}{% endif %}</p>
     {% endif %}
     <p class="mb-0 run-hero-actions">
@@ -107,10 +108,10 @@
       multiplexer), the cell tests and the pad test buffer. The pads and the fill are left out.</p>
     {% elif tt %}
     <p class="text-center text-muted small mb-0">Counted inside the projects only, so these totals are smaller than
-      the die's own figures on its run's page: the pads, Tiny Tapeout's multiplexer, controller and power switches,
+      the die's own figures on {% if parent_die %}<a href="{{ parent_die.run.pages_url }}#reticle">its run's page</a>{% else %}its run's page{% endif %}: the pads, Tiny Tapeout's multiplexer, controller and power switches,
       and the fill are left out.</p>
     {% else %}
-    <p class="text-center text-muted small mb-0">Private designs on the reticle are not in the public layout and are
+    <p class="text-center text-muted small mb-0">Private designs on the reticle are not in the <a href="{{ run.source_url }}">public layout</a> and are
       not counted. Designs placed more than once are counted once.</p>
     {% endif %}
     <h2 id="next" class="section-title mt-60 mb-10 text-center">{% if tt %}Get this chip, or make your own{% else %}Make
@@ -149,7 +150,7 @@
                  width="{{ renders.reticle.width_px }}" height="{{ renders.reticle.height_px }}">
             {% for p in placements %}
             {% set d = design_by_code[p.code] %}
-            <a class="run-reticle-slot" href="projects/{{ p.code }}.html" title="{{ p.label ~ ' — ' if p.label else '' }}{{ p.code }} — {{ d.name }}"
+            <a class="run-reticle-slot" href="{{ design_href(p.code) }}" title="{{ p.label ~ ' — ' if p.label else '' }}{{ p.code }} — {{ d.name }}"
                {% if p.label %}data-col="{{ p.col }}" data-row="{{ p.row }}"{% endif %}
                style="left: {{ '%.3f' | format(p.left * 100) }}%; top: {{ '%.3f' | format(p.top * 100) }}%; width: {{ '%.3f' | format(p.width * 100) }}%; height: {{ '%.3f' | format(p.height * 100) }}%;"><span>{% if p.label %}{{ p.label }} · {% endif %}{{ p.code }}</span></a>
             {% endfor %}
@@ -213,7 +214,7 @@
         {% elif not run.site.runs_yml_key and tt and tt.repo %}
         <p class="small text-muted mb-0">Tiny Tapeout has not published dates after tapeout for this test chip.</p>
         {% else %}
-        <p class="small text-muted mb-0">From the <a href="{{ website }}/">wafer.space</a> run schedule{% if tt and tt.repo %}
+        <p class="small text-muted mb-0">From the <a href="{{ website }}/#complete-timeline">wafer.space run schedule</a>{% if tt and tt.repo %}
           and the {{ link(tt.name or "Tiny Tapeout shuttle", links.repo_tree(tt.repo, tt.commit)) }} repository{% endif %}.</p>
         {% endif %}
         {% else %}
@@ -282,7 +283,7 @@
     <p class="text-muted small mb-20">Each bar is one {{ words.die }}, split the same way as above. Sorted by how much of the {{ words.die }} is logic.</p>
     {% set rows = stats.designs | sort(attribute='utilisation', reverse=true) | list %}
     {% macro area_row(d) %}
-      <a class="run-row" href="projects/{{ d.code }}.html">
+      <a class="run-row" href="{{ design_href(d.code) }}">
         <span class="run-row-label"><strong>{{ d.code }}</strong> <span class="text-muted">{{ d.name }}</span></span>
         <span class="run-bar">
           {% for part in area_bar(d.area_breakdown) if part.share > 0.001 %}
@@ -333,8 +334,8 @@
           <tbody>
             {% for key, label, users in stats.feature_popularity if users %}
             <tr><td>{{ link(label, links.feature(key)) }}</td><td class="text-end">{{ users | length }}</td>
-              <td>{% for u in users %}{% if u.ip_only(key) %}<a class="run-mono run-ip-only" href="projects/{{ u.code }}.html"
-                title="Only inside reused {{ u.ip_sources[key] | join(', ') }}">{{ u.code }}</a>{% else %}<a class="run-mono" href="projects/{{ u.code }}.html">{{ u.code }}</a>{% endif %}{{ " " if not loop.last }}{% endfor %}</td></tr>
+              <td>{% for u in users %}{% if u.ip_only(key) %}<a class="run-mono run-ip-only" href="{{ design_href(u.code) }}"
+                title="Only inside reused {{ u.ip_sources[key] | join(', ') }}">{{ u.code }}</a>{% else %}<a class="run-mono" href="{{ design_href(u.code) }}">{{ u.code }}</a>{% endif %}{{ " " if not loop.last }}{% endfor %}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -360,7 +361,7 @@
               {% set with_pads = padded[loop.index0][1] %}
               <tr><td class="text-nowrap">{{ group }}</td>
                 <td class="text-end">{{ users | length }}</td>{% if has_pads %}<td class="text-end">{{ with_pads | length }}</td>{% endif %}
-                <td>{% for u in users %}<a class="run-mono" href="projects/{{ u.code }}.html">{{ u.code }}</a>{{ " " if not loop.last }}{% endfor %}</td></tr>
+                <td>{% for u in users %}<a class="run-mono" href="{{ design_href(u.code) }}">{{ u.code }}</a>{{ " " if not loop.last }}{% endfor %}</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -369,7 +370,7 @@
           <p class="small text-muted">3.3 V transistors have the thin gate oxide; 5 V and 6 V ones share the thick one.
             {% if has_pads %}"Own design" counts the standard cells, SRAM and transistors the designer chose; "with the pad ring" adds
             the transistors of the I/O pad cells, measured in each design's pad ring.{% endif %}{% if no_gates %} No transistors of their
-            own: {% for code in no_gates %}<a class="run-mono" href="projects/{{ code }}.html">{{ code }}</a>{{ ", " if not loop.last }}{% endfor %}.{% endif %}</p>
+            own: {% for code in no_gates %}<a class="run-mono" href="{{ design_href(code) }}">{{ code }}</a>{{ ", " if not loop.last }}{% endfor %}.{% endif %}</p>
       </div>
     </div>
     {% endif %}
@@ -402,10 +403,10 @@
           {% if pc.klayout_drc_clear %}<li>The {{ link("KLayout", links.tool("KLayout")) }} DRC, the sign-off check, is clear in every one of these checks.</li>{% endif %}
           {% if pc.pad_mask_codes %}<li>The chip-on-board pad mask check passed for all <strong>{{ pc.pad_mask_codes | length }}</strong>
             designs that ran it{% if pc.pad_mask_failed %}, apart from {{ pc.pad_mask_failed | join(", ") }}{% endif %}{% if pc.pad_mask_not_cob %}
-            ({% for code in pc.pad_mask_not_cob %}<a class="run-mono" href="projects/{{ code }}.html">{{ code }}</a>{{ ", " if not loop.last }}{% endfor %}
+            ({% for code in pc.pad_mask_not_cob %}<a class="run-mono" href="{{ design_href(code) }}">{{ code }}</a>{{ ", " if not loop.last }}{% endfor %}
             switched chip-on-board off after the check {{ "it was" if pc.pad_mask_not_cob | length == 1 else "they were" }} accepted on){% endif %}.</li>{% endif %}
           {% if pc.magic_codes %}<li>The advisory {{ link("Magic", links.tool("Magic")) }} DRC reported errors for {% for code in pc.magic_codes %}<a class="run-mono"
-            href="projects/{{ code }}.html#precheck">{{ code }}</a>{{ ", " if not loop.last }}{% endfor %}.</li>{% endif %}
+            href="{{ design_href(code, "#precheck") }}">{{ code }}</a>{{ ", " if not loop.last }}{% endfor %}.</li>{% endif %}
           {% if pc.accepted_without_details %}<li class="small text-muted">The platform no longer stores the step results of the
             checks {{ pc.accepted_without_details | join(", ") }} were accepted on; their pages show the latest re-run.</li>{% endif %}
           {% else %}
@@ -454,7 +455,7 @@
           <h3 class="mb-5 color-dark">{{ digital[0].core_density | k }}</h3>
           <p class="mb-0 font-weight-600 color-dark">{{ 'Best design average' if tt else 'Best whole-die average' }}</p>
           <p class="mb-0 small text-muted">logic cells/mm² of core{% if digital[0].pct_of_buffer_max %} — {{ digital[0].pct_of_buffer_max | pct }} of the buffer maximum{% endif %}</p>
-          <p class="mb-0 small"><a href="projects/{{ digital[0].code }}.html">{{ digital[0].name }}</a></p>
+          <p class="mb-0 small"><a href="{{ design_href(digital[0].code) }}">{{ digital[0].name }}</a></p>
         </div>
       </div>
       <div class="col-md-4 mb-20">
@@ -462,7 +463,7 @@
           <h3 class="mb-5 color-dark">{{ best_peak.peak_cells | k }}</h3>
           <p class="mb-0 font-weight-600 color-dark">Best single mm²</p>
           <p class="mb-0 small text-muted">logic cells{% if best_peak.peak_pct_of_buffer_max %} — {{ best_peak.peak_pct_of_buffer_max | pct }} of the buffer maximum{% endif %}</p>
-          <p class="mb-0 small"><a href="projects/{{ best_peak.code }}.html">{{ best_peak.name }}</a></p>
+          <p class="mb-0 small"><a href="{{ design_href(best_peak.code) }}">{{ best_peak.name }}</a></p>
         </div>
       </div>
       <div class="col-md-4 mb-20">
@@ -539,7 +540,7 @@
     <p class="text-muted small mb-20">Solid bar: average over the core. Outlined bar: the densest single mm² outside SRAM (a dash where memory covers most of the die). The scale
       ends at the buffer theoretical maximum ({{ scale_max | k }} cells/mm²).</p>
     {% macro density_row(d) %}
-      <a class="run-row" href="projects/{{ d.code }}.html" title="{{ d.code }} {{ d.name }} — {{ d.library_label }}">
+      <a class="run-row" href="{{ design_href(d.code) }}" title="{{ d.code }} {{ d.name }} — {{ d.library_label }}">
         <span class="run-row-label"><strong>{{ d.code }}</strong> <span class="text-muted">{{ d.name }}</span></span>
         <span class="run-density">
           <i class="peak" style="width: {{ '%.2f' | format([d.peak_cells / scale_max, 1] | min * 100) }}%"></i>
@@ -580,7 +581,7 @@
       <tbody>
       {% for d in index_rows %}
       <tr><td class="run-mono">{{ d.code }}</td>
-        <td><a href="projects/{{ d.code }}.html">{{ d.name }}</a></td>
+        <td><a href="{{ design_href(d.code) }}">{{ d.name }}</a></td>
         <td class="d-none d-md-table-cell">{{ d.project.extra.AUTHOR }}</td>
         <td class="run-nowrap">{{ d.slot_label }}</td>
         <td class="d-none d-lg-table-cell run-nowrap"><a href="#{{ category_id(d.category) }}">{{ d.category }}</a></td>
@@ -608,7 +609,7 @@
       <h4 class="mb-10">{{ tt_dies | length }} {{ 'die is a Tiny Tapeout chip' if tt_dies | length == 1 else 'dies are Tiny Tapeout chips' }}</h4>
       <p class="mb-15">{% for code, children_of in tt_dies %}<a href="{{ children_of[0].pages_url }}">{{ children_of[0].heading[0] }}</a>
         ({{ code }}){{ ", " if loop.revindex > 2 else " and " if loop.revindex == 2 }}{% endfor %} each hold dozens of small
-        projects from Tiny Tapeout, the cheaper way to make a first chip. Each has pages of its own, project by project.</p>
+        projects from <a href="{{ website }}/tinytapeouts/">Tiny Tapeout</a>, the cheaper way to make a first chip. Each has pages of its own, project by project.</p>
       <p class="mb-0"><a class="btn btn-s" href="{{ website }}/tinytapeouts/">Tiny Tapeout chips on wafer.space</a>
         {% if next_tt %}<a class="ms-10" href="{{ next_tt[0].url }}">Submit to the next one, by {{ next_tt[0].closes }}</a>{% endif %}</p>
     </div>
@@ -646,7 +647,7 @@
     <div class="row">
       {% for code, photo in photos | dictsort %}
       <div class="col-6 col-md-4 col-lg-3 mb-30">
-        <a class="run-photo shadow" href="projects/{{ code }}.html#photo">
+        <a class="run-photo shadow" href="{{ design_href(code, "#photo") }}">
           <img src="{{ photo.preview }}" alt="Die photograph of {{ code }} by {{ run.site.photos_credit }}" loading="lazy">
           <span>{{ code }}</span>
         </a>
@@ -654,8 +655,7 @@
       {% endfor %}
     </div>
     <p class="small text-muted text-center mb-0">Microscope images {{ photo_credit() }}.
-      {% if run.site.photos_viewer_url %}Each project page links to a zoomable viewer of its die. {% endif %}Full resolution images:
-      <a href="{{ run.site.photos_url }}">{{ run.site.photos_url }}</a></p>
+      {% if run.site.photos_viewer_url %}Each project page links to a zoomable viewer of its die. {% endif %}The <a href="{{ run.site.photos_url }}">full-resolution images</a> are online too.</p>
   </div>
 </div>
 {% endif %}
@@ -666,14 +666,15 @@
     <h2 class="section-title mb-10 text-center">Chip-on-board bonding{{ anchor("bonding") }}</h2>
     <p class="lead text-center mb-30">Wire bonding results for the dies packaged directly onto PCBs</p>
     <div class="text-center mb-30">
-      {% for code, url in cob | dictsort %}
-      <a class="btn btn-outline-primary btn-sm mb-10" href="projects/{{ code }}.html#bonding">{{ code }}</a>
+      {# Only the public designs have pages. #}
+      {% for code, url in cob | dictsort if code in design_by_code %}
+      <a class="btn btn-outline-primary btn-sm mb-10" href="{{ design_href(code, "#bonding") }}">{{ code }}</a>
       {% endfor %}
     </div>
     <div class="run-embed shadow">
       <iframe src="{{ run.site.cob_url }}/" title="Chip-on-board results for {{ short_title }}" loading="lazy"></iframe>
     </div>
-    <p class="small text-muted text-center mt-10 mb-0">Embedded from <a href="{{ run.site.cob_url }}/">{{ run.site.cob_url }}/</a></p>
+    <p class="small text-muted text-center mt-10 mb-0">From the <a href="{{ run.site.cob_url }}/">chip-on-board results page</a>.</p>
   </div>
 </div>
 {% endif %}
@@ -693,8 +694,8 @@
   <div class="container inner">
     <h2 class="section-title mb-10 text-center">Data and method{{ anchor("data") }}</h2>
     <p class="lead text-center mb-30 run-measure">{% if netlist_projects %}The die and its blocks are measured from the
-      public layout; each project's share of the shared block is counted from that block's netlist.{% else %}Everything on this
-      page is measured from the public layout; the dates come from the published schedules.{% endif %}</p>
+      <a href="{{ run.source_url }}">public layout</a>; each project's share of the shared block is counted from that block's netlist.{% else %}Everything on this
+      page is measured from the <a href="{{ run.source_url }}">public layout</a>; the dates come from the published schedules.{% endif %}</p>
     <div class="row">
       <div class="col-lg-6 mb-30">
         <ul class="run-method">
@@ -723,7 +724,7 @@
         </ul>
         <p class="small text-muted mb-0">Generated by
           <a href="https://github.com/wafer-space/ws-run-reports">ws-run-reports</a> from
-          <span class="run-mono">{{ run.layout.file }}</span> (md5 <span class="run-mono">{{ run.layout.md5 }}</span>).</p>
+          <a class="run-mono" href="{{ run.source_url }}">{{ run.layout.file }}</a> (md5 <span class="run-mono">{{ run.layout.md5 }}</span>).</p>
       </div>
     </div>
   </div>

@@ -26,9 +26,9 @@
 </div>
 <div class="wrapper dark-wrapper inverse-text">
   <div class="container inner run-pager">
-    <a href="{{ previous.code }}.html">← {{ previous.code }} <span>{{ previous.name }}</span></a>
+    <a href="{{ design_href(previous.code, root=root) }}">← {{ previous.code }} <span>{{ previous.name }}</span></a>
     <a href="{{ root }}index.html#projects">All projects</a>
-    <a href="{{ following.code }}.html"><span>{{ following.name }}</span> {{ following.code }} →</a>
+    <a href="{{ design_href(following.code, root=root) }}"><span>{{ following.name }}</span> {{ following.code }} →</a>
   </div>
 </div>
 {% endblock %}

@@ -235,11 +235,13 @@ def milestone_done(item: dict, today: str) -> bool:
     """Whether a timeline milestone has happened: as its ``done`` says, else once its date has passed.
 
     An estimated date ("Early Q4 2026") passing does not mean the milestone happened, so such a milestone
-    is done only when marked so.
+    is done only when marked so, or once its whole year has passed (a history's "2024").
     """
     if item.get("done") is not None:
         return bool(item["done"])
     shown = item.get("display_date") or item["date"]
+    if item["date"][:4] < today[:4]:
+        return True
     return item["date"] <= today and bool(EXACT_DATE_RE.search(shown) or shown == item["date"])
 
 
@@ -274,7 +276,9 @@ def _tiny_tapeout(run) -> dict | None:
     return {**tt_chip_links(run.site),
             "parent": run.site.get("parent", {}),
             # The shuttle repository at the tapeout release, which holds each project's docs and licence.
-            "repo": https_url(index.get("repo")), "commit": index.get("commit", ""), "name": index.get("name", "")}
+            "repo": https_url(index.get("repo")), "commit": index.get("commit", ""),
+            # "Tiny Tapeout GF 0p3" as "Tiny Tapeout GF 0.3", as everywhere else on the pages.
+            "name": re.sub(r"(\d)p(\d)", r"\1.\2", index.get("name", ""))}
 
 
 def _children(run) -> dict:
@@ -415,7 +419,10 @@ def build_context(run, out_dir: Path) -> dict:
         "precheck": _precheck_summary(details),
         "precheck_table": _precheck_table,
         "feature_labels": FEATURE_LABELS,
-        "children": _children(run),
+        "children": (children := _children(run)),
+        # A design's page: a die with pages of its own (a Tiny Tapeout chip) there directly, not through its stub.
+        "design_href": lambda code, anchor="", root="": (children[code][0].pages_url if code in children
+                                                         else f"{root}projects/{code}.html{anchor}"),
         # [site] terms renames them for a die whose slots are not projects (Tiny Tapeout GF 0.1's blocks).
         "words": {**TERMS["tiny-tapeout" if run.site.get("kind") == "tiny-tapeout" else "wafer.space"],
                   **run.site.get("terms", {})},
@@ -518,8 +525,10 @@ def build_site(run, out_dir: Path) -> Path:
     env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id,
                        runs_linked=links.runs_linked)
     # Where a reader goes next: the Tiny Tapeout GF180MCU chips taking projects, and the wafer.space run taking orders.
-    next_tt = tinytapeout.next_shuttles(external.tt_chips())
-    env.globals.update(next_tt=next_tt, next_tt_names=tinytapeout.shuttle_names(next_tt), next_ws=external.next_run())
+    next_tt, next_ws = tinytapeout.next_shuttles(external.tt_chips()), external.next_run()
+    if next_ws:
+        links.upcoming_runs[next_ws["name"]] = next_ws["url"]
+    env.globals.update(next_tt=next_tt, next_tt_names=tinytapeout.shuttle_names(next_tt), next_ws=next_ws)
 
     # The data behind the page, so every figure on it can be checked.
     data_dir = site_dir / "data"

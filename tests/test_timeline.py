@@ -19,3 +19,10 @@ def test_estimates_are_not_done_by_date_alone():
     assert not milestone_done(estimate, TODAY)
     assert milestone_done({**estimate, "done": True}, TODAY)
     assert not milestone_done({"date": "2026-04-28", "display_date": "28 April 2026", "done": False}, TODAY)
+
+
+def test_rough_dates_in_past_years_are_done():
+    # MPW-18H1's history: "2024" and "June – July 2025" were past, but listed after today as pending.
+    assert milestone_done({"date": "2024-06-01", "display_date": "2024"}, TODAY)
+    assert milestone_done({"date": "2025-06-01", "display_date": "June – July 2025"}, TODAY)
+    assert not milestone_done({"date": "2025-06-01", "display_date": "2025", "done": False}, TODAY)

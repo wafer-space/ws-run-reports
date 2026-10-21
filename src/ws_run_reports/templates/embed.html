@@ -52,7 +52,7 @@
     {% for d in embed_designs %}
     {% set photo = photos[d.code] if d.code in photos else none %}
     {% set render = renders.designs[d.code] if renders and d.code in renders.designs else none %}
-    <a class="card" href="{{ run.pages_url }}projects/{{ d.code }}.html" target="_top">
+    <a class="card" href="{{ design_href(d.code, root=run.pages_url) }}" target="_top">
       <div class="images">
         {% if photo %}<figure><img src="{{ photo.preview }}" alt="Die photograph of {{ d.name }}" loading="lazy"><figcaption>silicon</figcaption></figure>{% endif %}
         {% if render %}<figure><img src="renders/{{ render.files.thumb }}" alt="Layout render of {{ d.name }}" loading="lazy">{% if photo %}<figcaption>layout</figcaption>{% endif %}</figure>{% endif %}

@@ -111,9 +111,13 @@ def fpgas_online(chip: str) -> str:
     return tables()["tinytapeout"]["fpgas_online"].format(chip=chip) if chip else ""
 
 
+# Runs taking orders that have no pages yet ("wafer.space Run 3": where to buy a slot), from the website's schedule.
+upcoming_runs: dict[str, str] = {}
+
+
 def runs_linked(text: str, cls: str = "") -> Markup:
     """``text``, escaped, with each wafer.space run it names ("wafer.space Run 2") linked to that run's pages."""
-    runs = tables().get("runs", {})
+    runs = {**upcoming_runs, **tables().get("runs", {})}
     if not runs:
         return escape(text)
     # The whole alternation is grouped so that no name matches the start of a longer number ("Run 20").

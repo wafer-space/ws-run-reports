@@ -37,13 +37,13 @@
 
         {% if design.features or design.voltages %}
         <h4 id="{{ idp }}features" class="mt-30 mb-10">Process features{{ anchor(idp ~ "features") }}</h4>
-        <p class="small text-muted mb-10">Which parts of the GF180MCU process this design uses: its transistor
+        <p class="small text-muted mb-10">Which parts of the <a href="{{ website }}/technology.html">GF180MCU process</a> this design uses: its transistor
           voltages and where they come from, its gate oxides, and any devices drawn by hand outside the standard cells,
           SRAM and pads.</p>
         <table class="table table-sm run-table run-facts">
           <tbody>
             {% for volts, sources in design.voltages.items() %}
-            <tr><th>{{ link(volts, links.voltage(volts)) }}</th><td>{{ sources | join(", ") }}</td></tr>
+            <tr><th>{{ link(volts, links.voltage(volts)) }}</th><td>{% for s in sources %}{{ link(s, links.library(design.voltage_libraries[s]) if s in design.voltage_libraries else "") }}{{ ", " if not loop.last }}{% endfor %}</td></tr>
             {% endfor %}
             {% if design.voltage_group %}<tr><th>Gate oxides</th><td>{{ design.voltage_group }}{% if design.pad_voltages and design.voltage_group_with_pads != design.voltage_group %}
               <br><span class="text-muted">{{ design.voltage_group_with_pads }} with the pad ring</span>{% endif %}</td></tr>{% endif %}
@@ -79,7 +79,7 @@
           </tbody>
         </table>
         {% endif %}
-        <p class="small text-muted mb-0">Every figure here is measured from the public layout, the same way for every
+        <p class="small text-muted mb-0">Every figure here is measured from the <a href="{{ run.source_url }}">public layout</a>, the same way for every
           design on the {{ 'chip' if tt else 'run' }}: see <a href="{{ root }}index.html#data">data and method</a>, and
           <a href="{{ root }}index.html#features">how its designs used the process</a>.</p>
       </div>
@@ -413,7 +413,7 @@
     <div class="run-embed shadow">
       <iframe src="{{ cob_url }}" title="Chip-on-board bonding results for {{ design.code }}" loading="lazy"></iframe>
     </div>
-    <p class="small text-muted text-center mt-10 mb-0">Embedded from <a href="{{ cob_url }}">{{ cob_url }}</a></p>
+    <p class="small text-muted text-center mt-10 mb-0">From the <a href="{{ cob_url }}">chip-on-board results page</a>.</p>
   </div>
 </div>
 {% endif %}
@@ -429,15 +429,19 @@
       the foundry's design rules. {{ design.code }} was accepted on this check{% if table.columns | length > 1 %}, and
       has been checked again since with newer rules{% endif %}.</p>
     {# The result in one line; the step-by-step table opens below it, already open when something did not pass. #}
-    {% set pc = namespace(steps=0, passed=0) %}
-    {% for step, results in table.rows %}{% if results[0] is not none %}{% set pc.steps = pc.steps + 1 %}
-      {% if results[0] == "passed" or (results[0] == "warning" and step == "Checker.MagicDRC") %}{% set pc.passed = pc.passed + 1 %}{% endif %}{% endif %}{% endfor %}
+    {# Counted on the check it was accepted on, or on its latest re-run when the accepted one kept no step results. #}
     {% set accepted = table.columns[0][1] %}
+    {% set ci = 0 if accepted.details else table.columns | length - 1 %}
+    {% set counted = table.columns[ci][1] %}
+    {% set pc = namespace(steps=0, passed=0) %}
+    {% for step, results in table.rows %}{% if results[ci] is not none %}{% set pc.steps = pc.steps + 1 %}
+      {% if results[ci] == "passed" or (results[ci] == "warning" and step == "Checker.MagicDRC") %}{% set pc.passed = pc.passed + 1 %}{% endif %}{% endif %}{% endfor %}
     <div class="row">
       <div class="col-lg-10 offset-lg-1">
         <p class="text-center mb-20 run-precheck-result{{ ' ok' if pc.passed == pc.steps }}"><strong>{% if pc.passed == pc.steps %}All {{ pc.steps }}
-          steps passed{% else %}{{ pc.passed }} of {{ pc.steps }} steps passed{% endif %}</strong>{% if accepted.details %}, with
-          {{ accepted.klayout_drc_errors }} KLayout DRC errors{% endif %}, on {{ accepted.created_at[:10] }}.</p>
+          steps passed{% else %}{{ pc.passed }} of {{ pc.steps }} steps passed{% endif %}</strong>{% if counted.details %}, with
+          {{ counted.klayout_drc_errors }} KLayout DRC errors{% endif %}, on {% if ci %}the latest re-run, {{ counted.created_at[:10] }}
+          (accepted on {{ accepted.created_at[:10] }}){% else %}{{ accepted.created_at[:10] }}{% endif %}.</p>
         <details class="run-more"{{ ' open' if pc.passed != pc.steps }}>
         <summary>Every step{% if table.columns | length > 1 %}, and the latest re-run{% endif %}</summary>
         <div class="table-responsive">

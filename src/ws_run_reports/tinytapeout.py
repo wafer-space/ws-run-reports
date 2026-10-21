@@ -260,11 +260,17 @@ def next_shuttles(rows: list[dict]) -> list[dict]:
              "ws_run": links.run_alias(row.get("shuttle", ""))} for row in open_rows]
 
 
-def shuttle_names(shuttles: list[dict]) -> str:
-    """The chips' names in one phrase, the shared part said once: 'Tiny Tapeout GF 26c and 26d'."""
+def shuttle_names(shuttles: list[dict]):
+    """The chips' names in one phrase, the shared part said once and each linked to its chip's page:
+    'Tiny Tapeout GF 26c and 26d'."""
+    from markupsafe import Markup
+    from . import links
     names = [s["name"] for s in shuttles]
-    if len(names) < 2:
-        return names[0] if names else ""
+    if not names:
+        return Markup("")
     prefix = names[0].rsplit(" ", 1)[0] + " "
-    rest = [n[len(prefix):] if n.startswith(prefix) else n for n in names[1:]]
-    return ", ".join([names[0]] + rest[:-1]) + " and " + rest[-1]
+    shown = [names[0]] + [n[len(prefix):] if n.startswith(prefix) else n for n in names[1:]]
+    shown = [links.html(text, s.get("url", "")) for text, s in zip(shown, shuttles)]
+    if len(shown) < 2:
+        return shown[0]
+    return Markup(", ").join(shown[:-1]) + Markup(" and ") + shown[-1]

@@ -8,7 +8,7 @@
 
 [tools]
 KLayout = "https://www.klayout.de/"
-Magic = "http://opencircuitdesign.com/magic/"
+Magic = "https://opencircuitdesign.com/magic/"
 LibreLane = "https://librelane.readthedocs.io/"
 
 # Tiny Tapeout's own pages, linked from the pages of the Tiny Tapeout dies (all from its sitemap).
