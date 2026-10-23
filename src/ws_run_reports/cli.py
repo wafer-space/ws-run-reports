@@ -26,6 +26,13 @@ def cmd_analyze(args, run):
                     measure=run.measure, slot_cells=run.slot_cells())
 
 
+def cmd_metal(args, run):
+    from . import metal
+    path = metal.measure_layout(run.assemble_layout(), out_dir(args, run) / "reticle_metal_coverage.csv", run.measure,
+                                slot_cells=run.slot_cells(), jobs=args.jobs)
+    print(f"Wrote {path}")
+
+
 def cmd_report(args, run):
     from . import report
     path = report.write_report(run, out_dir(args, run))
@@ -70,6 +77,7 @@ def cmd_all(args, run):
 COMMANDS = {
     "assemble": (cmd_assemble, "join the split layout parts and verify the md5"),
     "analyze": (cmd_analyze, "measure the layout and write the analysis CSV files"),
+    "metal": (cmd_metal, "measure each metal layer's coverage, with and without dummy fill (data only)"),
     "report": (cmd_report, "write the Markdown density report from the CSV files"),
     "render": (cmd_render, "render images of the reticle and of every design"),
     "site": (cmd_site, "build the web page for the run"),
