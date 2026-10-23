@@ -46,3 +46,15 @@ def test_games_and_communications_go_by_the_name():
     assert classify(design("2x2 CNN Accelerator PE Grid with UART"), tiles=True) == "Accelerators"
     assert classify(design("Minimal RV32E SoC with UART Loader"), tiles=True) == "RISC-V and CPUs"
     assert classify(design("Bioimpedance analysis", "results are sent over a UART"), tiles=True) == "Other digital"
+    # Even when the description is the very same string as a game's name.
+    name = "Pong"
+    assert classify(design("Bioimpedance analysis", name), tiles=True) == "Other digital"
+
+
+def test_games_and_communications_names_written_together():
+    for name in ("PRISM 8 with TinySnake", "7SegmentDice", "LEDs Racer"):
+        assert classify(design(name), tiles=True) == "Games", name
+    for name in ("UART_SOC", "AER Reflex Chip - MCP2515 CAN gateway"):
+        assert classify(design(name), tiles=True) == "Communications", name
+    assert classify(design("We can do it"), tiles=True) != "Communications"
+    assert classify(design("PDM driver and dice"), tiles=True) != "Games"
