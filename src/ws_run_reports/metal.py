@@ -105,6 +105,7 @@ def coverage(areas: list, die: kdb.Box, xs: list, ys: list, step: int, dbu: floa
     wy = window_starts(ys, die.height() // step)
     shares = [(box_sum(pa, i, j, ni, nj) / box_sum(pb, i, j, ni, nj), i, j)
               for j, nj in wy for i, ni in wx]
+    # Between squares of exactly equal share, the densest is the top right one and the sparsest the bottom left.
     densest = max(shares)
     total = sum(map(sum, areas))
     width = xs[wx[0][0] + wx[0][1]] - xs[wx[0][0]]

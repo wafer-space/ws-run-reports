@@ -30,7 +30,7 @@ layers of the open GF180MCU PDK. MetalTop is empty on both runs, which use the 5
 | `area_um2`, `share` | Merged area on the layer, and that area as a share of the die. |
 | `windows`, `window_mm` | The number of 1 mm squares checked, and their size. The squares lie fully inside the die, stepped by 250 µm from its lower left corner. Where the die is under 1 mm in one direction, the square is as wide as the die there. |
 | `max_window_share`, `max_window_x_mm`, `max_window_y_mm` | The densest square's share, and its lower left corner measured from the die's lower left corner. The position is empty when the layer is empty. |
-| `min_window_share` | The sparsest square's share. |
+| `min_window_share` | The sparsest square's share. Between squares of exactly equal share, the densest is the top right one. |
 
 Each die is cut into 250 µm bins, each bin clipped and merged on its own, and each square is the sum of
 4 × 4 bins. A strip narrower than 250 µm along the die's top and right edges falls in no square, though it
@@ -40,6 +40,12 @@ still counts in `area_um2`.
 
 Per design (each design counted once, at its first placement). "Using it" means more than 1 % of the die in
 the `design` scope.
+
+Every share is of the whole die, with the pad ring and seal ring in the denominator. The `design` scope leaves
+the pads out of the numerator, so these shares understate how dense a design's core is.
+
+The two "1 mm" columns are extremes over all the run's designs: the densest square found on any die, and the
+sparsest. They are not typical values.
 
 ### Run 1 (30 designs)
 
@@ -52,7 +58,8 @@ the `design` scope.
 | Metal5 | 29 of 30 | 9.5 % | 39.1 % | 18.2 % | 11.1 % | 67.9 % | 4.6 % |
 | MetalTop | 0 of 30 | 0 | 0 | 0 | 0 | 0 | 0 |
 
-29 of the 30 designs route up to Metal5. MOS2 stops at Metal2, and BRWN uses under 1 % of its die on Metal2.
+29 of the 30 designs use more than 1 % of the die on every layer from Metal1 to Metal5. MOS2 uses 1.3 %
+on Metal2 and 0.6–1.0 % on each of the others, and BRWN uses under 1 % on Metal2.
 
 ### Run 2 (40 designs)
 
@@ -66,16 +73,23 @@ the `design` scope.
 | MetalTop | 0 of 40 | 0 | 0 | 0 | 0 | 0 | 0 |
 
 Every Run 2 design uses Metal5. The densest square of either run is 84.0 % on Metal5, on the Tiny Tapeout
-GF 0.3 die (T0P3), 2.25 mm right of and 3.25 mm above its lower left corner. FC01 (flip-chip bonding test
-pads) and 0000 use under 1 % on Metal2.
+GF 0.3 die (T0P3), 2.25 mm right of and 3.25 mm above its lower left corner.
+
+FC01 (flip-chip bonding test pads) has no Metal1 to Metal4 of its own; 0000 uses 0.1 % on Metal1 and 0.7 % on
+Metal2. These two make up the 38 of 40 on Metal1 and Metal2. SALU, at 1.1 % on Metal2, is just over the
+threshold.
 
 ## What it suggests
 
-- Almost every design uses all five metals. In the median design, Metal2 to Metal5 each cover about
-  8–10 % of the die before fill, so a 3-metal option would mean re-routing nearly every design, not just
-  dropping unused layers.
-- Fill roughly doubles the coverage of Metal2 to Metal5, to about 17–21 % of the die, but leaves 1 mm squares
-  as sparse as 4.5 % (Run 1, Metal4). The densest squares, at about 68–84 %, are routing and power grids, not fill.
+- Almost every design uses all five metals, at more than 1 % of the die each. In the median design, Metal2 to
+  Metal5 each cover about 8–10 % of the die before fill. So a 3-metal option would mean re-routing nearly
+  every design, not just dropping unused layers.
+- With fill, the median coverage of Metal2 to Metal5 rises to about 17–21 % of the die. That is 1.5 to 2.2
+  times the design's own coverage: most on Metal2, least on Metal3. Even with fill, some 1 mm squares are as
+  sparse as 4.5 % (Run 1, Metal4).
+- These files don't measure what fills the densest squares (68–84 %) on its own. In the `all` scope some
+  densest squares sit at a die's corner, on the pad ring or seal ring: Run 1's 71.3 % on Metal5 for TTPG is
+  at (0, 4.0) mm.
 
 ## Reproduce
 
@@ -84,5 +98,6 @@ scripts/kl-run uv run ws-run-reports metal ws-run1 --repo-dir <ws-run1 checkout>
 scripts/kl-run uv run ws-run-reports metal ws-run2 --repo-dir <ws-run2 checkout> --jobs 8
 ```
 
-Each run took about 15 minutes on big-storage with 8 workers. The output goes to
-`out/<run>/reticle_metal_coverage.csv`.
+`scripts/kl-run` runs the command in a memory-limited systemd scope, so a runaway layout operation is killed
+instead of exhausting the machine. Each run took about 15 minutes with 8 workers. The command writes
+`out/<run>/reticle_metal_coverage.csv`, and the files here are copies of those, renamed `<run>.csv`.
