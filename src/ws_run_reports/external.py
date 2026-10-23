@@ -150,7 +150,9 @@ def timeline(run) -> list:
             for item in entry.get("timeline", [])
         ]
 
-    return _try("shuttle timeline", load, [])
+    # A run that names its schedule must have it: a failed fetch stops the build rather than
+    # publishing the page without its status section.
+    return load()
 
 
 @functools.cache
