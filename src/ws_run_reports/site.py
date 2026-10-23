@@ -559,7 +559,8 @@ def _die_stats(name: str, out_root: Path):
 
 def _compare_dies(run, stats, design, out_root: Path) -> list:
     """The design's dies on every measured wafer.space run and Google shuttle, oldest first, as rows to compare;
-    [] when it has only this one. A die with the same logic and transistors as an earlier one is the same layout."""
+    [] when it has only this one. Within a run the dies are in code order. A die with the same logic cells and
+    transistors as an earlier one names it in ``same_as``."""
     rel = related.for_slot(run, design.project)
     if not rel:
         return []
@@ -572,16 +573,27 @@ def _compare_dies(run, stats, design, out_root: Path) -> list:
         d = next((x for x in other.designs if x.code == code), None) if other else None
         if d is None:
             continue
-        same = next((r for r in rows if r["logic_cells"] == d.logic_cells and r["transistors"] == d.transistors
-                     and d.logic_cells), None)
         rows.append({"run": step["run"], "run_url": step["run_url"], "url": step["url"], "code": code,
                      "current": step["current"], "slot": d.slot_label, "library": d.library_label,
                      "oxides": d.voltage_group, "logic_cells": d.logic_cells, "transistors": d.transistors,
                      "core_density": d.core_density, "peak_cells": d.peak_cells,
                      "sram": (f"{d.sram_label} {'macro' if d.sram_label == '1' else 'macros'}" if d.macros else d.sram_label)
-                             if d.has_sram or d.macros else "",
-                     "same_as": same["run"] if same else ""})
-    return rows if len(rows) > 1 else []
+                             if d.has_sram or d.macros else ""})
+    return same_layouts(rows) if len(rows) > 1 else []
+
+
+def same_layouts(rows: list) -> list:
+    """``rows`` (in run order) sorted by code within each run, each with ``same_as``: "<code> on <run>" of the
+    first earlier die with the same, non-zero, logic cells and transistors, else ""."""
+    rank = {}
+    for r in rows:
+        rank.setdefault(r["run"], len(rank))
+    rows = sorted(rows, key=lambda r: (rank[r["run"]], r["code"]))
+    for i, r in enumerate(rows):
+        same = next((e for e in rows[:i] if r["logic_cells"] and e["logic_cells"] == r["logic_cells"]
+                     and e["transistors"] == r["transistors"]), None)
+        r["same_as"] = f"{same['code']} on {same['run']}" if same else ""
+    return rows
 
 
 def build_site(run, out_dir: Path) -> Path:

@@ -378,7 +378,7 @@
       {% for r in dies %}
       <tr{% if r.current %} class="fw-bold"{% endif %}>
         <td>{% if r.current %}{{ r.run }} · {{ r.code }}{% else %}<a href="{{ r.url }}">{{ r.run }} · {{ r.code }}</a>{% endif %}
-          {%- if r.same_as %}<br><span class="small text-muted fw-normal">the same layout as on {{ r.same_as }}</span>{% endif %}</td>
+          {%- if r.same_as %}<br><span class="small text-muted fw-normal">the same logic cells and transistors as {{ r.same_as }}</span>{% endif %}</td>
         <td class="run-nowrap">{{ r.slot }}</td><td class="run-nowrap">{{ r.library }}</td>
         <td class="d-none d-md-table-cell">{{ r.oxides }}</td>
         <td class="text-end">{{ '{:,}'.format(r.logic_cells) }}</td>
