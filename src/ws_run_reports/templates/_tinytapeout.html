@@ -158,8 +158,8 @@
   project's size on the Tiny Tapeout chip it first came from.</p>
 <div class="table-responsive">
 <table class="table run-table run-netlist">
-  <thead><tr><th>Address</th><th>Project</th><th class="d-none d-md-table-cell">Author</th><th class="text-end d-none d-md-table-cell">Original tiles</th>
-    <th class="text-end">Logic cells</th><th class="text-end d-none d-md-table-cell">Flip-flops</th><th class="run-netlist-bar">Share of the block</th></tr></thead>
+  <thead><tr><th>Address</th><th>Project</th><th class="d-none d-md-table-cell">Author</th><th class="text-end d-none d-md-table-cell run-group-start">Original tiles</th>
+    <th class="text-end run-group-start">Logic cells</th><th class="text-end d-none d-md-table-cell">Flip-flops</th><th class="run-netlist-bar">Share of the block</th></tr></thead>
   <tbody>
   {% for p in rows %}
   {% set n = p.LOGIC_CELLS | int %}
@@ -167,16 +167,18 @@
     <td class="run-mono">{{ p.CODE }}</td>
     <td>{% if p.REPOSITORY %}<a href="{{ p.REPOSITORY }}">{{ p.PROJECT }}</a>{% else %}{{ p.PROJECT }}{% endif %}</td>
     <td class="d-none d-md-table-cell">{{ author(p.AUTHOR, p.REPOSITORY) }}</td>
-    <td class="text-end d-none d-md-table-cell">{{ p.ORIGINAL_TILES | replace("x", "×") }}</td>
-    <td class="text-end run-nowrap">{{ '{:,}'.format(n) if p.LOGIC_CELLS else "in the shared logic" }}</td>
+    <td class="text-end d-none d-md-table-cell run-group-start">{{ p.ORIGINAL_TILES | replace("x", "×") }}</td>
+    <td class="text-end run-nowrap run-group-start">{{ '{:,}'.format(n) if p.LOGIC_CELLS else "in the shared logic" }}</td>
     <td class="text-end d-none d-md-table-cell">{{ '{:,}'.format(p.FLIP_FLOPS | int) if p.LOGIC_CELLS else "" }}</td>
     <td class="run-netlist-bar">{% if n %}<span style="width: {{ '%.1f' | format(70 * n / largest) }}%"></span>
       <small class="text-muted">{{ '%.1f' | format(100 * n / total) }}%</small>{% endif %}</td>
   </tr>
   {% endfor %}
+  </tbody>
+  <tbody>
   {% set s = shared.LOGIC_CELLS | int %}
-  <tr class="text-muted"><td></td><td>The multiplexer and controller, with Chip ROM and the MULDIV unit</td><td class="d-none d-md-table-cell"></td><td class="d-none d-md-table-cell"></td>
-    <td class="text-end">{{ '{:,}'.format(s) }}</td><td class="text-end d-none d-md-table-cell">{{ shared.FLIP_FLOPS }}</td>
+  <tr class="text-muted"><td></td><td>The multiplexer and controller, with Chip ROM and the MULDIV unit</td><td class="d-none d-md-table-cell"></td><td class="d-none d-md-table-cell run-group-start"></td>
+    <td class="text-end run-group-start">{{ '{:,}'.format(s) }}</td><td class="text-end d-none d-md-table-cell">{{ shared.FLIP_FLOPS }}</td>
     <td class="run-netlist-bar"><span style="width: {{ '%.1f' | format(70 * s / largest) }}%"></span>
       <small class="text-muted">{{ '%.1f' | format(100 * s / total) }}%</small></td></tr>
   </tbody>

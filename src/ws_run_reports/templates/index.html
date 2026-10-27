@@ -195,9 +195,9 @@
           Some designs are placed more than once, so {{ stats.designs | length }} designs fill {{ filled }} slots.{% endif %}{% endif %}</p>
         <table class="table table-sm run-table bg-white mb-30">
           <tbody>
-            {% for row in slot_types %}<tr><td>{{ row.label }}{% if tt and words.slot %} {{ words.slot }}{% endif %}</td><td class="text-end">{{ row.dies }}</td></tr>{% endfor %}
+            {% for row in slot_types %}<tr><td>{{ row.label }}{% if tt and words.slot %} {{ words.slot }}{% endif %}</td><td class="text-end run-group-start">{{ row.dies }}</td></tr>{% endfor %}
           </tbody>
-          <tfoot><tr><th>Total</th><th class="text-end">{{ slot_types | sum(attribute="dies") }}</th></tr></tfoot>
+          <tfoot><tr><th>Total</th><th class="text-end run-group-start">{{ slot_types | sum(attribute="dies") }}</th></tr></tfoot>
         </table>
         {% endif %}
         <p class="mb-0"><a class="btn btn-s me-10 mb-10" href="{{ run.source_url }}">Layout on GitHub</a>
@@ -300,11 +300,11 @@
         <p class="small text-muted mb-20">The ready-made gate libraries the designs were built from: how many tracks
           tall each cell is, and the voltage it runs at.</p>
         <table class="table table-sm run-table mb-0">
-          <thead><tr><th>Standard cell library</th><th class="text-end">Logic cells</th><th class="text-end">Share</th></tr></thead>
+          <thead><tr><th>Standard cell library</th><th class="text-end run-group-start">Logic cells</th><th class="text-end">Share</th></tr></thead>
           <tbody>
             {% for lib in stats.libraries %}
             <tr><td>{{ link(lib | library_label, links.library(lib)) }} <span class="text-muted small">{{ links.full_library(lib) }}</span></td>
-              <td class="text-end">{{ stats.library_logic_totals[lib] | count }}</td>
+              <td class="text-end run-group-start">{{ stats.library_logic_totals[lib] | count }}</td>
               <td class="text-end">{{ (stats.library_logic_totals[lib] / stats.logic_cells) | pct }}</td></tr>
             {% endfor %}
           </tbody>
@@ -406,9 +406,9 @@
         <h3 id="licences" class="mb-10">Licences{{ anchor("licences") }}</h3>
         <p class="small text-muted mb-15">The licence each designer declared when submitting.</p>
         <table class="table table-sm run-table bg-white mb-10">
-          <thead><tr><th>Declared licence</th><th class="text-end">Designs</th></tr></thead>
+          <thead><tr><th>Declared licence</th><th class="text-end run-group-start">Designs</th></tr></thead>
           <tbody>
-            {% for licence, n in licence_counts %}<tr><td>{{ link(licence, links.spdx(licence)) }}</td><td class="text-end">{{ n }}</td></tr>{% endfor %}
+            {% for licence, n in licence_counts %}<tr><td>{{ link(licence, links.spdx(licence)) }}</td><td class="text-end run-group-start">{{ n }}</td></tr>{% endfor %}
           </tbody>
         </table>
         {# Which designs' repositories differ is on each design's own page, not listed here. #}
@@ -621,20 +621,23 @@
       <summary>Every digital {{ words.die }}'s densities as a table</summary>
       <div class="table-responsive">
       <table class="table table-sm run-table">
-        <thead><tr><th>{{ 'Project' if tt else 'Design' }}</th><th>{{ 'Tiles' if tt else 'Slot' }}</th><th>Library</th><th class="text-end">Logic cells</th>
-          <th class="text-end">Inside core<br><span class="fw-normal text-muted">per mm²</span></th>
-          {% if sealed %}<th class="text-end">Inside seal ring<br><span class="fw-normal text-muted">per mm²</span></th>{% endif %}
-          <th class="text-end">{{ window_name | capitalize }}<br><span class="fw-normal text-muted">per mm²</span></th>
-          <th class="text-end">Core covered</th><th class="text-end">Core<br><span class="fw-normal text-muted">mm²</span></th></tr></thead>
+        {# Column groups: the design; its logic cells; their densities; its core. #}
+        <thead><tr class="run-groups"><th colspan="3"></th><th class="run-group-start"></th>
+          <th colspan="{{ 3 if sealed else 2 }}" class="run-group">Logic cells per mm²</th><th colspan="2" class="run-group">Core</th></tr>
+          <tr><th>{{ 'Project' if tt else 'Design' }}</th><th>{{ 'Tiles' if tt else 'Slot' }}</th><th>Library</th><th class="text-end run-group-start">Logic cells</th>
+          <th class="text-end run-group-start">Inside core</th>
+          {% if sealed %}<th class="text-end">Inside seal ring</th>{% endif %}
+          <th class="text-end">{{ window_name | capitalize }}</th>
+          <th class="text-end run-group-start">Covered by logic</th><th class="text-end">Area, mm²</th></tr></thead>
         <tbody>
         {% for d in digital %}
         <tr><td><a href="{{ design_href(d.code) }}">{{ d.name }}</a> <span class="text-muted run-mono">{{ d.code }}</span></td>
           <td class="run-nowrap">{{ d.slot_label }}</td><td class="run-nowrap">{{ d.library_label }}</td>
-          <td class="text-end">{{ '{:,}'.format(d.logic_cells) }}</td>
-          <td class="text-end">{{ '{:,.0f}'.format(d.core_density) }}</td>
+          <td class="text-end run-group-start">{{ '{:,}'.format(d.logic_cells) }}</td>
+          <td class="text-end run-group-start">{{ '{:,.0f}'.format(d.core_density) }}</td>
           {% if sealed %}<td class="text-end">{{ '{:,.0f}'.format(d.usable_density) }}</td>{% endif %}
           <td class="text-end">{{ '{:,.0f}'.format(d.peak_cells) if d.peak_cells >= d.core_density else "—" }}</td>
-          <td class="text-end">{{ d.utilisation | pct }}</td>
+          <td class="text-end run-group-start">{{ d.utilisation | pct }}</td>
           <td class="text-end">{{ '%.2f' | format(d.core_area_mm2) }}{% if d.core_source == "template" %}*{% endif %}</td></tr>
         {% endfor %}
         </tbody>
@@ -661,17 +664,17 @@
       code, with the slot each took and how much logic it packs.{% endif %}</p>
     <div class="table-responsive run-index">
     <table class="table table-sm run-table">
-      <thead><tr><th>{{ 'Address' if tt else 'Code' }}</th><th>{{ 'Project' if tt else 'Design' }}</th>{% if tt %}<th class="d-none d-md-table-cell">Author</th>{% endif %}<th>{{ 'Tiles' if tt else 'Slot' }}</th>
-        <th class="d-none d-lg-table-cell">What it is</th><th class="text-end">Logic cells</th>
+      <thead><tr><th>{{ 'Address' if tt else 'Code' }}</th><th>{{ 'Project' if tt else 'Design' }}</th>{% if tt %}<th class="d-none d-md-table-cell">Author</th>{% endif %}<th class="run-group-start">{{ 'Tiles' if tt else 'Slot' }}</th>
+        <th class="d-none d-lg-table-cell">What it is</th><th class="text-end run-group-start">Logic cells</th>
         <th class="text-end d-none d-sm-table-cell">Cells per mm²</th></tr></thead>
       <tbody>
       {% for d in index_rows %}
       <tr><td class="run-mono">{{ d.code }}</td>
         <td><a href="{{ design_href(d.code) }}">{{ d.name }}</a></td>
         {% if tt %}<td class="d-none d-md-table-cell">{{ author(d.project.extra.AUTHOR, d.project.repository) }}</td>{% endif %}
-        <td class="run-nowrap">{{ d.slot_label }}</td>
+        <td class="run-nowrap run-group-start">{{ d.slot_label }}</td>
         <td class="d-none d-lg-table-cell run-nowrap"><a href="#{{ category_id(d.category) }}">{{ d.category }}</a></td>
-        <td class="text-end">{{ '{:,}'.format(d.logic_cells) }}</td>
+        <td class="text-end run-group-start">{{ '{:,}'.format(d.logic_cells) }}</td>
         <td class="text-end d-none d-sm-table-cell">{{ d.core_density | k if d.logic_cells else "" }}</td></tr>
       {% endfor %}
       </tbody>
