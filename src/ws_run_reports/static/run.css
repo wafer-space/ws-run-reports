@@ -230,6 +230,17 @@
 .run-minimap svg { display: block; width: 100%; height: auto; background: var(--run-track); border-radius: 3px; }
 .run-minimap rect { fill: var(--run-line); stroke: var(--run-surface); stroke-width: 0.12; }
 .run-minimap rect.mine { fill: var(--run-accent); }
+/* The same on the proprietary designs page, with the locked slots picked out. */
+.run-private-map svg { display: block; width: 100%; height: auto; background: var(--run-track); border-radius: 6px; }
+.run-private-map rect { fill: var(--run-line); stroke: var(--run-surface); stroke-width: 0.12; }
+.run-private-map rect.locked { fill: var(--run-accent); }
+
+/* A private design's slot on the reticle: hatched and locked, its label in the corner as on the others. */
+.run-reticle-private { align-items: center; justify-content: center; color: rgba(255, 255, 255, 0.7);
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0 3px, transparent 3px 9px); }
+.run-reticle-private svg { width: clamp(10px, 30%, 34px); height: auto; fill: currentColor; }
+.run-reticle-private span { position: absolute; left: 0; bottom: 0; }
+.run-reticle-private:hover, .run-reticle-private:focus-visible { color: #fff; }
 
 /* Today on the run timeline: the rocket from the wafer.space logo, in the accent colour, on the line. */
 .run-timeline li.run-today { padding-bottom: 16px; }

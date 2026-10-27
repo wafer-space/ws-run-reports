@@ -222,6 +222,11 @@ def _projects_from_csv(path: Path) -> list[Project]:
         ]
 
 
+def private_codes(readme: Path) -> set[str]:
+    """Codes of the projects a run repository's README lists as private."""
+    return {p.code for p in _projects_from_readme(readme) if p.visibility == "Private"}
+
+
 def _projects_from_readme(path: Path) -> list[Project]:
     """Parse the ``| Code | Project | Slot Size | Project Details | Repository |`` README table."""
     projects = []

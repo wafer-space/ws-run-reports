@@ -59,6 +59,31 @@ def test_gfmpw0_labels_match_the_efabless_manifest():
         "6079": "A1", "5F3A": "A8", "0AFF": "E1", "8BB5": "E8", "56C6": "C2"}
 
 
+MAP = """<svg width="30.0mm" height="23.379mm" viewBox="0 0 30.0 23.379" xmlns="http://www.w3.org/2000/svg"><g>
+  <rect style="fill:#FFFFFF" width="30.0" height="23.379" x="0" y="0" />
+  <rect style="fill:#0bafe6" width="3.932" height="5.122" x="0.06" y="18.197" />
+  <rect style="fill:#a6216e" width="1.936" height="2.531" x="28.004" y="0.06" />
+  <text x="2.026" y="21.025"><tspan x="2.026" y="21.025">BTX1</tspan></text>
+  <text x="28.972" y="1.5"><tspan x="28.972" y="1.5">SCC1</tspan></text>
+</g></svg>"""
+
+
+def test_the_reticle_map_places_slots_as_the_renders_do(tmp_path):
+    """G802.svg measures from the top left; the renders from the bottom left (BTX1 is at 0.06, 0.06 in both)."""
+    path = tmp_path / "G802.svg"
+    path.write_text(MAP)
+    btx1, scc1 = reticle.svg_slots(path)
+    assert btx1 == {"code": "BTX1", "x_mm": 0.06, "y_mm": 0.06, "width_mm": 3.932, "height_mm": 5.122}
+    assert scc1["code"] == "SCC1" and scc1["y_mm"] == pytest.approx(23.379 - 0.06 - 2.531)
+
+
+def test_a_reticle_map_label_outside_every_slot_is_an_error(tmp_path):
+    path = tmp_path / "G802.svg"
+    path.write_text(MAP.replace('x="28.972" y="1.5"', 'x="20" y="10"'))
+    with pytest.raises(ValueError, match="SCC1"):
+        reticle.svg_slots(path)
+
+
 def test_labels_span_the_dies_in_their_row_and_column():
     """Run 1's top row and right column hold only half slots, so their labels are half size."""
     _, columns, rows = labels()
