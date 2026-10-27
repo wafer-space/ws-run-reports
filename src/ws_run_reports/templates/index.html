@@ -480,10 +480,18 @@
           <p class="mb-10 small text-muted">{{ run.process }} maximum{% if ref.process %},<br>with <span class="run-nowrap">
             {{ link(ref.process.library | library_label, links.library(ref.process.library)) }}
             {{ link(ref.process.cell_type, links.cell(ref.process.library, ref.process.cell_type), mono=true) }}</span>{% endif %}</p>
-          <p class="mb-0 small text-muted">With this {{ 'chip' if tt else 'run' }}'s libraries:</p>
-          {% for e in ref.entries %}
-          <p class="mb-0 small text-muted run-nowrap">{{ link(e.library, links.library(e.cell.library)) }}: {{ e.cell.per_mm2 | k }} {{ link(e.cell.cell_type, links.cell(e.cell.library, e.cell.cell_type), mono=true) }}</p>
-          {% endfor %}
+          <p class="mb-5 small text-muted">With this {{ 'chip' if tt else 'run' }}'s libraries:</p>
+          {# Library, figure, cell: a small table so the figures line up. #}
+          <table class="run-mini small mx-auto">
+            <caption class="visually-hidden">{{ ref.label }}s per mm² with each of this {{ 'chip' if tt else 'run' }}'s libraries, and the cell measured</caption>
+            <tbody>
+              {% for e in ref.entries %}
+              <tr><th scope="row">{{ link(e.library, links.library(e.cell.library)) }}</th>
+                <td class="run-mini-num">{{ e.cell.per_mm2 | k }}</td>
+                <td>{{ link(e.cell.cell_type, links.cell(e.cell.library, e.cell.cell_type), mono=true) }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
       {% endfor %}
