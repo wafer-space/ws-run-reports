@@ -195,6 +195,15 @@
 .page-title-sub:first-of-type { margin-top: 0.3em; }
 .run-guidance { font-size: 0.85rem; }
 .run-guidance thead th { vertical-align: bottom; white-space: nowrap; }
+/* Fixed columns: the slot's own four are sized to their contents, the theoretical maxima to their group name, and
+   the other figure columns share what is left equally. Narrower screens scroll the table (.table-responsive). */
+.run-guidance { table-layout: fixed; min-width: 64em; }
+.run-guidance .run-col-size { width: 3.75em; }
+.run-guidance .run-col-die { width: 8em; }
+.run-guidance .run-col-area { width: 5.5em; }
+.run-guidance .run-col-count { width: 5em; }
+.run-guidance .run-col-max { width: 8.5em; }
+.run-table.run-guidance .run-groups > .run-group { white-space: nowrap; }
 .run-ip-only { opacity: 0.55; }
 /* Text for screen readers only. */
 .run-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
