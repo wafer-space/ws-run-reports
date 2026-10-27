@@ -435,3 +435,20 @@ label.run-index-more::before { content: "▸ "; color: var(--run-muted); }
 /* The GitHub account owning a Tiny Tapeout project's repository, beside its authors. */
 .run-account { color: var(--run-muted); }
 .page-title-sub .run-account, .run-hero .run-account, .run-hero .run-account a { color: rgba(255, 255, 255, 0.85); }
+/* A small table of figures inside a card or a table cell (a figure per library): label, figure, and an optional
+   cell name, the figures right-aligned in tabular digits. Plain on purpose: thin rules between rows only, so a
+   site-wide table style can build on it. Declared last so it wins over .run-facts and .run-table cells. */
+.run-mini { width: auto; margin-bottom: 0; border-collapse: collapse; color: var(--run-muted); font-variant-numeric: tabular-nums; }
+.run-mini th, .run-mini td { width: auto; padding: 3px 0 3px 12px; border: 0; font-weight: 400; white-space: nowrap;
+  vertical-align: baseline; text-align: left; background: transparent; }
+/* The library names are right-aligned, so each sits against its figure. A long one ("AS extra 7t-5V") wraps
+   rather than pushing the table out of a narrow card. */
+.run-mini th { padding-left: 0; white-space: normal; text-align: right; }
+/* Four cards in a row on a 992–1199 px screen leave each table about 160 px. */
+@media (min-width: 992px) and (max-width: 1199.98px) { .run-mini th, .run-mini td { padding-left: 6px; } .run-mini th { padding-left: 0; } }
+/* The theme rules off a table's last body: not inside another table's cell. */
+.run-mini > tbody { border: 0; }
+.run-mini tr + tr > * { border-top: 1px solid var(--run-line); }
+.run-mini .run-mini-num { text-align: right; color: var(--run-ink); }
+.run-mini .run-mono { color: var(--run-ink); }
+.run-facts .run-mini { margin: -3px 0; }
