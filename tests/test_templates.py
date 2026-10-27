@@ -44,6 +44,13 @@ def test_who_puts_faded_names_last_keeping_each_groups_order():
     assert html.count('<span class="run-sr-only">, only inside reused block</span>') == 2
 
 
+def test_who_escapes_names_and_blocks():
+    design = SimpleNamespace(code="A1", name="R&D <test>", ip_sources={"mim": ["a<b"]}, ip_only=lambda key: True)
+    html = str(_macros().who([design], "mim"))
+    assert "R&amp;D &lt;test&gt;" in html and "<test>" not in html
+    assert 'title="Only inside reused a&lt;b"' in html
+
+
 def test_who_without_a_device_fades_nothing():
     users = [_design("A1", ip_only=["mim"]), _design("B2")]
     html = str(_macros().who(users))
