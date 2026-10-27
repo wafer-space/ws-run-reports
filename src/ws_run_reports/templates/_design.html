@@ -39,25 +39,25 @@
         <h4 id="{{ idp }}density" class="mt-30 mb-10">Logic density{{ anchor(idp ~ "density") }}</h4>
         <table class="table table-sm run-table run-facts">
           <tbody>
-            {# Units go in the headings, so that no value carries a ² that could read as a footnote. #}
+            {# Each density carries its unit, /mm², and the heading says what is counted. #}
             {# The share of the buffer maximum only where this run has one for the design's library. #}
             {# Two averages: over the core the design's logic is placed in, and over all the silicon its slot gives
                it inside the seal ring, pad ring included. #}
-            <tr><th>{{ 'Inside the core' if design.seal_ring_mm else 'Core average' }}<br><span class="small text-muted fw-normal">logic cells per mm²</span></th><td>{{ design.core_density | k }}
+            <tr><th>{{ 'Inside the core' if design.seal_ring_mm else 'Core average' }}<br><span class="small text-muted fw-normal">logic cells</span></th><td>{{ design.core_density | per_mm2 }}
               {% if design.pct_of_buffer_max %}<span class="text-muted">({{ design.pct_of_buffer_max | pct }} of buffer maximum)</span>{% endif %}
               {% if design.seal_ring_mm %}<br><span class="small text-muted">over the {{ '%.2f' | format(design.core_area_mm2) }} mm² core: what the design itself packed</span>{% endif %}</td></tr>
             {% if design.seal_ring_mm %}
-            <tr><th>Inside the seal ring<br><span class="small text-muted fw-normal">logic cells per mm²</span></th><td>{{ design.usable_density | k }}
+            <tr><th>Inside the seal ring<br><span class="small text-muted fw-normal">logic cells</span></th><td>{{ design.usable_density | per_mm2 }}
               <br><span class="small text-muted">over all {{ '%.2f' | format(design.usable_area_mm2) }} mm² of the slot, pad ring included</span></td></tr>
             {% endif %}
             {% set windowed_peak = design.peak_cells >= design.core_density %}
             {% if windowed_peak %}
-            <tr><th>{{ window_name | capitalize }}<br><span class="small text-muted fw-normal">logic cells per mm²</span></th><td>{{ design.peak_cells | k }}
+            <tr><th>{{ window_name | capitalize }}<br><span class="small text-muted fw-normal">logic cells{{ ', scaled up to a mm²' if not window_is_mm }}</span></th><td>{{ design.peak_cells | per_mm2 }}
               {% if design.peak_pct_of_buffer_max %}<span class="text-muted">({{ design.peak_pct_of_buffer_max | pct }} of buffer maximum)</span>{% endif %}</td></tr>
             {% endif %}
             <tr><th>Core covered by logic</th><td>{{ design.utilisation | pct }}</td></tr>
-            <tr><th>Transistor density<br><span class="small text-muted fw-normal">transistors per mm²</span></th><td>{{ design.core_transistor_density | k }} average{% if windowed_peak %},
-              {{ design.peak_transistors | k }} in the {{ window_name | replace("densest ", "") }} with the most logic cells{% endif %}</td></tr>
+            <tr><th>Transistor density<br><span class="small text-muted fw-normal">transistors</span></th><td>{{ design.core_transistor_density | per_mm2 }} average{% if windowed_peak %},
+              {{ design.peak_transistors | per_mm2 }} in the {{ window_name | replace("densest ", "") }} with the most logic cells{% endif %}</td></tr>
           </tbody>
         </table>
         {% elif design.logic_cells %}
@@ -149,7 +149,7 @@
             <tr><th>Logic cells</th><td>{{ '{:,}'.format(design.logic_cells) }}
               {% if design.fill_cells %}<span class="text-muted">+ {{ '{:,}'.format(design.fill_cells) }} filler and tap cells</span>{% endif %}</td></tr>
             {% if design.libraries %}
-            <tr><th>Libraries</th><td>
+            <tr><th>Libraries{% if design.libraries | length > 1 %}<br><span class="small text-muted fw-normal">logic cells from each</span>{% endif %}</th><td>
               {% if design.libraries | length == 1 %}
               {% for lib, n in design.libraries.items() %}{{ link(lib | library_label, links.library(lib)) }} <span class="text-muted">({{ n | count }} logic cells)</span>{% endfor %}</td></tr>
               {% else %}
@@ -383,7 +383,7 @@
     <div class="table-responsive">
     <table class="table table-sm run-table bg-white mb-20">
       <thead><tr><th>Made on</th><th>Slot</th><th>Library</th><th class="d-none d-md-table-cell">Gate oxides</th>
-        <th class="text-end">Logic cells</th><th class="text-end">Per mm² of core</th><th class="text-end d-none d-sm-table-cell">Densest</th>
+        <th class="text-end">Logic cells</th><th class="text-end">Core density</th><th class="text-end d-none d-sm-table-cell">Densest</th>
         <th class="d-none d-md-table-cell">SRAM</th></tr></thead>
       <tbody>
       {% for r in dies %}
@@ -393,8 +393,8 @@
         <td class="run-nowrap">{{ r.slot }}</td><td class="run-nowrap">{{ r.library }}</td>
         <td class="d-none d-md-table-cell">{{ r.oxides }}</td>
         <td class="text-end">{{ '{:,}'.format(r.logic_cells) }}</td>
-        <td class="text-end">{{ r.core_density | k if r.logic_cells >= min_logic else '—' }}</td>
-        <td class="text-end d-none d-sm-table-cell">{{ r.peak_cells | k if r.logic_cells >= min_logic else '—' }}</td>
+        <td class="text-end">{{ r.core_density | per_mm2 if r.logic_cells >= min_logic else '—' }}</td>
+        <td class="text-end d-none d-sm-table-cell">{{ r.peak_cells | per_mm2 if r.logic_cells >= min_logic else '—' }}</td>
         <td class="d-none d-md-table-cell">{{ r.sram or 'none' }}</td></tr>
       {% endfor %}
       </tbody>
