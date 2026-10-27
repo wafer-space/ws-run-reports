@@ -129,3 +129,14 @@ def test_preview_puts_each_run_where_wafer_space_serves_it(tmp_path):
     assert 'href="shared/die/a/index.html"' in text and 'href="ws-run9/index.html"' in text
     # The built pages themselves are left as they are, for publishing.
     assert "ci-preview-banner" not in (out / "ws-run9" / "site" / "index.html").read_text()
+
+
+def test_missing_core_areas_matter_only_where_densities_are_over_the_core(tmp_path):
+    meta = tmp_path / "reticle_analysis_meta.json"
+    meta.write_text('{"top_cell": "G802"}')            # a wafer.space run: the template's 442 µm pad ring
+    assert published.needs_core_areas(tmp_path)
+    meta.write_text('{"pad_ring_um": 0}')              # a Tiny Tapeout die: every project is all core
+    assert not published.needs_core_areas(tmp_path)
+    meta.write_text('{"top_cell": "G802"}')
+    (tmp_path / "core_areas.json").write_text("{}")
+    assert not published.needs_core_areas(tmp_path)

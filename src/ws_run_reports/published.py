@@ -99,6 +99,18 @@ def copy_data(src: Path, out_dir: Path) -> None:
         shutil.copytree(precheck, out_dir / precheck.name)
 
 
+def needs_core_areas(src: Path) -> bool:
+    """Whether the run in ``src`` measures density over each design's core but has no published core areas.
+
+    A run whose designs are all core (``pad_ring_um`` 0, the Tiny Tapeout dies) does not use them.
+    """
+    if (src / cores.FILE).exists():
+        return False
+    meta_path = src / f"{stats_module.OUTPUT_STEM}_meta.json"
+    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+    return float(meta.get("pad_ring_um", 1)) != 0
+
+
 def copy_pages(src: Path, site_dir: Path) -> None:
     """A run's renders and photographs from its folder ``src`` on gh-pages into its site folder."""
     for name in PAGES_KEPT:
@@ -130,9 +142,11 @@ def fetch(runs, repos_root: Path, out_root: Path, full_pages=None, url: str = GI
                 missing.append(run)
                 continue
             copy_data(src, Path(out_root) / run.name)
-            if not (src / cores.FILE).exists():
-                print(f"  {run.name}: no {cores.FILE} on {DATA_BRANCH} yet, so each design's core is the project "
-                      "template's; publish the density report again to include it")
+            if needs_core_areas(src):
+                # Indented "warning:", as external.py's: the deployment stops on it (scripts/ci-deploy-pages).
+                print(f"  warning: {run.name}: no {cores.FILE} on {DATA_BRANCH} yet, so each design's core is "
+                      f"the project template's; publish the density report again ('publish {run.name} "
+                      f"{DATA_BRANCH} --push') to include it")
             copy_pages(pages / run.path, Path(out_root) / run.name / "site")
             found.append(run)
     return found, missing
