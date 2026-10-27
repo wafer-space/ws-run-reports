@@ -7,3 +7,15 @@
 {{- ", " if shown.n }}<a{% if faded %} class="run-ip-only" title="Only inside reused {{ via }}"{% endif %} href="{{ design_href(u.code) }}">{{ u.name }}{% if faded %}<span class="run-sr-only">, only inside reused {{ via }}</span>{% endif %}</a>
 {%- set shown.n = shown.n + 1 %}{% endfor %}{% endfor %}
 {%- endmacro %}
+
+{# Which designs, as a wrapped list of chips: every name, linked, in its order. #}
+{% macro chips(users) %}
+<ul class="run-names">
+  {%- for u in users %}
+  <li><a href="{{ design_href(u.code) }}">{{ u.name }}</a></li>
+  {%- endfor %}
+</ul>
+{% endmacro %}
+
+{# "8 designs", "1 project". #}
+{% macro count_of(n) %}<strong>{{ n }}</strong> {{ ('project' if tt else 'design') ~ ('' if n == 1 else 's') }}{% endmacro %}

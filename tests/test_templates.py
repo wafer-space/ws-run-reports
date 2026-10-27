@@ -56,3 +56,16 @@ def test_who_without_a_device_fades_nothing():
     html = str(_macros().who(users))
     assert _names(html) == ["A1", "B2"]
     assert "run-ip-only" not in html
+
+
+def test_chips_list_every_name_in_order():
+    users = [_design(f"D{i:02}") for i in range(30)]
+    html = str(_macros().chips(users))
+    assert _names(html) == [u.code for u in users]
+    assert html.count("<li>") == 30 and "<details" not in html
+
+
+def test_count_of_says_designs_or_projects():
+    assert str(_macros().count_of(1)) == "<strong>1</strong> design"
+    assert str(_macros().count_of(8)) == "<strong>8</strong> designs"
+    assert str(_macros(tt=SimpleNamespace()).count_of(2)) == "<strong>2</strong> projects"

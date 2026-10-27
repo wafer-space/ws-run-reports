@@ -262,8 +262,6 @@
 /* The layer buttons under a render: small, on one line where they fit. */
 .run-viewer-tabs .btn { padding: 0.3rem 0.85rem; font-size: 0.68rem; line-height: 1.4; }
 .run-facts th, .run-facts td { vertical-align: top; }
-.run-oxides th { white-space: normal; }
-.run-oxides td:last-child { min-width: 12rem; }
 
 /* Where to go next (the theme's process steps): get a chip, put a design on the next one, make a whole chip. */
 .run-next h5 { margin-bottom: 8px; }
@@ -407,6 +405,26 @@
 .run-more-inline[open] > summary { display: block; margin-bottom: 4px; }
 /* Design names in a table cell may be one long word (openframe_caravel_picorv32): let them break. */
 .run-which { overflow-wrap: anywhere; }
+/* Gate oxides: each group's label and counts together on the left, every design named beside them as a chip
+   (stacked on phones). */
+.run-who { background: var(--run-surface); border: 1px solid var(--run-line); border-radius: 6px; padding: 0 16px; }
+.run-who-row { display: grid; grid-template-columns: minmax(9rem, 13rem) 1fr; gap: 8px 20px; padding: 12px 0; }
+.run-who-row + .run-who-row { border-top: 1px solid var(--run-line); }
+.run-who-head { display: flex; flex-direction: column; gap: 2px; color: var(--run-ink); font-variant-numeric: tabular-nums; }
+.run-who-label { font-weight: 600; }
+.run-who-count { font-size: 0.85rem; color: var(--run-muted); }
+.run-who-count strong { color: var(--run-ink); }
+/* The own-design count leads; the pad-ring figure is a quieter line under it. */
+.run-who-main { font-size: 0.95rem; color: var(--run-ink); }
+@media (max-width: 575.98px) {
+  .run-who-row { grid-template-columns: 1fr; }
+  .run-who-head { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+}
+.run-names { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; align-self: start; }
+/* Design names may be one long word (openframe_caravel_picorv32): let them break. */
+.run-names a { display: inline-block; padding: 2px 10px; border: 1px solid var(--run-line); border-radius: 12px;
+  background: var(--run-track); font-size: 0.85rem; line-height: 1.5; overflow-wrap: anywhere; }
+.run-names a:hover, .run-names a:focus-visible { border-color: var(--run-accent); }
 /* A card title may be one long word (FA25_Engn2912e_Saligane...): wrap it rather than cut it off. */
 .run-card .post-title { overflow-wrap: anywhere; }
 /* A framed reticle shown cropped to its dies (the frame's scale, without the empty frame). */
