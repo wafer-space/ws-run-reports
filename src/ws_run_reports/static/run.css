@@ -424,6 +424,9 @@
 /* Design names may be one long word (openframe_caravel_picorv32): let them break. */
 .run-names a { display: inline-block; padding: 2px 10px; border: 1px solid var(--run-line); border-radius: 12px;
   background: var(--run-track); font-size: 0.85rem; line-height: 1.5; overflow-wrap: anywhere; }
+/* The theme's link blue is too light on the chip fill (about 2.3:1); this blue is 4.7:1 on it. */
+.run-names a { color: #246fa8; }
+[data-theme="dark"] .run-names a { color: var(--run-accent); }
 .run-names a:hover, .run-names a:focus-visible { border-color: var(--run-accent); }
 /* A card title may be one long word (FA25_Engn2912e_Saligane...): wrap it rather than cut it off. */
 .run-card .post-title { overflow-wrap: anywhere; }
