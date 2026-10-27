@@ -230,29 +230,35 @@ def preview(runs, collections, out_root: Path, dest: Path, label: str) -> Path:
     return index
 
 
-def _changes(clone: Path) -> str:
-    """What the commit just made in ``clone`` changes, and every file it deletes."""
-    stat = subprocess.run(["git", "-C", str(clone), "show", "--shortstat", "--format=", "HEAD"],
-                          check=True, capture_output=True, text=True).stdout.strip()
-    deleted = subprocess.run(["git", "-C", str(clone), "show", "--diff-filter=D", "--name-only", "--format=", "HEAD"],
-                             check=True, capture_output=True, text=True).stdout.split()
-    return stat + "".join(f"\n    deletes {path}" for path in deleted)
+def _show(clone: Path, *args) -> str:
+    return subprocess.run(["git", "-C", str(clone), "show", "--format=", *args, "HEAD"],
+                          check=True, capture_output=True, text=True).stdout
 
 
-def deploy(runs, collections, out_root: Path, push: bool) -> list:
+def deploy(runs, collections, out_root: Path, push: bool, allow_deletions: bool = False) -> list:
     """``publish <run> gh-pages`` for every run and ``collection --publish`` for every collection, from the
-    pages built in ``out_root``; pushed with ``push``. Returns the names of those whose pages changed."""
+    pages built in ``out_root``, each committed in a scratch clone and, with ``push``, pushed before the next
+    is cloned (the runs of a shared repository publish to one branch). A commit that deletes a file on
+    gh-pages is not pushed unless ``allow_deletions``. Returns the names of those whose pages changed."""
+    targets = [(run.name, lambda out_dir, run=run: publish.publish(run, out_dir, PAGES_BRANCH)) for run in runs]
+    targets += [(name, lambda out_dir, name=name: publish.publish_collection(
+        collection_module.load(name), out_dir / "site", out_dir)) for name in collections]
     changed = []
-    for run in runs:
-        out_dir = Path(out_root) / run.name
-        if publish.publish(run, out_dir, PAGES_BRANCH, push=push):
-            changed.append(run.name)
-            print(f"  {run.name}: {_changes(out_dir.resolve() / 'publish' / PAGES_BRANCH)}")
-    for name in collections:
+    for name, commit in targets:
         out_dir = Path(out_root) / name
-        if publish.publish_collection(collection_module.load(name), out_dir / "site", out_dir, push=push):
-            changed.append(name)
-            print(f"  {name}: {_changes(out_dir.resolve() / 'publish' / PAGES_BRANCH)}")
+        if not commit(out_dir):
+            continue
+        changed.append(name)
+        clone = out_dir.resolve() / "publish" / PAGES_BRANCH
+        deleted = _show(clone, "--diff-filter=D", "--name-only").split()
+        print(f"  {name}: {_show(clone, '--shortstat').strip()}" + "".join(f"\n    deletes {p}" for p in deleted))
+        if not push:
+            continue
+        if deleted and not allow_deletions:
+            raise SystemExit(f"not pushing {name}: its pages would delete {len(deleted)} files from {PAGES_BRANCH} "
+                             "(above); check them, then deploy again allowing deletions")
+        publish.git("push", "origin", PAGES_BRANCH, cwd=clone)
+        print(f"Pushed {name}")
     return changed
 
 
@@ -277,7 +283,7 @@ def main(args) -> None:
         if not built:
             raise SystemExit(f"no pages have been built in {out_root} for {', '.join(sorted(selected))}")
         collections = [name for name in collections_for(selected) if (out_root / name / "site" / "index.html").exists()]
-        changed = deploy(built, collections, out_root, push=args.push)
+        changed = deploy(built, collections, out_root, push=args.push, allow_deletions=args.allow_deletions)
         verb = "Pushed" if args.push else "Committed, not pushed:"
         print(f"{verb} {', '.join(changed)}" if changed else "No page changed; nothing to publish.")
         return

@@ -151,6 +151,8 @@ def main(argv=None):
                      "built in --out to each repository's gh-pages, in scratch clones, as publish and collection "
                      "--publish do")
     pub.add_argument("--push", action="store_true", help="with --publish-built, push the pages that changed")
+    pub.add_argument("--allow-deletions", action="store_true", help="with --push, also push pages that delete "
+                     "files from gh-pages (otherwise refused)")
     args = parser.parse_args(argv)
     if args.command == "published" and args.push and not args.publish_built:
         parser.error("--push needs --publish-built")

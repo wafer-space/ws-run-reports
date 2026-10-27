@@ -2,44 +2,45 @@
 # Build the pages published from one run repository with this checkout's code, from the data already
 # published, and publish them to its gh-pages branch where they changed (.github/workflows/deploy.yml).
 #
-#   scripts/ci-deploy-pages wafer-space/ws-run2            # dry run: commit in scratch clones, push nothing
-#   scripts/ci-deploy-pages wafer-space/ws-run2 --push     # ... and push the pages that changed
+#   scripts/ci-deploy-pages wafer-space/ws-run2                     # dry run: commit in scratch clones only
+#   scripts/ci-deploy-pages wafer-space/ws-run2 --push              # ... and push the pages that changed
+#   scripts/ci-deploy-pages wafer-space/ws-run2 --push --allow-deletions
 #
 # --push needs $RUN_PAGES_TOKEN, a token that may write the repository's contents. Nothing is published
 # when the build warns that something the pages show from elsewhere (timeline, photographs, Tiny Tapeout
-# chips, GitHub lookups) was unavailable, so that a page is never replaced by one missing a section.
-# Work files go to $WORK (default ci/).
+# chips, GitHub lookups, published core areas) was unavailable, so that a page is never replaced by one
+# missing a section; nor, without --allow-deletions, pages that would delete a file from gh-pages.
+# Work files go to $WORK (default ci/), whose earlier output is removed first.
 set -euo pipefail
 
-repo=${1:?usage: ci-deploy-pages OWNER/NAME [--push]}
-push=${2:-}
+repo=${1:?usage: ci-deploy-pages OWNER/NAME [--push [--allow-deletions]]}
+shift
+push=""
+publish_args=()
+for option in "$@"; do
+  case "$option" in
+    --push) push=yes; publish_args+=(--push) ;;
+    --allow-deletions) publish_args+=(--allow-deletions) ;;
+    *) echo "unknown option $option" >&2; exit 2 ;;
+  esac
+done
 work=${WORK:-ci}
-if [ -n "$push" ] && [ "$push" != "--push" ]; then
-  echo "unknown option $push" >&2
-  exit 2
-fi
 
-if [ "$push" = "--push" ] && [ -z "${RUN_PAGES_TOKEN:-}" ]; then
+if [ -n "$push" ] && [ -z "${RUN_PAGES_TOKEN:-}" ]; then
   echo "::error::RUN_PAGES_TOKEN is not set, so the pages cannot be pushed to $repo. Add it as a repository" \
        "secret: a fine-grained token with Contents read and write on every run repository (see the README)." >&2
   exit 1
 fi
 
-# publish clones the run repositories over https, and a collection's over git+ssh: both go through https,
-# with the token when pushing. Only this script's git commands see it.
-if [ "$push" = "--push" ]; then
-  base="https://x-access-token:${RUN_PAGES_TOKEN}@github.com/"
-else
-  base="https://github.com/"
-fi
-export GIT_CONFIG_COUNT=2
-export GIT_CONFIG_KEY_0="url.${base}.insteadOf" GIT_CONFIG_VALUE_0="https://github.com/"
-export GIT_CONFIG_KEY_1="url.${base}.insteadOf" GIT_CONFIG_VALUE_1="git+ssh://github.com/"
+# A collection is published over git+ssh (publish_collection): through https here, as the runs are.
+export GIT_CONFIG_COUNT=1
+export GIT_CONFIG_KEY_0="url.https://github.com/.insteadOf" GIT_CONFIG_VALUE_0="git+ssh://github.com/"
 export GIT_AUTHOR_NAME="${GIT_AUTHOR_NAME:-github-actions[bot]}"
 export GIT_AUTHOR_EMAIL="${GIT_AUTHOR_EMAIL:-41898282+github-actions[bot]@users.noreply.github.com}"
 export GIT_COMMITTER_NAME="${GIT_COMMITTER_NAME:-$GIT_AUTHOR_NAME}"
 export GIT_COMMITTER_EMAIL="${GIT_COMMITTER_EMAIL:-$GIT_AUTHOR_EMAIL}"
 
+rm -rf "$work/out"
 mkdir -p "$work"
 args=(--repo "$repo" --repos "$work/repos" --out "$work/out")
 status=0
@@ -55,11 +56,20 @@ if grep -n '^  warning: ' "$work/build.log" > "$work/warnings.log"; then
   while IFS= read -r line; do
     echo "::warning::${line#*:  warning: }"
   done < "$work/warnings.log"
-  if [ "$push" = "--push" ]; then
+  if [ -n "$push" ]; then
     echo "::error::Not publishing $repo: the build could not read everything the pages show (above)." \
          "Run the workflow again once those sources are back." >&2
     exit 1
   fi
 fi
 
-uv run ws-run-reports published "${args[@]}" --publish-built ${push:+--push} 2>&1 | tee "$work/publish.log"
+if [ -n "$push" ]; then
+  # The token goes in a header for github.com, only for publishing: never in a URL, so it is not in the
+  # clones' remotes or in what publish prints, and the build above fetched without it.
+  auth=$(printf 'x-access-token:%s' "$RUN_PAGES_TOKEN" | base64 -w0)
+  echo "::add-mask::$auth"
+  export GIT_CONFIG_COUNT=2
+  export GIT_CONFIG_KEY_1="http.https://github.com/.extraheader" GIT_CONFIG_VALUE_1="AUTHORIZATION: basic $auth"
+fi
+uv run ws-run-reports published "${args[@]}" --publish-built ${publish_args[@]+"${publish_args[@]}"} 2>&1 \
+  | tee "$work/publish.log"

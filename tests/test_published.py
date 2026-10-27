@@ -3,6 +3,8 @@
 import subprocess
 from types import SimpleNamespace
 
+import pytest
+
 from ws_run_reports import config, published, stats
 
 
@@ -163,8 +165,14 @@ def test_deploy_publishes_the_built_pages_once(tmp_path, monkeypatch):
     show = subprocess.run(["git", "show", "gh-pages:index.html"], cwd=remote, capture_output=True, text=True)
     assert show.stdout == "old"
 
-    assert published.deploy([target], [], tmp_path / "out", push=True) == ["ws-run9"]
-    files = subprocess.run(["git", "ls-tree", "-r", "--name-only", "gh-pages"], cwd=remote, capture_output=True,
+    # gone.html is no longer built: its deletion is not pushed unless allowed.
+    with pytest.raises(SystemExit, match="would delete 1 files"):
+        published.deploy([target], [], tmp_path / "out", push=True)
+    show = subprocess.run(["git", "show", "gh-pages:index.html"], cwd=remote, capture_output=True, text=True)
+    assert show.stdout == "old"
+
+    assert published.deploy([target], [], tmp_path / "out", push=True, allow_deletions=True) == ["ws-run9"]
+    files =subprocess.run(["git", "ls-tree", "-r", "--name-only", "gh-pages"], cwd=remote, capture_output=True,
                            text=True).stdout.split()
     assert files == ["index.html", "renders/AB01.webp"]
     show = subprocess.run(["git", "show", "gh-pages:index.html"], cwd=remote, capture_output=True, text=True)
@@ -174,7 +182,7 @@ def test_deploy_publishes_the_built_pages_once(tmp_path, monkeypatch):
 
 
 def test_pushing_needs_publish_built():
-    import pytest
+
     from ws_run_reports import cli
     with pytest.raises(SystemExit):
         cli.main(["published", "--repos", "x", "--push"])

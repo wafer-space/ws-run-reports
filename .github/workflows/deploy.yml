@@ -21,13 +21,18 @@ on:
         description: Only this run repository (owner/name, e.g. wafer-space/ws-run2); empty for all
         type: string
         default: ""
+      allow_deletions:
+        description: With Push, also push pages that delete files from gh-pages (a project or run removed)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
-# One deployment at a time; a newer one waits for the one running rather than cancelling it.
+# One pushing deployment at a time; a newer one waits for the one running rather than cancelling it. Dry
+# runs each get a group of their own, so that they never displace a waiting deployment.
 concurrency:
-  group: deploy-pages
+  group: deploy-pages-${{ (github.event_name == 'push' || inputs.push) && 'push' || github.run_id }}
   cancel-in-progress: false
 
 env:
@@ -91,15 +96,21 @@ jobs:
       - name: Build and publish
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_PAGES_TOKEN: ${{ secrets.RUN_PAGES_TOKEN }}
+          # Only main's code is ever pushed: a manual run from another branch is a dry run (checked below).
+          RUN_PAGES_TOKEN: ${{ github.ref == 'refs/heads/main' && secrets.RUN_PAGES_TOKEN || '' }}
           REPO: ${{ matrix.repo }}
           PUSH: ${{ github.event_name == 'push' || inputs.push }}
+          REF: ${{ github.ref }}
+          ALLOW_DELETIONS: ${{ inputs.allow_deletions }}
         run: |
-          if [ "$PUSH" = true ]; then
-            scripts/ci-deploy-pages "$REPO" --push
-          else
-            scripts/ci-deploy-pages "$REPO"
+          if [ "$PUSH" = true ] && [ "$REF" != refs/heads/main ]; then
+            echo "::error::Only main is deployed; run this workflow from main to push, or untick Push for a dry run."
+            exit 1
           fi
+          options=()
+          if [ "$PUSH" = true ]; then options+=(--push); fi
+          if [ "$ALLOW_DELETIONS" = true ]; then options+=(--allow-deletions); fi
+          scripts/ci-deploy-pages "$REPO" ${options[@]+"${options[@]}"}
       - name: Summary
         if: ${{ !cancelled() }}
         env:
