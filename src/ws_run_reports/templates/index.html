@@ -499,7 +499,7 @@
         <div class="box bg-white shadow p-30 h-100">
           <h3 class="mb-5 color-dark">{{ digital[0].core_density | per_mm2 }}</h3>
           <p class="mb-0 font-weight-600 color-dark">Best core average</p>
-          <p class="mb-0 small text-muted">logic cells, averaged over the core{% if digital[0].pct_of_buffer_max %} — {{ digital[0].pct_of_buffer_max | pct }} of the buffer maximum{% endif %}</p>
+          <p class="mb-0 small text-muted">logic cells over the core{% if digital[0].pct_of_buffer_max %} — {{ digital[0].pct_of_buffer_max | pct }} of the buffer maximum{% endif %}</p>
           <p class="mb-0 small"><a href="{{ design_href(digital[0].code) }}">{{ digital[0].name }}</a></p>
         </div>
       </div>
@@ -515,7 +515,7 @@
         <div class="box bg-white shadow p-30 h-100">
           <h3 class="mb-5 color-dark">{{ median_density | per_mm2 }}</h3>
           <p class="mb-0 font-weight-600 color-dark">Typical {{ words.die }}</p>
-          <p class="mb-0 small text-muted">median logic cells over the core, across {{ digital | length }} digital {{ words.dies if digital | length != 1 else words.die }}
+          <p class="mb-0 small text-muted">median core density, in logic cells, across {{ digital | length }} digital {{ words.dies if digital | length != 1 else words.die }}
             (1,000 or more logic cells)</p>
           <p class="mb-0 small text-muted">{{ median_utilisation | pct }} of the core covered by logic cells</p>
         </div>
