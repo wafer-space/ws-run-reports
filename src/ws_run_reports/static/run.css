@@ -34,7 +34,9 @@
 .run-table { --bs-table-color: var(--run-ink); --bs-table-bg: var(--run-surface); }
 .run-table th { font-weight: 600; white-space: nowrap; }
 /* .table.run-table: above the dark theme's own "[data-theme=dark] .table td" border colour. */
-.run-table.table > * > tr > * { border-color: var(--run-line); vertical-align: middle; }
+.run-table.table > * > tr > * { border-color: var(--run-line); }
+/* Low specificity, so the fact tables (top) and the guidance header (bottom) keep their own alignment. */
+.run-table td, .run-table th { vertical-align: middle; }
 .run-table > thead > tr > * { --bs-table-bg: var(--run-head); }
 .run-table > thead > tr:last-child > * { border-bottom-color: var(--run-rule); }
 /* Body rows are ruled between each other, not under the last, so the frame closes the table even when the
@@ -52,6 +54,12 @@
 .run-table .run-groups > .run-group, .run-table .run-groups > .run-group-start { border-left: 1px solid var(--run-rule); }
 /* A fact table's label and its value. */
 .run-table.run-facts > tbody > tr > td { border-left: 1px solid var(--run-rule); }
+/* Phones and tablets scroll the table sideways: the group names stay on one line rather than tower. */
+@media (max-width: 991.98px) { .run-table .run-groups > .run-group { white-space: nowrap; } }
+/* A muted row (the netlist's shared logic): Bootstrap colours cells from its own variable. */
+.run-table > tbody > tr.text-muted > * { --bs-table-color: var(--run-muted); }
+/* A rowspan label heads its group of rows. */
+.run-row-groups th[rowspan] { vertical-align: top; }
 .run-table .run-note { display: block; font-size: 0.75rem; font-weight: 400; color: var(--run-muted); }
 [data-theme="dark"] .run-table.bg-white { background: var(--run-surface) !important; }
 /* Each project's share of a shared block (Tiny Tapeout GF 0.1), as a bar with its percentage. */
