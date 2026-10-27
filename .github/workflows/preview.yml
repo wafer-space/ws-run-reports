@@ -1,0 +1,101 @@
+name: Preview
+
+# Builds the run pages with the pull request's code from the data already published (each run repository's
+# density-report branch and the renders on its gh-pages branch), without the layout steps, and uploads them
+# as one artifact per run repository. A comment on the pull request links to them.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  repos:
+    name: List the run repositories
+    runs-on: ubuntu-latest
+    outputs:
+      repos: ${{ steps.list.outputs.repos }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: List
+        id: list
+        run: echo "repos=$(uv run ws-run-reports published --list-repos)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.repo }}
+    needs: repos
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: ${{ fromJSON(needs.repos.outputs.repos) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install
+        run: uv sync --locked
+      - name: Name the artifact
+        id: name
+        env:
+          REPO: ${{ matrix.repo }}
+        run: echo "name=preview-${REPO#*/}" >> "$GITHUB_OUTPUT"
+      - name: Build the pages from the published data
+        env:
+          # The pages say whether each design's repository is public, which `gh api` looks up.
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ matrix.repo }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          uv run ws-run-reports published --repo "$REPO" --repos ci/repos --out ci/out \
+            --preview ci/preview --label "pull request #$PR at ${SHA:0:7}"
+      - name: Upload the preview
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.name.outputs.name }}
+          path: ci/preview/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Summary
+        env:
+          URL: ${{ steps.upload.outputs.artifact-url }}
+          REPO: ${{ matrix.repo }}
+        run: |
+          {
+            echo "### Preview of the pages published from $REPO"
+            echo
+            echo "[Download the preview]($URL), unpack it and open \`index.html\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  comment:
+    name: Link the preview
+    needs: build
+    # A pull request from a fork gets a read-only token, so it cannot comment; its previews are linked from
+    # each build job's summary instead.
+    if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SERVER: ${{ github.server_url }}
+          RUN_ID: ${{ github.run_id }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          RESULT: ${{ needs.build.result }}
+        run: scripts/ci-preview-comment
