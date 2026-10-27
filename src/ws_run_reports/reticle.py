@@ -11,6 +11,7 @@ positions of the widest (or tallest) dies, which are full slots.
 """
 
 import string
+import xml.etree.ElementTree as ET
 
 ORIGINS = ("top-left", "top-right", "bottom-left", "bottom-right")
 
@@ -25,6 +26,35 @@ def _pitch(positions_and_sizes):
     # Empty columns or rows between full slots make a gap a multiple of the pitch.
     gap = min(gaps)
     return gap / max(1, round(gap / largest))
+
+
+def svg_slots(path):
+    """Every slot of a run repository's reticle map (``images/<shuttle>.svg``), private ones included.
+
+    The map draws each slot as a rectangle with its code written in the middle,
+    in millimetres from the reticle's top left corner; its first rectangle is
+    the reticle itself. Returns placements as the renders give them: ``code``,
+    ``x_mm`` and ``y_mm`` (lower left, from the reticle's lower left corner),
+    ``width_mm`` and ``height_mm``.
+    """
+    ns = {"svg": "http://www.w3.org/2000/svg"}
+    root = ET.parse(path).getroot()
+    rects = [{key: float(r.get(key)) for key in ("x", "y", "width", "height")} for r in root.iterfind(".//svg:rect", ns)]
+    outline, rects = rects[0], rects[1:]
+    slots = []
+    for text in root.iterfind(".//svg:text", ns):
+        code = "".join(text.itertext()).strip()
+        x, y = float(text.get("x")), float(text.get("y"))
+        inside = [r for r in rects if r["x"] <= x <= r["x"] + r["width"] and r["y"] <= y <= r["y"] + r["height"]]
+        if len(inside) != 1:
+            raise ValueError(f"{path}: the label {code!r} at ({x}, {y}) is in {len(inside)} slots, not 1")
+        r = inside[0]
+        slots.append({"code": code, "x_mm": round(r["x"] - outline["x"], 3),
+                      "y_mm": round(outline["y"] + outline["height"] - r["y"] - r["height"], 3),
+                      "width_mm": r["width"], "height_mm": r["height"]})
+    if len(slots) != len(rects):
+        raise ValueError(f"{path}: {len(rects)} slots but {len(slots)} labels")
+    return slots
 
 
 def _letters(index: int) -> str:

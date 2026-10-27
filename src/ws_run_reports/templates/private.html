@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{# The locked slots on the reticle link here: what a private design is, and that a design can stay closed on wafer.space.
+   "Private" as in the run READMEs: the design's files are not published. Some published designs are proprietary too
+   (their declared licence), so the others are "published", not "open source". #}
+{% set short_title = run.short_title %}
+{% set locked = placements | selectattr("private") | list %}
+{% block title %}Private designs — {{ short_title }}{% endblock %}
+{% block description %}Many designs on {{ run.heading[0] }} are open source, but yours doesn't have to be. On wafer.space, your design can be open or closed.{% endblock %}
+
+{% block content %}
+<div class="wrapper image-wrapper bg-image page-title-wrapper run-hero inverse-text"
+     data-image-src="{{ website }}/assets/images/header/mpw-one-partial-dice-top-1.jpg">
+  <div class="container inner text-center">
+    <p class="mb-10"><a class="run-crumb" href="{{ root }}index.html">{{ short_title }}</a></p>
+    <h1 class="page-title">Private designs</h1>
+    <p class="lead mb-0">Open source is welcome on wafer.space, but not required.</p>
+  </div>
+</div>
+
+<div class="wrapper light-wrapper">
+  <div class="container inner run-inner-slim">
+    <div class="row gutter-50 align-items-center">
+      <div class="col-lg-7">
+        <p class="lead">Many of the designs on {{ run.heading[0] }} are open source. Their makers published them, so we
+          measure and show each one on <a href="{{ root }}index.html#projects">the run's page</a> for anyone to learn
+          from.</p>
+        <p class="mb-lg-0">{{ locked | length }} of the {{ run.slots }} slots on this reticle hold private designs. They
+          were made on the same wafers as the published ones, but their owners chose not to publish them. In the
+          run's <a href="{{ run.source_url }}">public layout</a> these slots are scrambled to hide what is inside, and
+          the project list shows only a short code and the slot size. So we show them here as locked slots and don't
+          measure them.</p>
+      </div>
+      <div class="col-lg-5">
+        {% set fw = renders.reticle.frame_width_mm or renders.reticle.width_mm %}{% set fh = renders.reticle.frame_height_mm or renders.reticle.height_mm %}
+        <figure class="mb-0 run-private-map">
+          <svg viewBox="0 0 {{ '%.2f' | format(fw) }} {{ '%.2f' | format(fh) }}" role="img"><title>The {{ locked | length }} locked slots among the {{ run.slots }} on the reticle</title>
+            {% for p in placements %}<rect class="{{ 'locked' if p.private else '' }}" x="{{ '%.3f' | format(p.left * fw) }}" y="{{ '%.3f' | format(p.top * fh) }}"
+              width="{{ '%.3f' | format(p.width * fw) }}" height="{{ '%.3f' | format(p.height * fh) }}"/>{% endfor %}
+          </svg>
+          <figcaption class="small text-muted mt-10">The {{ words.reticle }}: the private designs in colour, the published designs in grey.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrapper gray-wrapper">
+  <div class="container inner run-inner-slim">
+    <h2 id="submit" class="section-title mb-20">Your design can stay private</h2>
+    <p>The {{ run.process }} process design kit (the PDK) is open source, but your design can be open or closed. You
+      don't have to publish its layout or its source, and you don't need to sign a non-disclosure agreement (NDA) to
+      get started. On {{ run.heading[0] }}, private and published designs shared the same reticle.</p>
+    <p>Private here just means the design files aren't published. Open-source designs can be commercial too.</p>
+    <p>Questions about keeping a design private? Email <a href="mailto:info@wafer.space">info@wafer.space</a>.</p>
+    <p class="mb-0">
+      {% if next_ws %}<a class="btn btn-s mb-10 me-10" href="{{ next_ws.url }}">Reserve a slot on {{ next_ws.name }}</a>{% endif %}
+      <a href="{{ website }}/faq">Read the wafer.space FAQ</a> ·
+      <a href="{{ root }}index.html#projects">Explore the published designs on this run</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

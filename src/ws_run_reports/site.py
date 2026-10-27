@@ -320,6 +320,17 @@ def _children(run) -> dict:
     return found
 
 
+def private_slots(run) -> list:
+    """The reticle's private designs, placed as the renders place the public ones: the slots of the run repository's
+    map of the reticle (``images/<shuttle>.svg``) that its README lists as private. Empty when it has no map."""
+    svg = run.repo_dir / "images" / f"{run.shuttle}.svg"
+    readme = run.repo_dir / "README.md"
+    if run.path or not svg.exists() or not readme.exists():
+        return []
+    private = config.private_codes(readme)
+    return [slot for slot in reticle.svg_slots(svg) if slot["code"] in private]
+
+
 def build_context(run, out_dir: Path) -> dict:
     stats = stats_module.load(run, out_dir)
     site_dir = out_dir / "site"
@@ -390,15 +401,19 @@ def build_context(run, out_dir: Path) -> dict:
         width = reticle_info.get("frame_width_mm", reticle_info["width_mm"])
         height = reticle_info.get("frame_height_mm", reticle_info["height_mm"])
         drop = height - reticle_info["height_mm"]
-        in_frame = [dict(p, y_mm=p["y_mm"] + drop) for p in renders["placements"]]
+        # The private designs are not in the public layout, but the run repository's map of the reticle says
+        # where they are: they are drawn as locked slots.
+        public = renders["placements"]
+        in_frame = [dict(p, y_mm=p["y_mm"] + drop) for p in public + private_slots(run)]
         slots = [{}] * len(in_frame)
         if run.site.get("slot_labels", True):
             slots, slot_columns, slot_rows = reticle.slot_grid(
                 in_frame, width, height,
                 origin=run.site.get("slot_origin", "top-left"), letters=run.site.get("slot_letters", "columns"))
-        for p, slot in zip(in_frame, slots):
+        for i, (p, slot) in enumerate(zip(in_frame, slots)):
             placements.append({
                 "code": p["code"],
+                "private": i >= len(public),
                 "left": p["x_mm"] / width,
                 "top": 1 - (p["y_mm"] + p["height_mm"]) / height,
                 "width": p["width_mm"] / width,
@@ -490,6 +505,11 @@ _LINK_ICON = Markup('<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m7.775
                     '1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 '
                     '4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a'
                     '1.998 1.998 0 0 0 0 2.83Z"/></svg>')
+
+# A padlock, on the reticle's locked slots.
+_LOCK_ICON = Markup('<svg viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2h.75'
+                    'c.69 0 1.25.56 1.25 1.25v5.5c0 .69-.56 1.25-1.25 1.25h-8.5c-.69 0-1.25-.56-1.25-1.25v-5.5'
+                    'C2.5 7.56 3.06 7 3.75 7ZM6 7h4V5a2 2 0 1 0-4 0Z"/></svg>')
 
 
 def _anchor(target: str) -> Markup:
@@ -617,7 +637,7 @@ def build_site(run, out_dir: Path) -> Path:
     env.globals.update(repository_public=external.repository_public, author=_author, min_logic=report.MINIMAL_LOGIC_CELLS, area_text=_area_text)
     env.filters.update(autolink=_autolink)
     env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id,
-                       runs_linked=links.runs_linked)
+                       runs_linked=links.runs_linked, lock_icon=_LOCK_ICON)
     # Where a reader goes next: the Tiny Tapeout GF180MCU chips taking projects, and the wafer.space run taking orders.
     next_tt, next_ws = tinytapeout.next_shuttles(external.tt_chips()), external.next_run()
     if next_ws:
@@ -675,6 +695,9 @@ def build_site(run, out_dir: Path) -> Path:
     # A JavaScript-free strip of the designs for other pages to embed; dies with photographs first.
     embed_designs = sorted(stats.designs, key=lambda d: (d.code not in context["photos"], d.code))
     (site_dir / "embed.html").write_text(env.get_template("embed.html").render(embed_designs=embed_designs, **context))
+    # Where the reticle's locked slots lead: what a private design is, and that a design can stay closed.
+    if any(p["private"] for p in context["placements"]):
+        (site_dir / "private.html").write_text(env.get_template("private.html").render(root="", **context))
 
     projects_dir = site_dir / "projects"
     projects_dir.mkdir(exist_ok=True)
