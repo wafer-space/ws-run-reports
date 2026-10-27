@@ -137,7 +137,20 @@ def main(argv=None):
                            "for the website's _data/density.yml")
     bench.add_argument("--out", type=Path, help="output directory holding the run analyses (default: out/)")
     bench.add_argument("--output", type=Path, required=True, help="YAML file to write")
+    pub = sub.add_parser("published", help="build every run's pages again from its published data and renders, "
+                         "without the layout (for CI)")
+    pub.add_argument("--repos", type=Path, help="directory to clone the run repositories into")
+    pub.add_argument("--repo", action="append", metavar="OWNER/NAME",
+                     help="only the pages published from this repository (repeat for more; default all)")
+    pub.add_argument("--out", type=Path, help="output directory (default: out/)")
+    pub.add_argument("--preview", type=Path, help="also gather the pages here, as wafer.space serves them, "
+                     "marked as a preview")
+    pub.add_argument("--label", default="these pages", help="what the preview's banner says it is a preview of")
+    pub.add_argument("--list-repos", action="store_true", help="print the repositories as a JSON list and stop")
     args = parser.parse_args(argv)
+    if args.command == "published":
+        from . import published
+        return published.main(args)
     if args.command == "tt-manifest":
         return cmd_tt_manifest(args)
     if args.command == "collection":
