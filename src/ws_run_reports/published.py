@@ -171,7 +171,9 @@ def build(runs, collections, out_root: Path) -> None:
 ROBOTS_META = '<meta name="robots" content="noindex, nofollow">'
 ROBOTS_META_RE = re.compile(r'<meta name="robots" content="[^"]*">')
 BANNER_STYLE = ("background:#fff3cd;color:#664d03;border-bottom:1px solid #e6c65c;padding:8px 16px;"
-                "font:14px/1.4 system-ui,sans-serif;text-align:center;position:relative;z-index:2000")
+                # The page's own font (the website's Jost), falling back to the system's.
+                "font-family:Jost,system-ui,sans-serif;font-size:14px;line-height:1.4;"
+                "text-align:center;position:relative;z-index:2000")
 
 
 def banner(label: str) -> str:
@@ -186,7 +188,9 @@ def mark_preview(page: str, label: str) -> str:
     if ROBOTS_META_RE.search(page):
         page = ROBOTS_META_RE.sub(ROBOTS_META, page, count=1)
     else:
-        page = re.sub(r"<head[^>]*>", lambda m: f"{m.group(0)}\n  {ROBOTS_META}", page, count=1)
+        # After the charset declaration where there is one, which should come first.
+        anchor = r"<meta charset=[^>]*>" if re.search(r"<meta charset=", page) else r"<head[^>]*>"
+        page = re.sub(anchor, lambda m: f"{m.group(0)}\n  {ROBOTS_META}", page, count=1)
     return re.sub(r"<body[^>]*>", lambda m: f"{m.group(0)}\n{banner(label)}", page, count=1)
 
 
