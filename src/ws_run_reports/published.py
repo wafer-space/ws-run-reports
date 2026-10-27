@@ -24,7 +24,7 @@ import subprocess
 from pathlib import Path
 
 from . import collection as collection_module
-from . import config, cores, projects, report
+from . import config, cores, projects, publish, report
 from . import site as site_module
 from . import stats as stats_module
 
@@ -230,8 +230,40 @@ def preview(runs, collections, out_root: Path, dest: Path, label: str) -> Path:
     return index
 
 
+def _show(clone: Path, *args) -> str:
+    return subprocess.run(["git", "-C", str(clone), "show", "--format=", *args, "HEAD"],
+                          check=True, capture_output=True, text=True).stdout
+
+
+def deploy(runs, collections, out_root: Path, push: bool, allow_deletions: bool = False) -> list:
+    """``publish <run> gh-pages`` for every run and ``collection --publish`` for every collection, from the
+    pages built in ``out_root``, each committed in a scratch clone and, with ``push``, pushed before the next
+    is cloned (the runs of a shared repository publish to one branch). A commit that deletes a file on
+    gh-pages is not pushed unless ``allow_deletions``. Returns the names of those whose pages changed."""
+    targets = [(run.name, lambda out_dir, run=run: publish.publish(run, out_dir, PAGES_BRANCH)) for run in runs]
+    targets += [(name, lambda out_dir, name=name: publish.publish_collection(
+        collection_module.load(name), out_dir / "site", out_dir)) for name in collections]
+    changed = []
+    for name, commit in targets:
+        out_dir = Path(out_root) / name
+        if not commit(out_dir):
+            continue
+        changed.append(name)
+        clone = out_dir.resolve() / "publish" / PAGES_BRANCH
+        deleted = _show(clone, "--diff-filter=D", "--name-only").split()
+        print(f"  {name}: {_show(clone, '--shortstat').strip()}" + "".join(f"\n    deletes {p}" for p in deleted))
+        if not push:
+            continue
+        if deleted and not allow_deletions:
+            raise SystemExit(f"not pushing {name}: its pages would delete {len(deleted)} files from {PAGES_BRANCH} "
+                             "(above); check them, then deploy again allowing deletions")
+        publish.git("push", "origin", PAGES_BRANCH, cwd=clone)
+        print(f"Pushed {name}")
+    return changed
+
+
 def main(args) -> None:
-    """``ws-run-reports published``: fetch, build and optionally gather a preview."""
+    """``ws-run-reports published``: fetch, build and optionally gather a preview; or publish what was built."""
     if args.list_repos:
         # For a CI matrix: one job per repository.
         print(json.dumps(site_repos(config.load_run(name) for name in config.available_runs())))
@@ -245,6 +277,16 @@ def main(args) -> None:
         raise SystemExit(f"no run is published from {', '.join(unknown)}; the repositories are {', '.join(sorted(known))}")
     selected = set(args.repo) if args.repo else known
     out_root = args.out or Path("out")
+    if args.publish_built:
+        # A step of its own, so that the build's output can be checked before anything is published.
+        built = [run for run in runs if run.repo in selected and (out_root / run.name / "site" / "index.html").exists()]
+        if not built:
+            raise SystemExit(f"no pages have been built in {out_root} for {', '.join(sorted(selected))}")
+        collections = [name for name in collections_for(selected) if (out_root / name / "site" / "index.html").exists()]
+        changed = deploy(built, collections, out_root, push=args.push, allow_deletions=args.allow_deletions)
+        verb = "Pushed" if args.push else "Committed, not pushed:"
+        print(f"{verb} {', '.join(changed)}" if changed else "No page changed; nothing to publish.")
+        return
     found, missing = fetch(runs, args.repos, out_root, full_pages=selected)
     chosen = [run for run in found if run.repo in selected]
     if not chosen:
