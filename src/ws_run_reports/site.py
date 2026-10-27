@@ -616,17 +616,23 @@ def same_layouts(rows: list) -> list:
     return rows
 
 
+def template_environment() -> Environment:
+    """The pages' templates with their filters; the run's own globals are added by ``build_site``."""
+    env = Environment(loader=PackageLoader("ws_run_reports", "templates"),
+                      autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
+    env.filters.update(k=report.k, pct=report.pct, count=report.count, count_fine=report.count_fine,
+                       library_label=library_label,
+                       describe_cell=describe_cell, autolink=_autolink)
+    return env
+
+
 def build_site(run, out_dir: Path) -> Path:
     """Render ``index.html`` and one page per project into ``out_dir/site``."""
     context = build_context(run, out_dir)
     stats = context["stats"]
     site_dir = out_dir / "site"
 
-    env = Environment(loader=PackageLoader("ws_run_reports", "templates"),
-                      autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
-    env.filters.update(k=report.k, pct=report.pct, count=report.count, count_fine=report.count_fine,
-                       library_label=library_label,
-                       describe_cell=describe_cell)
+    env = template_environment()
     # A content hash on the stylesheet and script links, so browsers fetch them again after a change.
     static = Path(__file__).parent / "static"
     digest = hashlib.sha256(b"".join(path.read_bytes() for path in sorted(static.iterdir())))
@@ -635,7 +641,6 @@ def build_site(run, out_dir: Path) -> Path:
     env.globals.update(related=lambda design: related.for_slot(run, design.project),
                        compare_dies=lambda design: _compare_dies(run, stats, design, out_dir.parent))
     env.globals.update(repository_public=external.repository_public, author=_author, min_logic=report.MINIMAL_LOGIC_CELLS, area_text=_area_text)
-    env.filters.update(autolink=_autolink)
     env.globals.update(links=links, link=links.html, anchor=_anchor, category_id=category_id,
                        runs_linked=links.runs_linked, lock_icon=_LOCK_ICON)
     # Where a reader goes next: the Tiny Tapeout GF180MCU chips taking projects, and the wafer.space run taking orders.

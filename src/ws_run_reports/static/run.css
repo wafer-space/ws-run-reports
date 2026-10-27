@@ -166,6 +166,9 @@
 .run-guidance .run-group, .run-guidance .run-group-start { border-left: 1px solid var(--run-line); }
 .run-guidance .run-note { display: block; font-size: 0.75rem; font-weight: 400; color: var(--run-muted); }
 .run-ip-only { opacity: 0.55; }
+/* Text for screen readers only. */
+.run-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* Who owns a timeline step, where two schedules meet (a Tiny Tapeout die on a wafer.space run). */
 .run-owner { display: inline-block; font-size: 0.7rem; font-weight: 600; line-height: 1.4; padding: 0 6px; border-radius: 3px;
@@ -390,15 +393,7 @@
   .run-tl-track { height: var(--hm, 40px); }
   .run-tl-dot { transform: translateY(var(--dym, 0px)); }
 }
-/* A Tiny Tapeout chip's project index: long, so the header stays in view while scrolling it. */
-/* The project index shows its first rows; the toggle under it shows the rest. */
-.run-index-toggle { position: absolute; opacity: 0; pointer-events: none; }
-.run-index tr.run-extra { display: none; }
-.run-index-toggle:checked + .run-index tr.run-extra { display: table-row; }
-.run-index-more { display: inline-block; margin-top: 10px; color: var(--run-accent); cursor: pointer; font-weight: 600; }
-.run-index-more .run-hide, .run-index-toggle:checked ~ .run-index-more .run-show { display: none; }
-.run-index-toggle:checked ~ .run-index-more .run-hide { display: inline; }
-.run-index-toggle:focus-visible ~ .run-index-more { outline: 2px solid var(--run-accent); outline-offset: 2px; }
+/* The project index: no gap under its table. */
 .run-index table { margin-bottom: 0; }
 /* Run names linked in a hero's title stay white, underlined. */
 .run-hero .page-title-sub a, [data-theme="dark"] .run-hero .page-title-sub a { color: inherit; text-decoration: underline;
@@ -406,7 +401,7 @@
 /* The shuttle status's two lists: done so far, still to come. */
 .run-status-head { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--run-muted); margin: 0 0 12px; }
 .run-reticle-frame { margin-inline: auto; }
-/* A list behind its count, inside a table cell: the summary reads as a link. */
+/* Details behind a short summary inside a table cell (a design's commit and PDK pin): the summary reads as a link. */
 .run-more-inline { margin: 0; }
 .run-more-inline > summary { display: inline; cursor: pointer; margin: 0; }
 .run-more-inline[open] > summary { display: block; margin-bottom: 4px; }
@@ -417,11 +412,6 @@
 /* A framed reticle shown cropped to its dies (the frame's scale, without the empty frame). */
 .run-reticle-crop { overflow: hidden; border-radius: 6px; line-height: 0; }
 .run-reticle-crop .run-reticle.framed { outline: 0; }
-/* The index's toggle reads as a link, like the other show-all toggles (the theme styles labels dark). */
-label.run-index-more { color: #2f7fb8; }
-[data-theme="dark"] label.run-index-more { color: var(--run-accent); }
-label.run-index-more::before { content: "▸ "; color: var(--run-muted); }
-.run-index-toggle:checked ~ label.run-index-more::before { content: "▾ "; }
 /* A chart row is a link to the design: its code is link-coloured, and its name underlines on hover. */
 .run-row .run-row-label strong { color: #2f7fb8; }
 [data-theme="dark"] .run-row .run-row-label strong { color: var(--run-accent); }
