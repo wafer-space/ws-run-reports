@@ -1,0 +1,115 @@
+name: Deploy
+
+# Rebuilds the run pages with the merged code, from the data already published (each run repository's
+# density-report branch and the renders on its gh-pages branch), and pushes them to each run repository's
+# gh-pages branch where they changed: what `publish <run> gh-pages --push` and `collection --publish --push`
+# do by hand. analyze and render are never run here.
+#
+# Pushing needs the repository secret RUN_PAGES_TOKEN (see the README). Run it by hand from the Actions tab
+# for a dry run, which builds and commits in scratch clones and shows what would change without pushing.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      push:
+        description: Push the pages that changed (unticked, a dry run that only shows what would change)
+        type: boolean
+        default: false
+      repo:
+        description: Only this run repository (owner/name, e.g. wafer-space/ws-run2); empty for all
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+# One deployment at a time; a newer one waits for the one running rather than cancelling it.
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  repos:
+    name: List the run repositories
+    runs-on: ubuntu-latest
+    outputs:
+      repos: ${{ steps.list.outputs.repos }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: List
+        id: list
+        env:
+          ONLY: ${{ inputs.repo }}
+        run: |
+          repos=$(uv run ws-run-reports published --list-repos)
+          if [ -n "$ONLY" ]; then
+            if ! jq -e --arg r "$ONLY" 'index($r)' <<< "$repos" > /dev/null; then
+              echo "::error::$ONLY is not a run repository; they are $repos"
+              exit 1
+            fi
+            repos=$(jq -c --arg r "$ONLY" '[$r]' <<< "$repos")
+          fi
+          echo "repos=$repos" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy ${{ matrix.repo }}
+    needs: repos
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: ${{ fromJSON(needs.repos.outputs.repos) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install
+        run: uv sync --locked
+      - name: Run the tests
+        run: uv run pytest -q
+      - name: Name the cache
+        id: name
+        env:
+          REPO: ${{ matrix.repo }}
+        run: |
+          echo "name=preview-${REPO#*/}" >> "$GITHUB_OUTPUT"
+          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+      # The GitHub lookups (out/github_*.json), shared with the previews of pull requests: see preview.yml.
+      - name: Restore the GitHub lookups
+        uses: actions/cache@v4
+        with:
+          path: |
+            out/github_accounts.json
+            out/github_repos.json
+          key: github-lookups-${{ steps.name.outputs.name }}-${{ steps.name.outputs.week }}-${{ github.run_id }}
+          restore-keys: github-lookups-${{ steps.name.outputs.name }}-${{ steps.name.outputs.week }}-
+      - name: Build and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_PAGES_TOKEN: ${{ secrets.RUN_PAGES_TOKEN }}
+          REPO: ${{ matrix.repo }}
+          PUSH: ${{ github.event_name == 'push' || inputs.push }}
+        run: |
+          if [ "$PUSH" = true ]; then
+            scripts/ci-deploy-pages "$REPO" --push
+          else
+            scripts/ci-deploy-pages "$REPO"
+          fi
+      - name: Summary
+        if: ${{ !cancelled() }}
+        env:
+          REPO: ${{ matrix.repo }}
+          PUSH: ${{ github.event_name == 'push' || inputs.push }}
+        run: |
+          {
+            if [ "$PUSH" = true ]; then echo "### $REPO"; else echo "### $REPO (dry run, nothing pushed)"; fi
+            echo
+            echo '```'
+            if [ -f ci/publish.log ]; then grep -v '^  \$ git' ci/publish.log || true; else echo "Not published: see the log."; fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
