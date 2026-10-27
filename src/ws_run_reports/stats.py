@@ -596,10 +596,11 @@ class RunStats:
 
 
 def data_files(out_dir: Path) -> list:
-    """The measurement files published with a run: the CSVs, what was measured, imported project details."""
+    """The measurement files published with a run: the CSVs, what was measured, imported project details and the
+    designs' core areas, so that the pages can be built again from what is published."""
     from .projects import PROJECTS_NAME
     files = sorted(out_dir.glob(f"{OUTPUT_STEM}*.csv")) + sorted(out_dir.glob(f"{OUTPUT_STEM}*.json"))
-    return files + [path for path in [out_dir / PROJECTS_NAME] if path.exists()]
+    return files + [path for path in [out_dir / PROJECTS_NAME, out_dir / cores.FILE] if path.exists()]
 
 
 def _read(path: Path) -> list:
