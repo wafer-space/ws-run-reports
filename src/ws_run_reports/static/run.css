@@ -21,12 +21,38 @@
 .run-mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; }
 .run-stat { font-variant-numeric: tabular-nums; }
 
-/* Tables */
-.run-table { color: var(--run-ink); font-variant-numeric: tabular-nums; }
+/* Tables: one style for every data table. Each sits on the surface in a frame, with a tinted header, zebra rows
+   and a thin rule under each row. Vertical rules mark only the column groups: a cell with .run-group-start begins
+   a group (what the row is, then each set of related figures), and a .run-groups header row names the groups
+   over their columns. A second <tbody> is a group of rows, set off by a stronger rule; .run-row-groups stripes
+   whole <tbody> groups rather than rows (a design and its versions). Child combinators keep all of this off the
+   small tables nested inside a cell (.run-mini). The site's light tables use the same header and stripe tints. */
+:root { --run-stripe: #f1f4f7; --run-head: #e8ecf1; --run-rule: #b9c3ce; }
+[data-theme="dark"] { --run-stripe: #343434; --run-head: #3a3a3a; --run-rule: #6b6b6b; }
+.run-table { color: var(--run-ink); font-variant-numeric: tabular-nums; border: 1px solid var(--run-rule); }
 /* Bootstrap colours table cells from its own variables, which the dark theme does not set. */
-.run-table { --bs-table-color: var(--run-ink); --bs-table-bg: transparent; }
+.run-table { --bs-table-color: var(--run-ink); --bs-table-bg: var(--run-surface); }
 .run-table th { font-weight: 600; white-space: nowrap; }
-.run-table td, .run-table th { border-color: var(--run-line); vertical-align: middle; }
+/* .table.run-table: above the dark theme's own "[data-theme=dark] .table td" border colour. */
+.run-table.table > * > tr > * { border-color: var(--run-line); vertical-align: middle; }
+.run-table > thead > tr > * { --bs-table-bg: var(--run-head); }
+.run-table > thead > tr:last-child > * { border-bottom-color: var(--run-rule); }
+/* Body rows are ruled between each other, not under the last, so the frame closes the table even when the
+   rows after the first few are hidden (the project index). */
+.run-table > tbody > tr > *, .run-table > tfoot > tr > * { border-bottom-width: 0; }
+.run-table > tbody > tr + tr > * { border-top-width: 1px; }
+.run-table > tbody + tbody > tr:first-child > *, .run-table > tfoot > tr:first-child > * { border-top: 1px solid var(--run-rule); }
+.run-table > tbody > tr:nth-of-type(even) > * { --bs-table-bg-type: var(--run-stripe); }
+.run-table.run-row-groups > tbody > tr > * { --bs-table-bg-type: initial; }
+.run-table.run-row-groups > tbody:nth-of-type(even) > tr > * { --bs-table-bg-type: var(--run-stripe); }
+.run-table.table > * > tr > .run-group-start { border-left: 1px solid var(--run-rule); }
+/* Group headers: a label centred over its columns, underlined across them. */
+.run-table .run-groups > th { border-bottom: 0; padding-bottom: 0; }
+.run-table .run-groups > .run-group { text-align: center; font-weight: 600; white-space: normal; border-bottom: 1px solid var(--run-rule); }
+.run-table .run-groups > .run-group, .run-table .run-groups > .run-group-start { border-left: 1px solid var(--run-rule); }
+/* A fact table's label and its value. */
+.run-table.run-facts > tbody > tr > td { border-left: 1px solid var(--run-rule); }
+.run-table .run-note { display: block; font-size: 0.75rem; font-weight: 400; color: var(--run-muted); }
 [data-theme="dark"] .run-table.bg-white { background: var(--run-surface) !important; }
 /* Each project's share of a shared block (Tiny Tapeout GF 0.1), as a bar with its percentage. */
 .run-netlist-bar { width: 22%; min-width: 140px; white-space: nowrap; }
@@ -161,10 +187,6 @@
 .page-title-sub:first-of-type { margin-top: 0.3em; }
 .run-guidance { font-size: 0.85rem; }
 .run-guidance thead th { vertical-align: bottom; white-space: nowrap; }
-.run-guidance .run-groups th { border-bottom: 0; padding-bottom: 0; }
-.run-guidance .run-group { text-align: center; font-weight: 600; border-bottom: 1px solid var(--run-line); }
-.run-guidance .run-group, .run-guidance .run-group-start { border-left: 1px solid var(--run-line); }
-.run-guidance .run-note { display: block; font-size: 0.75rem; font-weight: 400; color: var(--run-muted); }
 .run-ip-only { opacity: 0.55; }
 /* Text for screen readers only. */
 .run-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
