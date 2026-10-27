@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% import "_tinytapeout.html" as tiny with context %}
 {% import "_history.html" as history with context %}
+{% import "_names.html" as names with context %}
 {% set short_title = run.short_title %}
-{# Long lists show this many rows; the rest open under "Show all". #}
-{% set SHOWN = 12 %}
 {% block title %}{{ short_title }} — wafer.space{% endblock %}
 
 {% macro stat(value, label, note='') %}
@@ -44,14 +43,6 @@
     </div>
   </a>
 </div>
-{% endmacro %}
-
-{# Which designs: their names, linked; more than a few go behind their count. key: a device whose reused-IP
-   users are shown faded. #}
-{% macro who(users, key=none) %}
-{% set names %}{% for u in users %}<a class="{{ 'run-ip-only' if key and u.ip_only(key) }}" href="{{ design_href(u.code) }}"
-  {% if key and u.ip_only(key) %}title="Only inside reused {{ u.ip_sources[key] | join(', ') }}"{% endif %}>{{ u.name }}</a>{{ ", " if not loop.last }}{% endfor %}{% endset %}
-{% if users | length <= 6 %}{{ names }}{% else %}<details class="run-more run-more-inline"><summary>{{ users | length }} {{ 'projects' if tt else 'designs' }}</summary>{{ names }}</details>{% endif %}
 {% endmacro %}
 
 {% block content %}
@@ -328,14 +319,8 @@
       </a>
     {% endmacro %}
     <div class="run-rows">
-      {% for d in rows[:SHOWN] %}{{ area_row(d) }}{% endfor %}
+      {% for d in rows %}{{ area_row(d) }}{% endfor %}
     </div>
-    {% if rows | length > SHOWN %}
-    <details class="run-more">
-      <summary>Show all {{ rows | length }} {{ words.dies }}</summary>
-      <div class="run-rows">{% for d in rows[SHOWN:] %}{{ area_row(d) }}{% endfor %}</div>
-    </details>
-    {% endif %}
   </div>
 </div>
 
@@ -368,7 +353,7 @@
           <tbody>
             {% for key, label, users in stats.feature_popularity if users %}
             <tr><td>{{ link(label, links.feature(key)) }}</td><td class="text-end">{{ users | length }}</td>
-              <td class="run-which">{{ who(users, key) }}</td></tr>
+              <td class="run-which">{{ names.who(users, key) }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -377,8 +362,8 @@
         {% if unused %}<p class="small text-muted mb-0">Not drawn by any design: {% for key, label, _ in unused %}{{ link(label, links.feature(key)) }}{{ ", " if not loop.last }}{% endfor %}.</p>{% endif %}
         <p class="small text-muted">Only devices outside standard cells, SRAM macros and I/O pads count, since every
           die has those. A single test structure counts the same as a large block.{% if stats.designs | selectattr("ip_sources") | list %}
-          <span class="run-ip-only">Faded</span> names have the device only inside a reused block; hover
-          over one to see which.{% endif %}</p>
+          <span class="run-ip-only">Faded</span> names, listed last, have the device only inside a reused block;
+          hover over one to see which.{% endif %}</p>
       </div>
     </div>
     <div class="row">
@@ -394,7 +379,7 @@
               {% set with_pads = padded[loop.index0][1] %}
               <tr><td class="text-nowrap">{{ group }}</td>
                 <td class="text-end">{{ users | length }}</td>{% if has_pads %}<td class="text-end">{{ with_pads | length }}</td>{% endif %}
-                <td class="run-which">{{ who(users) }}</td></tr>
+                <td class="run-which">{{ names.who(users) }}</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -613,14 +598,8 @@
       </a>
     {% endmacro %}
     <div class="run-rows">
-      {% for d in digital[:SHOWN] %}{{ density_row(d) }}{% endfor %}
+      {% for d in digital %}{{ density_row(d) }}{% endfor %}
     </div>
-    {% if digital | length > SHOWN %}
-    <details class="run-more">
-      <summary>Show all {{ digital | length }} digital {{ words.dies }}</summary>
-      <div class="run-rows">{% for d in digital[SHOWN:] %}{{ density_row(d) }}{% endfor %}</div>
-    </details>
-    {% endif %}
     {# The same figures, and the areas they are over, as a table to read across or copy. #}
     <details class="run-more">
       <summary>Every digital {{ words.die }}'s densities as a table</summary>
@@ -664,8 +643,6 @@
     <p class="mb-20 run-measure">{% if tt %}All {{ index_rows | length }} projects by their address on the chip's multiplexer, with
       how many tiles each took and how much logic it packs.{% else %}All {{ index_rows | length }} public designs by their
       code, with the slot each took and how much logic it packs.{% endif %}</p>
-    {% set INDEX_SHOWN = 16 %}
-    {% if index_rows | length > INDEX_SHOWN %}<input type="checkbox" id="run-index-all" class="run-index-toggle">{% endif %}
     <div class="table-responsive run-index">
     <table class="table table-sm run-table">
       <thead><tr><th>{{ 'Address' if tt else 'Code' }}</th><th>{{ 'Project' if tt else 'Design' }}</th>{% if tt %}<th class="d-none d-md-table-cell">Author</th>{% endif %}<th>{{ 'Tiles' if tt else 'Slot' }}</th>
@@ -673,7 +650,7 @@
         <th class="text-end d-none d-sm-table-cell">Cells per mm²</th></tr></thead>
       <tbody>
       {% for d in index_rows %}
-      <tr{% if loop.index > INDEX_SHOWN %} class="run-extra"{% endif %}><td class="run-mono">{{ d.code }}</td>
+      <tr><td class="run-mono">{{ d.code }}</td>
         <td><a href="{{ design_href(d.code) }}">{{ d.name }}</a></td>
         {% if tt %}<td class="d-none d-md-table-cell">{{ author(d.project.extra.AUTHOR, d.project.repository) }}</td>{% endif %}
         <td class="run-nowrap">{{ d.slot_label }}</td>
@@ -684,8 +661,6 @@
       </tbody>
     </table>
     </div>
-    {% if index_rows | length > INDEX_SHOWN %}<label for="run-index-all" class="run-index-more"><span class="run-show">Show all
-      {{ index_rows | length }} {{ 'projects' if tt else 'designs' }}</span><span class="run-hide">Show the first {{ INDEX_SHOWN }} only</span></label>{% endif %}
     <p class="d-sm-none small text-muted mt-10 mb-0">Swipe the table sideways for more columns.</p>
     <div class="mb-40"></div>
     {% endif %}
@@ -723,14 +698,8 @@
     </h3>
     {% set cards = group | sort(attribute='code') | list %}
     <div class="row">
-      {% for d in cards[:SHOWN] %}{{ project_card(d) }}{% endfor %}
+      {% for d in cards %}{{ project_card(d) }}{% endfor %}
     </div>
-    {% if cards | length > SHOWN %}
-    <details class="run-more">
-      <summary>Show all {{ cards | length }} in {{ name }}</summary>
-      <div class="row">{% for d in cards[SHOWN:] %}{{ project_card(d) }}{% endfor %}</div>
-    </details>
-    {% endif %}
     {% endfor %}
   </div>
 </div>

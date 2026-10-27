@@ -1,0 +1,9 @@
+{# Which designs: every name, linked, separated by commas. key: a device whose reused-IP users are shown faded,
+   after the full-colour ones; each group keeps its order. #}
+{% macro who(users, key=none) %}
+{%- set shown = namespace(n=0) %}
+{%- for faded in (false, true) %}{% for u in users if (true if key and u.ip_only(key) else false) == faded %}
+{%- if faded %}{% set via = u.ip_sources[key] | join(', ') %}{% endif %}
+{{- ", " if shown.n }}<a{% if faded %} class="run-ip-only" title="Only inside reused {{ via }}"{% endif %} href="{{ design_href(u.code) }}">{{ u.name }}{% if faded %}<span class="run-sr-only">, only inside reused {{ via }}</span>{% endif %}</a>
+{%- set shown.n = shown.n + 1 %}{% endfor %}{% endfor %}
+{%- endmacro %}
