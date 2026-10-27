@@ -230,7 +230,7 @@
 .run-minimap svg { display: block; width: 100%; height: auto; background: var(--run-track); border-radius: 3px; }
 .run-minimap rect { fill: var(--run-line); stroke: var(--run-surface); stroke-width: 0.12; }
 .run-minimap rect.mine { fill: var(--run-accent); }
-/* The same on the proprietary designs page, with the locked slots picked out. */
+/* The same on the private designs page, with the locked slots picked out. */
 .run-private-map svg { display: block; width: 100%; height: auto; background: var(--run-track); border-radius: 6px; }
 .run-private-map rect { fill: var(--run-line); stroke: var(--run-surface); stroke-width: 0.12; }
 .run-private-map rect.locked { fill: var(--run-accent); }

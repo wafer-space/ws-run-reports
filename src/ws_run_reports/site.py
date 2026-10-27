@@ -322,7 +322,7 @@ def _children(run) -> dict:
 
 def private_slots(run) -> list:
     """The reticle's private designs, placed as the renders place the public ones: the slots of the run repository's
-    map of the reticle (``images/<shuttle>.svg``) that its README lists as private. None when it has no map."""
+    map of the reticle (``images/<shuttle>.svg``) that its README lists as private. Empty when it has no map."""
     svg = run.repo_dir / "images" / f"{run.shuttle}.svg"
     readme = run.repo_dir / "README.md"
     if run.path or not svg.exists() or not readme.exists():
@@ -695,7 +695,7 @@ def build_site(run, out_dir: Path) -> Path:
     # A JavaScript-free strip of the designs for other pages to embed; dies with photographs first.
     embed_designs = sorted(stats.designs, key=lambda d: (d.code not in context["photos"], d.code))
     (site_dir / "embed.html").write_text(env.get_template("embed.html").render(embed_designs=embed_designs, **context))
-    # Where the reticle's locked slots lead: what a proprietary design is, and how to make one.
+    # Where the reticle's locked slots lead: what a private design is, and that a design can stay closed.
     if any(p["private"] for p in context["placements"]):
         (site_dir / "private.html").write_text(env.get_template("private.html").render(root="", **context))
 

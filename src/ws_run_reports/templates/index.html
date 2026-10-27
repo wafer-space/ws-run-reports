@@ -122,7 +122,7 @@
       the die's own figures on {% if parent_die %}<a href="{{ parent_die.run.pages_url }}#reticle">its run's page</a>{% else %}its run's page{% endif %}: the pads, Tiny Tapeout's multiplexer and controller{% if run.site.edition == "power-gated" %}, the power
       switches{% endif %} and the fill are left out.</p>
     {% else %}
-    <p class="text-center text-muted small mb-0">{% if placements | selectattr("private") | first %}<a href="private.html">Proprietary
+    <p class="text-center text-muted small mb-0">{% if placements | selectattr("private") | first %}<a href="private.html">Private
       designs</a> are hidden in the <a href="{{ run.source_url }}">public layout</a>, so they are not counted.{% else %}Private
       designs on the reticle are not in the <a href="{{ run.source_url }}">public layout</a> and are not counted.{% endif %} Designs placed more than once are counted once.</p>
     {% endif %}
@@ -171,9 +171,9 @@
                  width="{{ renders.reticle.width_px }}" height="{{ renders.reticle.height_px }}">
             {% for p in placements %}
             {% if p.private %}
-            <a class="run-reticle-slot run-reticle-private" href="private.html" title="{{ p.label ~ ' — ' if p.label else '' }}Proprietary design (not published)"
+            <a class="run-reticle-slot run-reticle-private" href="private.html" title="{{ p.label ~ ' — ' if p.label else '' }}Private design (not published)"
                {% if p.label %}data-col="{{ p.col }}" data-row="{{ p.row }}"{% endif %}
-               style="left: {{ '%.3f' | format(p.left * 100) }}%; top: {{ '%.3f' | format(p.top * 100) }}%; width: {{ '%.3f' | format(p.width * 100) }}%; height: {{ '%.3f' | format(p.height * 100) }}%;">{{ lock_icon }}<span>{% if p.label %}{{ p.label }} · {% endif %}Proprietary</span></a>
+               style="left: {{ '%.3f' | format(p.left * 100) }}%; top: {{ '%.3f' | format(p.top * 100) }}%; width: {{ '%.3f' | format(p.width * 100) }}%; height: {{ '%.3f' | format(p.height * 100) }}%;">{{ lock_icon }}<span>{% if p.label %}{{ p.label }} · {% endif %}Private</span></a>
             {% else %}
             {% set d = design_by_code[p.code] %}
             <a class="run-reticle-slot" href="{{ design_href(p.code) }}" title="{{ p.label ~ ' — ' if p.label else '' }}{{ p.code }} — {{ d.name }}"
@@ -188,7 +188,7 @@
           it sits on the {{ renders.reticle.width_mm | round(1) | string | replace(".0", "") }} × {{ renders.reticle.height_mm | round(1) | string | replace(".0", "") }} mm
           {{ words.reticle }}.{% if framed %} It is drawn at the same scale as the {{ '%.0f' | format(renders.reticle.frame_width_mm) }} × {{ '%.1f' | format(renders.reticle.frame_height_mm) }} mm
           reticles of wafer.space Runs 1 and 2, so its dies can be compared with theirs.{% endif %}{% set locked = placements | selectattr("private") | list | length %}{% if locked %} The locked
-          slots hold <a href="private.html">proprietary designs</a>, which are hidden in the public layout.{% endif %}{% if stats.placements + locked < run.slots %} Dark gaps are {{ 'empty slots' if locked else 'private designs or empty slots' }}.{% endif %}{% if run.site.slot_origin == "top-right" %} The slots are named as in the shuttle's own list: rows lettered from the top, columns numbered from the right.{% endif %}
+          slots hold <a href="private.html">private designs</a>, which are hidden in the public layout.{% endif %}{% if stats.placements + locked < run.slots %} Dark gaps are {{ 'empty slots' if locked else 'private designs or empty slots' }}.{% endif %}{% if run.site.slot_origin == "top-right" %} The slots are named as in the shuttle's own list: rows lettered from the top, columns numbered from the right.{% endif %}
           <span class="d-none d-sm-inline">Point at a {{ words.die }} to see its name, and select it for its details.</span><span class="d-sm-none">Every {{ words.die }} is listed further down.</span></p>
         {% else %}
         <p class="text-muted">Renders have not been generated for this run yet.</p>
