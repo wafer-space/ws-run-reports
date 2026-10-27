@@ -3,7 +3,7 @@
 {% set short_title = run.short_title %}
 {% set locked = placements | selectattr("private") | list %}
 {% block title %}Proprietary designs — {{ short_title }}{% endblock %}
-{% block description %}Many designs on {{ run.heading[0] }} are open source, but yours does not have to be: wafer.space makes proprietary designs too.{% endblock %}
+{% block description %}Many designs on {{ run.heading[0] }} are open source, but yours doesn't have to be. On wafer.space, your design can be open or closed.{% endblock %}
 
 {% block content %}
 <div class="wrapper image-wrapper bg-image page-title-wrapper run-hero inverse-text"
@@ -19,14 +19,14 @@
   <div class="container inner run-inner-slim">
     <div class="row gutter-50 align-items-center">
       <div class="col-lg-7">
-        <p class="lead">Many of the designs on {{ run.heading[0] }} are open source. Their makers published their
-          layouts, so every one of them is measured and shown on <a href="{{ root }}index.html#projects">the run's
-          page</a>, for anyone to learn from.</p>
+        <p class="lead">Many of the designs on {{ run.heading[0] }} are open source. Their makers published them, so we
+          measure and show each one on <a href="{{ root }}index.html#projects">the run's page</a> for anyone to learn
+          from.</p>
         <p class="mb-lg-0">{{ locked | length }} of the {{ run.slots }} slots on this reticle hold proprietary designs. They
-          were made on the same wafers as the open-source ones, but their owners keep them private: in the run's
-          <a href="{{ run.source_url }}">public layout</a> their slots are obfuscated to hide what is inside, and its
-          list of projects gives only their codes and slot sizes. So these pages show them as locked slots, and they are not
-          measured.</p>
+          were made on the same wafers as the open-source ones, but their owners chose not to publish them. In the
+          run's <a href="{{ run.source_url }}">public layout</a> these slots are scrambled to hide what is inside, and
+          the project list shows only a short code and the slot size. So we show them here as locked slots and don't
+          measure them.</p>
       </div>
       <div class="col-lg-5">
         {% set fw = renders.reticle.frame_width_mm or renders.reticle.width_mm %}{% set fh = renders.reticle.frame_height_mm or renders.reticle.height_mm %}
@@ -44,10 +44,11 @@
 
 <div class="wrapper gray-wrapper">
   <div class="container inner run-inner-slim">
-    <h2 id="submit" class="section-title mb-20">Make a proprietary design</h2>
-    <p>The {{ run.process }} process design kit is open, but your design can be open or closed. You don't have to
-      publish its layout or its source, and no NDA is needed to get started. A proprietary design
-      goes on the same reticle as the open-source ones.</p>
+    <h2 id="submit" class="section-title mb-20">Your design can stay closed</h2>
+    <p>The {{ run.process }} process design kit (the PDK) is open source, but your design can be open or closed. You
+      don't have to publish its layout or its source, and you don't need to sign a non-disclosure agreement (NDA) to
+      get started. On {{ run.heading[0] }}, proprietary and open-source designs shared the same reticle.</p>
+    <p>Proprietary here just means the files aren't published. Open-source designs can be commercial too.</p>
     <p>Questions about keeping a design private? Email <a href="mailto:info@wafer.space">info@wafer.space</a>.</p>
     <p class="mb-0">
       {% if next_ws %}<a class="btn btn-s mb-10 me-10" href="{{ next_ws.url }}">Reserve a slot on {{ next_ws.name }}</a>{% endif %}
