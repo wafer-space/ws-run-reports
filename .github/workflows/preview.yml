@@ -47,7 +47,19 @@ jobs:
         id: name
         env:
           REPO: ${{ matrix.repo }}
-        run: echo "name=preview-${REPO#*/}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "name=preview-${REPO#*/}" >> "$GITHUB_OUTPUT"
+          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+      # Whether each design's repository is public and whose account owns it, as looked up with `gh api`
+      # (out/github_*.json): hundreds of lookups, kept for a week so that the API's hourly limit is not reached.
+      - name: Restore the GitHub lookups
+        uses: actions/cache@v4
+        with:
+          path: |
+            out/github_accounts.json
+            out/github_repos.json
+          key: github-lookups-${{ steps.name.outputs.name }}-${{ steps.name.outputs.week }}-${{ github.run_id }}
+          restore-keys: github-lookups-${{ steps.name.outputs.name }}-${{ steps.name.outputs.week }}-
       - name: Build the pages from the published data
         env:
           # The pages say whether each design's repository is public, which `gh api` looks up.
