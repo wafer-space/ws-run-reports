@@ -1,0 +1,52 @@
+#!/bin/bash
+# Post or update the pull request comment that links to the preview artifacts of a workflow run
+# (.github/workflows/preview.yml). Reads GH_TOKEN, REPOSITORY (owner/name), SERVER, RUN_ID, PR, SHA and
+# RESULT (the build jobs' result) from the environment.
+set -euo pipefail
+
+marker="<!-- ws-run-reports-preview -->"
+run_url="$SERVER/$REPOSITORY/actions/runs/$RUN_ID"
+
+rows=$(gh api --paginate "repos/$REPOSITORY/actions/runs/$RUN_ID/artifacts" --jq '
+  .artifacts[] | select(.name | startswith("preview-")) |
+  "| \(.name | ltrimstr("preview-")) | [\(.name).zip](\(env.SERVER)/\(env.REPOSITORY)/actions/runs/\(env.RUN_ID)/artifacts/\(.id)) | \((.size_in_bytes / 104857.6 | round) / 10) MB |"')
+
+if [ "$RESULT" = "success" ]; then
+  status="Built from ${SHA:0:7} with the data already published."
+else
+  status="**Some pages could not be built** ($RESULT): see [the workflow run]($run_url). The previews that were built are below."
+fi
+
+if [ -n "$rows" ]; then
+  table=$(printf '| Pages of | Download | Size |\n|---|---|---|\n%s' "$rows")
+else
+  table="No preview was uploaded."
+fi
+
+body=$(cat <<EOF
+$marker
+### Preview of the run pages
+
+$status
+
+$table
+
+Each download holds the pages as wafer.space serves them: unpack it and open \`index.html\`. The pages load
+the website's stylesheet from wafer.space, links to other runs open the live site, and the downloads expire
+after 14 days. The measurements and renders are the published ones (each run repository's \`density-report\`
+and \`gh-pages\` branches): a change to analyze or render shows here only once its results are published.
+
+[Workflow run]($run_url)
+EOF
+)
+
+ids=$(gh api --paginate "repos/$REPOSITORY/issues/$PR/comments" \
+  --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id")
+id=${ids%%$'\n'*}
+if [ -n "$id" ]; then
+  gh api -X PATCH "repos/$REPOSITORY/issues/comments/$id" -f body="$body" > /dev/null
+  echo "Updated comment $id"
+else
+  gh api -X POST "repos/$REPOSITORY/issues/$PR/comments" -f body="$body" > /dev/null
+  echo "Commented on #$PR"
+fi
