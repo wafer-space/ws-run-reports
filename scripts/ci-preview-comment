@@ -9,7 +9,7 @@ run_url="$SERVER/$REPOSITORY/actions/runs/$RUN_ID"
 
 rows=$(gh api --paginate "repos/$REPOSITORY/actions/runs/$RUN_ID/artifacts" --jq '
   .artifacts[] | select(.name | startswith("preview-")) |
-  "| \(.name | ltrimstr("preview-")) | [\(.name).zip](\(env.SERVER)/\(env.REPOSITORY)/actions/runs/\(env.RUN_ID)/artifacts/\(.id)) | \((.size_in_bytes / 1048576) | floor) MB |"')
+  "| \(.name | ltrimstr("preview-")) | [\(.name).zip](\(env.SERVER)/\(env.REPOSITORY)/actions/runs/\(env.RUN_ID)/artifacts/\(.id)) | \((.size_in_bytes / 104857.6 | round) / 10) MB |"')
 
 if [ "$RESULT" = "success" ]; then
   status="Built from ${SHA:0:7} with the data already published."

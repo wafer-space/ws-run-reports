@@ -26,6 +26,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+      - name: Install
+        run: uv sync --locked
       - name: List
         id: list
         run: echo "repos=$(uv run ws-run-reports published --list-repos)" >> "$GITHUB_OUTPUT"
@@ -98,6 +100,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
+      contents: read
       pull-requests: write
     steps:
       - uses: actions/checkout@v4

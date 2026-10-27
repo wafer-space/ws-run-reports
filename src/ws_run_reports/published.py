@@ -143,7 +143,7 @@ def fetch(runs, repos_root: Path, out_root: Path, full_pages=None, url: str = GI
                 continue
             copy_data(src, Path(out_root) / run.name)
             if needs_core_areas(src):
-                # Indented "warning:", as external.py's: the deployment stops on it (scripts/ci-deploy-pages).
+                # Indented "  warning:", as external.py prints its own, so that a log can be searched for both.
                 print(f"  warning: {run.name}: no {cores.FILE} on {DATA_BRANCH} yet, so each design's core is "
                       f"the project template's; publish the density report again ('publish {run.name} "
                       f"{DATA_BRANCH} --push') to include it")
@@ -223,10 +223,10 @@ def preview(runs, collections, out_root: Path, dest: Path, label: str) -> Path:
             shutil.copytree(site_dir / "images", target / "images", dirs_exist_ok=True)
         entries.append((info.short_title, f"{repo_name(info.repo)}/index.html"))
     for page in dest.rglob("*.html"):
-        page.write_text(mark_preview(page.read_text(), label))
+        page.write_text(mark_preview(page.read_text(encoding="utf-8"), label), encoding="utf-8")
     (dest / "robots.txt").write_text("User-agent: *\nDisallow: /\n")
     index = dest / "index.html"
-    index.write_text(mark_preview(_index(sorted(entries, key=lambda e: e[1]), label), label))
+    index.write_text(mark_preview(_index(sorted(entries, key=lambda e: e[1]), label), label), encoding="utf-8")
     return index
 
 
