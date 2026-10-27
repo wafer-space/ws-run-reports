@@ -140,3 +140,50 @@ def test_missing_core_areas_matter_only_where_densities_are_over_the_core(tmp_pa
     meta.write_text('{"top_cell": "G802"}')
     (tmp_path / "core_areas.json").write_text("{}")
     assert not published.needs_core_areas(tmp_path)
+
+
+def test_deploy_publishes_the_built_pages_once(tmp_path, monkeypatch):
+    for key in ("GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"):
+        monkeypatch.setenv(key, "Test")
+    for key in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
+        monkeypatch.setenv(key, "test@example.com")
+    remote = _remote(tmp_path, "wafer-space/ws-run9", {
+        "gh-pages": {"index.html": "old", "renders/AB01.webp": "image", "gone.html": "removed page"}})
+    git("checkout", "-q", "--detach", cwd=remote)   # so that its gh-pages can be pushed to
+    checkout = tmp_path / "repos" / "ws-run9"
+    subprocess.run(["git", "clone", "-q", f"file://{remote}", str(checkout)], check=True)
+    site = tmp_path / "out" / "ws-run9" / "site"
+    (site / "renders").mkdir(parents=True)
+    (site / "index.html").write_text("new")
+    (site / "renders" / "AB01.webp").write_text("image")
+    target = SimpleNamespace(name="ws-run9", repo="wafer-space/ws-run9", path="", repo_dir=checkout)
+
+    # Without pushing, a dry run: committed in the scratch clone only.
+    assert published.deploy([target], [], tmp_path / "out", push=False) == ["ws-run9"]
+    show = subprocess.run(["git", "show", "gh-pages:index.html"], cwd=remote, capture_output=True, text=True)
+    assert show.stdout == "old"
+
+    assert published.deploy([target], [], tmp_path / "out", push=True) == ["ws-run9"]
+    files = subprocess.run(["git", "ls-tree", "-r", "--name-only", "gh-pages"], cwd=remote, capture_output=True,
+                           text=True).stdout.split()
+    assert files == ["index.html", "renders/AB01.webp"]
+    show = subprocess.run(["git", "show", "gh-pages:index.html"], cwd=remote, capture_output=True, text=True)
+    assert show.stdout == "new"
+    # Nothing changed since: nothing is committed or pushed.
+    assert published.deploy([target], [], tmp_path / "out", push=True) == []
+
+
+def test_pushing_needs_publish_built():
+    import pytest
+    from ws_run_reports import cli
+    with pytest.raises(SystemExit):
+        cli.main(["published", "--repos", "x", "--push"])
+
+
+def test_deploy_script_refuses_to_push_without_a_token(tmp_path):
+    script = config.RUNS_DIR.parent / "scripts" / "ci-deploy-pages"
+    env = {"PATH": "/usr/bin:/bin", "WORK": str(tmp_path)}
+    result = subprocess.run([str(script), "wafer-space/ws-run2", "--push"], env=env, capture_output=True, text=True)
+    assert result.returncode == 1
+    assert "RUN_PAGES_TOKEN is not set" in result.stderr
+    assert not (tmp_path / "build.log").exists()

@@ -24,7 +24,7 @@ import subprocess
 from pathlib import Path
 
 from . import collection as collection_module
-from . import config, cores, projects, report
+from . import config, cores, projects, publish, report
 from . import site as site_module
 from . import stats as stats_module
 
@@ -230,8 +230,34 @@ def preview(runs, collections, out_root: Path, dest: Path, label: str) -> Path:
     return index
 
 
+def _changes(clone: Path) -> str:
+    """What the commit just made in ``clone`` changes, and every file it deletes."""
+    stat = subprocess.run(["git", "-C", str(clone), "show", "--shortstat", "--format=", "HEAD"],
+                          check=True, capture_output=True, text=True).stdout.strip()
+    deleted = subprocess.run(["git", "-C", str(clone), "show", "--diff-filter=D", "--name-only", "--format=", "HEAD"],
+                             check=True, capture_output=True, text=True).stdout.split()
+    return stat + "".join(f"\n    deletes {path}" for path in deleted)
+
+
+def deploy(runs, collections, out_root: Path, push: bool) -> list:
+    """``publish <run> gh-pages`` for every run and ``collection --publish`` for every collection, from the
+    pages built in ``out_root``; pushed with ``push``. Returns the names of those whose pages changed."""
+    changed = []
+    for run in runs:
+        out_dir = Path(out_root) / run.name
+        if publish.publish(run, out_dir, PAGES_BRANCH, push=push):
+            changed.append(run.name)
+            print(f"  {run.name}: {_changes(out_dir.resolve() / 'publish' / PAGES_BRANCH)}")
+    for name in collections:
+        out_dir = Path(out_root) / name
+        if publish.publish_collection(collection_module.load(name), out_dir / "site", out_dir, push=push):
+            changed.append(name)
+            print(f"  {name}: {_changes(out_dir.resolve() / 'publish' / PAGES_BRANCH)}")
+    return changed
+
+
 def main(args) -> None:
-    """``ws-run-reports published``: fetch, build and optionally gather a preview."""
+    """``ws-run-reports published``: fetch, build and optionally gather a preview; or publish what was built."""
     if args.list_repos:
         # For a CI matrix: one job per repository.
         print(json.dumps(site_repos(config.load_run(name) for name in config.available_runs())))
@@ -245,6 +271,16 @@ def main(args) -> None:
         raise SystemExit(f"no run is published from {', '.join(unknown)}; the repositories are {', '.join(sorted(known))}")
     selected = set(args.repo) if args.repo else known
     out_root = args.out or Path("out")
+    if args.publish_built:
+        # A step of its own, so that the build's output can be checked before anything is published.
+        built = [run for run in runs if run.repo in selected and (out_root / run.name / "site" / "index.html").exists()]
+        if not built:
+            raise SystemExit(f"no pages have been built in {out_root} for {', '.join(sorted(selected))}")
+        collections = [name for name in collections_for(selected) if (out_root / name / "site" / "index.html").exists()]
+        changed = deploy(built, collections, out_root, push=args.push)
+        verb = "Pushed" if args.push else "Committed, not pushed:"
+        print(f"{verb} {', '.join(changed)}" if changed else "No page changed; nothing to publish.")
+        return
     found, missing = fetch(runs, args.repos, out_root, full_pages=selected)
     chosen = [run for run in found if run.repo in selected]
     if not chosen:

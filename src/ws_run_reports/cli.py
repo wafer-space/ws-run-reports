@@ -147,7 +147,13 @@ def main(argv=None):
                      "marked as a preview")
     pub.add_argument("--label", default="these pages", help="what the preview's banner says it is a preview of")
     pub.add_argument("--list-repos", action="store_true", help="print the repositories as a JSON list and stop")
+    pub.add_argument("--publish-built", action="store_true", help="instead of building, commit the pages already "
+                     "built in --out to each repository's gh-pages, in scratch clones, as publish and collection "
+                     "--publish do")
+    pub.add_argument("--push", action="store_true", help="with --publish-built, push the pages that changed")
     args = parser.parse_args(argv)
+    if args.command == "published" and args.push and not args.publish_built:
+        parser.error("--push needs --publish-built")
     if args.command == "published":
         from . import published
         return published.main(args)
