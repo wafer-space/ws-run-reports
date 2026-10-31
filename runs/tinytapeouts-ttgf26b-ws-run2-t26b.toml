@@ -24,9 +24,6 @@ heading = ["Tiny Tapeout GF 26b", "Die T26B on wafer.space Run 2"]
 slot_labels = false
 # The run's schedule, with the Tiny Tapeout shuttle's own milestones (data/tt_shuttle.json) merged in.
 runs_yml_key = "gf180mcu_run_2"
-# The schedule after fabrication, from the planning sheet, is in website PR #145; back to the default
-# (main) once it merges.
-runs_yml_url = "https://raw.githubusercontent.com/wafer-space/wafer-space.github.io/run-timelines-after-fab/_data/runs.yml"
 
 [site.parent]
 title = "wafer.space Run 2 (G802)"
