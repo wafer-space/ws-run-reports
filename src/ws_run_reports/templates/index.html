@@ -194,6 +194,7 @@
           the ½ sizes are halves and quarters of one{% endif %}.{% set filled = slot_types | sum(attribute="dies") %}{% if filled > stats.designs | length %}
           Some designs are placed more than once, so {{ stats.designs | length }} designs fill {{ filled }} slots.{% endif %}{% endif %}</p>
         <table class="table table-sm run-table bg-white mb-30">
+          <thead><tr><th>{{ 'Size' if tt else 'Slot size' }}</th><th class="text-end">{{ 'Blocks' if netlist_projects else 'Projects' if tt else 'Slots' }}</th></tr></thead>
           <tbody>
             {% for row in slot_types %}<tr><td>{{ row.label }}{% if tt and words.slot %} {{ words.slot }}{% endif %}</td><td class="text-end">{{ row.dies }}</td></tr>{% endfor %}
           </tbody>
@@ -468,12 +469,13 @@
       {% for ref in reference %}
       <div class="col-md-6 col-lg-3 mb-30">
         <div class="box bg-white shadow p-30 h-100">
-          <h3 class="mb-5 color-dark">~{{ (ref.process.per_mm2 if ref.process else ref.best) | k }}</h3>
-          <p class="mb-0 font-weight-600 color-dark">{{ ref.label }}s per mm²</p>
+          <h3 class="mb-5 color-dark">~{{ (ref.process.per_mm2 if ref.process else ref.best) | per_mm2 }}</h3>
+          <p class="mb-0 font-weight-600 color-dark">{{ ref.label }}s</p>
           <p class="mb-10 small text-muted">{{ run.process }} maximum{% if ref.process %},<br>with <span class="run-nowrap">
             {{ link(ref.process.library | library_label, links.library(ref.process.library)) }}
             {{ link(ref.process.cell_type, links.cell(ref.process.library, ref.process.cell_type), mono=true) }}</span>{% endif %}</p>
-          <p class="mb-5 small text-muted">With this {{ 'chip' if tt else 'run' }}'s libraries:</p>
+          {# The unit leads the line over the table: four cards in a row leave no room to repeat it on every figure. #}
+          <p class="mb-5 small text-muted">Per mm², with this {{ 'chip' if tt else 'run' }}'s libraries:</p>
           {# Library, figure, cell: a small table so the figures line up. #}
           <table class="run-mini small mx-auto">
             <caption class="visually-hidden">{{ ref.label }}s per mm² with each of this {{ 'chip' if tt else 'run' }}'s libraries, and the cell measured</caption>
@@ -495,25 +497,25 @@
       {% if digital | length >= FEW %}
       <div class="col-md-4 mb-20">
         <div class="box bg-white shadow p-30 h-100">
-          <h3 class="mb-5 color-dark">{{ digital[0].core_density | k }}</h3>
+          <h3 class="mb-5 color-dark">{{ digital[0].core_density | per_mm2 }}</h3>
           <p class="mb-0 font-weight-600 color-dark">Best core average</p>
-          <p class="mb-0 small text-muted">logic cells/mm² of core{% if digital[0].pct_of_buffer_max %} — {{ digital[0].pct_of_buffer_max | pct }} of the buffer maximum{% endif %}</p>
+          <p class="mb-0 small text-muted">logic cells over the core{% if digital[0].pct_of_buffer_max %} — {{ digital[0].pct_of_buffer_max | pct }} of the buffer maximum{% endif %}</p>
           <p class="mb-0 small"><a href="{{ design_href(digital[0].code) }}">{{ digital[0].name }}</a></p>
         </div>
       </div>
       <div class="col-md-4 mb-20">
         <div class="box bg-white shadow p-30 h-100">
-          <h3 class="mb-5 color-dark">{{ best_peak.peak_cells | k }}</h3>
+          <h3 class="mb-5 color-dark">{{ best_peak.peak_cells | per_mm2 }}</h3>
           <p class="mb-0 font-weight-600 color-dark">{{ window_name | capitalize }}</p>
-          <p class="mb-0 small text-muted">logic cells{{ ' per mm²' if not window_is_mm }}{% if best_peak.peak_pct_of_buffer_max %} — {{ best_peak.peak_pct_of_buffer_max | pct }} of the buffer maximum{% endif %}</p>
+          <p class="mb-0 small text-muted">logic cells{{ ', scaled up to a mm²' if not window_is_mm }}{% if best_peak.peak_pct_of_buffer_max %} — {{ best_peak.peak_pct_of_buffer_max | pct }} of the buffer maximum{% endif %}</p>
           <p class="mb-0 small"><a href="{{ design_href(best_peak.code) }}">{{ best_peak.name }}</a></p>
         </div>
       </div>
       <div class="col-md-4 mb-20">
         <div class="box bg-white shadow p-30 h-100">
-          <h3 class="mb-5 color-dark">{{ median_density | k }}</h3>
+          <h3 class="mb-5 color-dark">{{ median_density | per_mm2 }}</h3>
           <p class="mb-0 font-weight-600 color-dark">Typical {{ words.die }}</p>
-          <p class="mb-0 small text-muted">median logic cells/mm² of core across {{ digital | length }} digital {{ words.dies if digital | length != 1 else words.die }}
+          <p class="mb-0 small text-muted">median core density, in logic cells, across {{ digital | length }} digital {{ words.dies if digital | length != 1 else words.die }}
             (1,000 or more logic cells)</p>
           <p class="mb-0 small text-muted">{{ median_utilisation | pct }} of the core covered by logic cells</p>
         </div>
@@ -552,7 +554,8 @@
         {% set mx = maxima %}
         {# Every column header is a label over one note line (a density or a cell), so the labels line up. #}
         {% macro head(label, note="", cls="text-end") %}<th class="{{ cls }}">{{ label }}<span class="run-note">{{ note or "\u00a0" }}</span></th>{% endmacro %}
-        {% macro per_mm2(v) %}{{ v | k }} / mm²{% endmacro %}
+        {# The density a column multiplies the core area by: its cells are counts, not densities. #}
+        {% macro at_density(v) %}at {{ v | per_mm2 }}{% endmacro %}
         {% macro ref(cell) %}{{ link(cell.cell_type, links.cell(mx.library, cell.cell_type), mono=true) if cell else "none used" }}{% endmacro %}
         <thead><tr class="run-groups">
           <th colspan="4"></th>
@@ -563,8 +566,8 @@
           {{ head('Tiles' if tt else 'Slot', cls="") }}{{ head('Size' if tt else 'Die', cls="") }}
           {{ head("Core area") }}{{ head('Projects' if tt else 'Designs') }}
           {{ head("Most", cls="text-end run-group-start") }}{{ head("Median") }}
-          {{ head("Typical", per_mm2(median_density), cls="text-end run-group-start") }}{{ head("Best", per_mm2(best_density)) }}
-          {% if window_is_mm %}{{ head("Densest", per_mm2(mx.densest)) }}{% endif %}
+          {{ head("Typical", at_density(median_density), cls="text-end run-group-start") }}{{ head("Best", at_density(best_density)) }}
+          {% if window_is_mm %}{{ head("Densest", at_density(mx.densest)) }}{% endif %}
           {{ head("NAND gates", ref(mx.nand), cls="text-end run-group-start") }}{{ head("Flip-flops", ref(mx.flop)) }}
         </tr></thead>
         <tbody>
@@ -610,7 +613,8 @@
           {% if d.seal_ring_mm %}<i class="usable" style="width: {{ '%.2f' | format([d.usable_density / scale_max, 1] | min * 100) }}%"></i>{% endif %}
         </span>
         <span class="run-row-value">{{ d.core_density | k }}{% if d.seal_ring_mm %} <span class="text-muted">/ {{ d.usable_density | k }}</span>{% endif %}
-          <span class="text-muted">/ {{ d.peak_cells | k if d.peak_cells >= d.core_density else "—" }}</span></span>
+          <span class="text-muted">/ {{ d.peak_cells | k if d.peak_cells >= d.core_density else "—" }}</span>
+          <span class="run-unit">per mm²</span></span>
       </a>
     {% endmacro %}
     <div class="run-rows">
@@ -622,20 +626,20 @@
       <div class="table-responsive">
       <table class="table table-sm run-table">
         <thead><tr><th>{{ 'Project' if tt else 'Design' }}</th><th>{{ 'Tiles' if tt else 'Slot' }}</th><th>Library</th><th class="text-end">Logic cells</th>
-          <th class="text-end">Inside core<br><span class="fw-normal text-muted">per mm²</span></th>
-          {% if sealed %}<th class="text-end">Inside seal ring<br><span class="fw-normal text-muted">per mm²</span></th>{% endif %}
-          <th class="text-end">{{ window_name | capitalize }}<br><span class="fw-normal text-muted">per mm²</span></th>
-          <th class="text-end">Core covered</th><th class="text-end">Core<br><span class="fw-normal text-muted">mm²</span></th></tr></thead>
+          <th class="text-end">Inside core</th>
+          {% if sealed %}<th class="text-end">Inside seal ring</th>{% endif %}
+          <th class="text-end">{{ window_name | capitalize }}</th>
+          <th class="text-end">Core covered</th><th class="text-end">Core area</th></tr></thead>
         <tbody>
         {% for d in digital %}
         <tr><td><a href="{{ design_href(d.code) }}">{{ d.name }}</a> <span class="text-muted run-mono">{{ d.code }}</span></td>
           <td class="run-nowrap">{{ d.slot_label }}</td><td class="run-nowrap">{{ d.library_label }}</td>
           <td class="text-end">{{ '{:,}'.format(d.logic_cells) }}</td>
-          <td class="text-end">{{ '{:,.0f}'.format(d.core_density) }}</td>
-          {% if sealed %}<td class="text-end">{{ '{:,.0f}'.format(d.usable_density) }}</td>{% endif %}
-          <td class="text-end">{{ '{:,.0f}'.format(d.peak_cells) if d.peak_cells >= d.core_density else "—" }}</td>
+          <td class="text-end">{{ d.core_density | per_mm2(full=true) }}</td>
+          {% if sealed %}<td class="text-end">{{ d.usable_density | per_mm2(full=true) }}</td>{% endif %}
+          <td class="text-end">{{ d.peak_cells | per_mm2(full=true) if d.peak_cells >= d.core_density else "—" }}</td>
           <td class="text-end">{{ d.utilisation | pct }}</td>
-          <td class="text-end">{{ '%.2f' | format(d.core_area_mm2) }}{% if d.core_source == "template" %}*{% endif %}</td></tr>
+          <td class="text-end run-nowrap">{{ '%.2f' | format(d.core_area_mm2) }} mm²{% if d.core_source == "template" %}*{% endif %}</td></tr>
         {% endfor %}
         </tbody>
       </table>
@@ -663,7 +667,7 @@
     <table class="table table-sm run-table">
       <thead><tr><th>{{ 'Address' if tt else 'Code' }}</th><th>{{ 'Project' if tt else 'Design' }}</th>{% if tt %}<th class="d-none d-md-table-cell">Author</th>{% endif %}<th>{{ 'Tiles' if tt else 'Slot' }}</th>
         <th class="d-none d-lg-table-cell">What it is</th><th class="text-end">Logic cells</th>
-        <th class="text-end d-none d-sm-table-cell">Cells per mm²</th></tr></thead>
+        <th class="text-end d-none d-sm-table-cell">Logic density</th></tr></thead>
       <tbody>
       {% for d in index_rows %}
       <tr><td class="run-mono">{{ d.code }}</td>
@@ -672,7 +676,7 @@
         <td class="run-nowrap">{{ d.slot_label }}</td>
         <td class="d-none d-lg-table-cell run-nowrap"><a href="#{{ category_id(d.category) }}">{{ d.category }}</a></td>
         <td class="text-end">{{ '{:,}'.format(d.logic_cells) }}</td>
-        <td class="text-end d-none d-sm-table-cell">{{ d.core_density | k if d.logic_cells else "" }}</td></tr>
+        <td class="text-end d-none d-sm-table-cell">{{ d.core_density | per_mm2 if d.logic_cells else "" }}</td></tr>
       {% endfor %}
       </tbody>
     </table>

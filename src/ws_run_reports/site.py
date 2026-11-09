@@ -238,6 +238,14 @@ def _area_text(mm2: float) -> str:
     return f"{mm2:.2f} mm²" if mm2 >= 0.005 else f"{mm2 * 1e6:,.0f} µm²"
 
 
+def _per_mm2(value: float, full: bool = False) -> Markup:
+    """A density with its unit, kept on one line: 21800 -> '22k/mm²', or with ``full`` '21,800/mm²'.
+
+    The unit is in its own span so that it can be set smaller than the figure."""
+    figure = f"{value:,.0f}" if full else report.k(value)
+    return Markup('<span class="run-per">{}<span class="run-unit">/mm²</span></span>').format(figure)
+
+
 URL_RE = re.compile(r"https?://[^\s<>()\[\]]+[^\s<>()\[\].,;:!?'\"]")
 
 
@@ -621,7 +629,7 @@ def template_environment() -> Environment:
     env = Environment(loader=PackageLoader("ws_run_reports", "templates"),
                       autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
     env.filters.update(k=report.k, pct=report.pct, count=report.count, count_fine=report.count_fine,
-                       library_label=library_label,
+                       per_mm2=_per_mm2, library_label=library_label,
                        describe_cell=describe_cell, autolink=_autolink)
     return env
 

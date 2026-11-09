@@ -20,6 +20,14 @@
 
 .run-mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; }
 .run-stat { font-variant-numeric: tabular-nums; }
+/* A figure with its unit ("22k/mm²"), never split across lines; the unit lighter and smaller than the figure. */
+.run-per { white-space: nowrap; color: inherit; }
+.run-unit { font-size: 0.8em; font-weight: 400; color: var(--run-muted); }
+/* The theme greys every span in a white box on a dark section (the density cards): these keep their colours. */
+.inverse-text .bg-white .run-per { color: inherit; }
+.inverse-text .bg-white .run-unit { color: var(--run-muted); }
+/* Already small text: the unit keeps its size there. */
+.run-note .run-unit { font-size: 1em; }
 
 /* Tables */
 .run-table { color: var(--run-ink); font-variant-numeric: tabular-nums; }
@@ -48,7 +56,7 @@
 .run-row { display: grid; grid-template-columns: minmax(120px, 280px) 1fr auto; gap: 14px; align-items: center; padding: 5px 8px; border-radius: 4px; color: var(--run-ink); text-decoration: none; font-size: 0.9rem; }
 .run-row:hover { background: var(--run-track); color: var(--run-ink); }
 .run-row-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.run-row-value { font-variant-numeric: tabular-nums; min-width: 5.5em; text-align: right; }
+.run-row-value { font-variant-numeric: tabular-nums; min-width: 5.5em; text-align: right; white-space: nowrap; }
 
 .run-density { position: relative; height: 14px; background: var(--run-track); border-radius: 3px; }
 .run-density i { position: absolute; left: 0; top: 0; height: 100%; border-radius: 3px; }
