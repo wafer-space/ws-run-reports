@@ -311,6 +311,28 @@ uv run ws-run-reports published --repos tmp/repos --out tmp/out --repo wafer-spa
 `$WS_RUN_REPOS` (which `published` sets to `--repos`) makes every command look for the run repositories
 there instead of beside this one.
 
+### Deploying after a merge
+
+Every push to `main` runs the same build (`.github/workflows/deploy.yml`, a job per run repository) and
+pushes each run's pages, and the Tiny Tapeout index, to its repository's `gh-pages` where they changed, as
+`publish <run> gh-pages --push` and `collection --publish --push` do. `analyze` and `render` are not run, so
+publish new measurements and renders by hand as before; the next merge, or a manual run, rebuilds the pages.
+
+Nothing is pushed when the build warns that something the pages show from elsewhere was unavailable (the
+timeline, photographs, Tiny Tapeout's chips, GitHub lookups, a run's published core areas): run the workflow
+again once it is back. Running the workflow by hand from the Actions tab is a dry run unless "Push" is ticked:
+it commits in scratch clones and shows what would change. Locally:
+
+```bash
+scripts/ci-deploy-pages wafer-space/ws-run2           # dry run, work files in ci/
+scripts/ci-deploy-pages wafer-space/ws-run2 --push    # needs $RUN_PAGES_TOKEN
+```
+
+Pushing needs the repository secret `RUN_PAGES_TOKEN`: a fine-grained personal access token whose resource
+owner is wafer-space, with access to the run repositories (ws-run1, ws-run2, google-gf180mcu-mpw0,
+google-gf180mcu-mpw18h1, tinytapeouts, and any added later) and the repository permission Contents: Read and
+write. Without it every deployment fails at once with an error naming the secret.
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE). The projects on the reticles have their own

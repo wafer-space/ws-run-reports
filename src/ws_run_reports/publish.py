@@ -132,7 +132,8 @@ def publish_pages(run, out_dir: Path, clone: Path, url: str):
     )
 
 
-def publish(run, out_dir: Path, target: str, push: bool = False):
+def publish(run, out_dir: Path, target: str, push: bool = False) -> bool:
+    """Commit ``target`` in a scratch clone, and push it with ``push``. Returns whether anything changed."""
     out_dir = out_dir.resolve()
     clone = out_dir / "publish" / target
     if clone.exists():
@@ -147,16 +148,18 @@ def publish(run, out_dir: Path, target: str, push: bool = False):
     committed = _commit(clone, message)
     if not push:
         print(f"Committed locally in {clone}; re-run with --push to publish." if committed else "Nothing to publish.")
-        return
+        return committed
     if committed:
         git("push", "origin", branch, cwd=clone)
         print(f"Pushed {branch} to {url}")
+    return committed
 
 
-def publish_collection(collection, site_dir: Path, out_dir: Path, push: bool = False):
+def publish_collection(collection, site_dir: Path, out_dir: Path, push: bool = False) -> bool:
     """Put a collection's index page at the root of its repository's gh-pages branch.
 
-    Only the files of the index page itself are replaced; the runs' folders are left alone.
+    Only the files of the index page itself are replaced; the runs' folders are left alone. Returns whether
+    anything changed.
     """
     url = f"git+ssh://github.com/{collection.repo}.git"
     clone = out_dir.resolve() / "publish" / "gh-pages"
@@ -183,3 +186,4 @@ def publish_collection(collection, site_dir: Path, out_dir: Path, push: bool = F
         print(f"Pushed {branch} to {url}")
     elif not push:
         print(f"Committed locally in {clone}; re-run with --push to publish." if committed else "Nothing to publish.")
+    return committed
