@@ -290,11 +290,11 @@
         <p class="small text-muted mb-10">The ten standard cells this design uses most.</p>
         <div class="table-responsive">
         <table class="table table-sm run-table bg-white">
-          <thead><tr><th>Cell</th><th class="d-none d-sm-table-cell">Library</th><th class="text-end">Instances</th><th>What it does</th></tr></thead>
+          <thead><tr><th>Cell</th><th class="d-none d-sm-table-cell">Library</th><th class="text-end run-group-start">Instances</th><th class="run-group-start">What it does</th></tr></thead>
           <tbody>
             {% for key, n in (design.cell_usage | dictsort(by='value', reverse=true))[:10] %}
             <tr><td>{{ link(key[1], links.cell(key[0], key[1]), mono=true) }}</td><td class="d-none d-sm-table-cell">{{ link(key[0] | library_label, links.library(key[0])) }}</td>
-              <td class="text-end">{{ '{:,}'.format(n) }}</td><td class="text-muted">{{ key[1] | describe_cell }}</td></tr>
+              <td class="text-end run-group-start">{{ '{:,}'.format(n) }}</td><td class="text-muted run-group-start">{{ key[1] | describe_cell }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -343,10 +343,10 @@
         <p class="small text-muted mb-10">The ready-made memory blocks this design uses.</p>
         <div class="table-responsive">
         <table class="table table-sm run-table run-macros bg-white">
-          <thead><tr><th>Macro</th><th class="text-end">Count</th><th class="text-end">Bits each</th></tr></thead>
+          <thead><tr><th>Macro</th><th class="text-end run-group-start">Count</th><th class="text-end">Bits each</th></tr></thead>
           <tbody>
             {% for name, n in design.macros | dictsort %}
-            <tr><td>{{ link(name, links.macro(name), mono=true) }}</td><td class="text-end">{{ n }}</td>
+            <tr><td>{{ link(name, links.macro(name), mono=true) }}</td><td class="text-end run-group-start">{{ n }}</td>
               <td class="text-end">{{ '{:,}'.format(stats.macros[name].bits) }}</td></tr>
             {% endfor %}
           </tbody>
@@ -382,20 +382,20 @@
     <p class="small text-muted mb-10">Every die of this design measured here, oldest first, with this one in bold.</p>
     <div class="table-responsive">
     <table class="table table-sm run-table bg-white mb-20">
-      <thead><tr><th>Made on</th><th>Slot</th><th>Library</th><th class="d-none d-md-table-cell">Gate oxides</th>
-        <th class="text-end">Logic cells</th><th class="text-end">Per mm² of core</th><th class="text-end d-none d-sm-table-cell">Densest</th>
-        <th class="d-none d-md-table-cell">SRAM</th></tr></thead>
+      <thead><tr><th>Made on</th><th class="run-group-start">Slot</th><th>Library</th><th class="d-none d-md-table-cell">Gate oxides</th>
+        <th class="text-end run-group-start">Logic cells</th><th class="text-end">Per mm² of core</th><th class="text-end d-none d-sm-table-cell">Densest</th>
+        <th class="d-none d-md-table-cell run-group-start">SRAM</th></tr></thead>
       <tbody>
       {% for r in dies %}
       <tr{% if r.current %} class="fw-bold"{% endif %}>
         <td>{% if r.current %}{{ r.run }} · {{ r.code }}{% else %}<a href="{{ r.url }}">{{ r.run }} · {{ r.code }}</a>{% endif %}
           {%- if r.same_as %}<br><span class="small text-muted fw-normal">the same logic cells and transistors as {{ r.same_as }}</span>{% endif %}</td>
-        <td class="run-nowrap">{{ r.slot }}</td><td class="run-nowrap">{{ r.library }}</td>
+        <td class="run-nowrap run-group-start">{{ r.slot }}</td><td class="run-nowrap">{{ r.library }}</td>
         <td class="d-none d-md-table-cell">{{ r.oxides }}</td>
-        <td class="text-end">{{ '{:,}'.format(r.logic_cells) }}</td>
+        <td class="text-end run-group-start">{{ '{:,}'.format(r.logic_cells) }}</td>
         <td class="text-end">{{ r.core_density | k if r.logic_cells >= min_logic else '—' }}</td>
         <td class="text-end d-none d-sm-table-cell">{{ r.peak_cells | k if r.logic_cells >= min_logic else '—' }}</td>
-        <td class="d-none d-md-table-cell">{{ r.sram or 'none' }}</td></tr>
+        <td class="d-none d-md-table-cell run-group-start">{{ r.sram or 'none' }}</td></tr>
       {% endfor %}
       </tbody>
     </table>
@@ -515,17 +515,19 @@
         <summary>Every step{% if table.columns | length > 1 %}, and the latest re-run{% endif %}</summary>
         <div class="table-responsive">
         <table class="table table-sm run-table run-precheck bg-white">
-          <thead><tr><th>Step</th>{% for label, check in table.columns %}<th>{{ label }}<br>
+          <thead><tr><th>Step</th>{% for label, check in table.columns %}<th class="run-group-start">{{ label }}<br>
             <span class="small text-muted fw-normal">check {{ check.id }}, {{ check.created_at[:10] }}, <span class="run-mono">{{ check.trigger }}</span>{% if check.precheck_version %},
               {{ precheck_ref(check) }}{% set runs = links.precheck_contents(check.precheck_version) %}{% if runs %}<br>PDK {{ link(runs.pdk, runs.pdk_url) }},
               LibreLane {{ link(runs.librelane[:7], runs.librelane_url, mono=true) }}{% endif %}{% endif %}</span></th>{% endfor %}</tr></thead>
           <tbody>
             {% for step, results in table.rows %}
-            <tr><td>{{ link(step, links.step(step), mono=true) }}</td>{% for result in results %}<td>{% if result == "passed" %}passed{% elif result == "warning" and step == "Checker.MagicDRC" %}<span class="text-muted">advisory warning</span>{% elif result == "warning" %}<span class="run-warn">warning</span>{% elif result %}<span class="run-warn">{{ result }}</span>{% elif result is none %}<span class="text-muted">not in this flow</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>{% endfor %}</tr>
+            <tr><td>{{ link(step, links.step(step), mono=true) }}</td>{% for result in results %}<td class="run-group-start">{% if result == "passed" %}passed{% elif result == "warning" and step == "Checker.MagicDRC" %}<span class="text-muted">advisory warning</span>{% elif result == "warning" %}<span class="run-warn">warning</span>{% elif result %}<span class="run-warn">{{ result }}</span>{% elif result is none %}<span class="text-muted">not in this flow</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>{% endfor %}</tr>
             {% endfor %}
-            <tr><th>KLayout DRC errors</th>{% for _, check in table.columns %}<td>{{ check.klayout_drc_errors if check.details else "" }}</td>{% endfor %}</tr>
-            <tr><th>Magic DRC errors <span class="text-muted fw-normal">(advisory)</span></th>{% for _, check in table.columns %}<td>{{ '{:,}'.format(check.magic_drc_errors) if check.details else "" }}</td>{% endfor %}</tr>
-            <tr><th>Files</th>{% for _, check in table.columns %}<td>{% if check.details %}<a href="{{ root }}data/{{ check.steps_file }}">steps</a>
+          </tbody>
+          <tbody>
+            <tr><th>KLayout DRC errors</th>{% for _, check in table.columns %}<td class="run-group-start">{{ check.klayout_drc_errors if check.details else "" }}</td>{% endfor %}</tr>
+            <tr><th>Magic DRC errors <span class="text-muted fw-normal">(advisory)</span></th>{% for _, check in table.columns %}<td class="run-group-start">{{ '{:,}'.format(check.magic_drc_errors) if check.details else "" }}</td>{% endfor %}</tr>
+            <tr><th>Files</th>{% for _, check in table.columns %}<td class="run-group-start">{% if check.details %}<a href="{{ root }}data/{{ check.steps_file }}">steps</a>
               · <a href="{{ root }}data/{{ check.log_file }}">log</a> <span class="small text-muted">(gzip)</span>{% else %}<span class="text-muted">The platform no
               longer stores this check's results.</span>{% endif %}</td>{% endfor %}</tr>
           </tbody>

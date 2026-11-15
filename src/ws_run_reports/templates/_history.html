@@ -39,15 +39,17 @@
 <details class="run-more">
   <summary>As a table</summary>
   <div class="table-responsive">
-  <table class="table table-sm run-table">
-    <thead><tr><th>Design</th><th>Made on</th><th>When</th><th>Version</th><th>Size</th></tr></thead>
+  <table class="table table-sm run-table run-row-groups">
+    <thead><tr><th>Design</th><th class="run-group-start">Made on</th><th>When</th><th class="run-group-start">Version</th><th>Size</th></tr></thead>
+    {% for r in chart.rows %}
     <tbody>
-    {% for r in chart.rows %}{% for d in r.dots %}
+    {% for d in r.dots %}
     <tr>{% if loop.first %}<th rowspan="{{ r.dots | length }}"><a href="{{ r.url }}">{{ r.name }}</a></th>{% endif %}
-      <td><a href="{{ d.shuttle_url }}">{{ d.shuttle }}</a></td><td class="run-nowrap">{{ d.when }}</td>
-      <td><a href="{{ d.url }}">{{ d.names }}</a></td><td>{{ d.sizes }}</td></tr>
-    {% endfor %}{% endfor %}
+      <td class="run-group-start"><a href="{{ d.shuttle_url }}">{{ d.shuttle }}</a></td><td class="run-nowrap">{{ d.when }}</td>
+      <td class="run-group-start"><a href="{{ d.url }}">{{ d.names }}</a></td><td>{{ d.sizes }}</td></tr>
+    {% endfor %}
     </tbody>
+    {% endfor %}
   </table>
   </div>
 </details>

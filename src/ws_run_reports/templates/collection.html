@@ -70,13 +70,13 @@
     {% set runs_known = planned | selectattr("ws_run") | list %}
     <div class="table-responsive run-planned">
     <table class="table run-table bg-white">
-      <thead><tr><th>Chip</th><th>Projects close</th><th>Shipping <span class="fw-normal text-muted">(estimated)</span></th>{% if runs_known %}<th>Made on</th>{% endif %}</tr></thead>
+      <thead><tr><th>Chip</th><th class="run-group-start">Projects close</th><th>Shipping <span class="fw-normal text-muted">(estimated)</span></th>{% if runs_known %}<th class="run-group-start">Made on</th>{% endif %}</tr></thead>
       <tbody>
       {% for c in planned %}
       <tr><td>{{ link(tiny_name(c.run), c.url) }}</td>
-        <td>{{ c.dates.closes or c.dates["submission deadline"] }}{% if c.section == "future" %} <span class="text-muted">(estimated)</span>{% endif %}</td>
+        <td class="run-group-start">{{ c.dates.closes or c.dates["submission deadline"] }}{% if c.section == "future" %} <span class="text-muted">(estimated)</span>{% endif %}</td>
         <td>{{ c.dates["estimated shipping date"] or c.dates["chips expected"] }}</td>
-        {% if runs_known %}<td>{% if c.ws_run %}{{ runs_linked(c.ws_run) }}{% else %}<span class="text-muted">not yet announced</span>{% endif %}</td>{% endif %}</tr>
+        {% if runs_known %}<td class="run-group-start">{% if c.ws_run %}{{ runs_linked(c.ws_run) }}{% else %}<span class="text-muted">not yet announced</span>{% endif %}</td>{% endif %}</tr>
       {% endfor %}
       </tbody>
     </table>
