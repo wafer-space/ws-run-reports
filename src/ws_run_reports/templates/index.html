@@ -377,25 +377,23 @@
     <div class="row">
       <div class="col-12 mb-30">
         <h3 id="oxides" class="mb-10">Gate oxides{{ anchor("oxides") }}</h3>
-          <div class="table-responsive">
-          <table class="table table-sm run-table run-oxides bg-white mb-10">
-            {% set has_pads = stats.designs | selectattr("pad_voltages") | list | length > 0 %}
-            <thead><tr><th>Transistors</th><th class="text-end">{{ "Own design" if has_pads else "Designs" }}</th>{% if has_pads %}<th class="text-end">With the pad ring</th>{% endif %}<th>Which{{ " (own design)" if has_pads }}</th></tr></thead>
-            <tbody>
-              {% set own, padded = stats.voltage_groups(), stats.voltage_groups(true) %}
-              {% for group, users in own %}
-              {% set with_pads = padded[loop.index0][1] %}
-              <tr><td class="text-nowrap">{{ group }}</td>
-                <td class="text-end">{{ users | length }}</td>{% if has_pads %}<td class="text-end">{{ with_pads | length }}</td>{% endif %}
-                <td class="run-which">{{ names.who(users) }}</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+          {% set has_pads = stats.designs | selectattr("pad_voltages") | list | length > 0 %}
+          <div class="run-who mb-10">
+            {% set own, padded = stats.voltage_groups(), stats.voltage_groups(true) %}
+            {% for group, users in own %}
+            {% set with_pads = padded[loop.index0][1] %}
+            <div class="run-who-row">
+              <div class="run-who-head"><span class="run-who-label">{{ group }}</span>
+                <span class="run-who-count run-who-main">{{ names.count_of(users | length) }}</span>
+                {% if has_pads %}<span class="run-who-count">{{ with_pads | length }} with the pad ring</span>{% endif %}</div>
+              {% if users %}{{ names.chips(users) }}{% endif %}
+            </div>
+            {% endfor %}
           </div>
           {% set no_gates = stats.designs | rejectattr("voltage_group") | map(attribute="code") | list %}
           <p class="small text-muted">3.3 V transistors have the thin gate oxide; 5 V and 6 V ones share the thick one.
-            {% if has_pads %}"Own design" counts the standard cells, SRAM and transistors the designer chose; "with the pad ring" adds
-            the transistors of the I/O pad cells, measured in each design's pad ring.{% endif %}{% if no_gates %} No transistors of their
+            {% if has_pads %}Each group counts, and names, the designs by their own design: the standard cells, SRAM and transistors
+            the designer chose. "With the pad ring" adds the transistors of the I/O pad cells, measured in each design's pad ring.{% endif %}{% if no_gates %} No transistors of their
             own: {% for code in no_gates %}<a href="{{ design_href(code) }}">{{ design_by_code[code].name }}</a>{{ ", " if not loop.last }}{% endfor %}.{% endif %}</p>
       </div>
     </div>
