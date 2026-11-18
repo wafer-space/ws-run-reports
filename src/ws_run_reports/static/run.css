@@ -304,11 +304,10 @@
 /* The pale area-bar segments (filler, other) would glare on a dark page. */
 [data-theme="dark"] [style*="#e6ebf0"] { background: #3d4349 !important; }
 [data-theme="dark"] [style*="#b9c7d6"] { background: #6f7f90 !important; }
-/* Tap targets on phones: the code links get room, and the reticle's slots (the project grid below links them all)
-   stop being links. */
+/* Tap targets on phones: the code links get room. The reticle's slots stay links, so a die can be tapped
+   for its details; their labels stay hidden, as they would cover the small dies. */
 @media (max-width: 575.98px) {
   a.run-mono { display: inline-block; padding: 4px 3px; }
-  .run-reticle-slot { pointer-events: none; }
 }
 /* The project pager is a dark band right above the dark footer: an edge between them. */
 .run-pager { border-bottom: 1px solid rgba(255, 255, 255, 0.14); }
