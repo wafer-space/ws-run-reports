@@ -292,6 +292,25 @@ uv run pytest
 
 The tests build a small synthetic reticle, so they do not need a real layout.
 
+### Previews of a pull request
+
+Every pull request builds the pages of every run with its code, from the data already published, and
+uploads them as one artifact per run repository (`preview-ws-run2`, `preview-tinytapeouts`, ...); a comment
+on the pull request links to them. Unpack one and open its `index.html`. The pages are marked as a preview
+(a banner, and `noindex` for search engines).
+
+`analyze` and `render` are not run: the measurements come from each run repository's `density-report`
+branch and the renders and die photograph previews from its `gh-pages` branch. The same build runs
+locally, cloning only those files (no layout) into the directory given:
+
+```bash
+uv run ws-run-reports published --repos tmp/repos --out tmp/out --preview tmp/preview          # every run
+uv run ws-run-reports published --repos tmp/repos --out tmp/out --repo wafer-space/ws-run2    # one repository
+```
+
+`$WS_RUN_REPOS` (which `published` sets to `--repos`) makes every command look for the run repositories
+there instead of beside this one.
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE). The projects on the reticles have their own

@@ -9,12 +9,15 @@ the run repository's own manifest. Only ``title``, ``shuttle``, ``slots`` and
 
 import csv
 import hashlib
+import os
 import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
 RUNS_DIR = Path(__file__).resolve().parents[2] / "runs"
+# The directory holding the run repositories' checkouts, when they are not beside this repository (as in CI).
+REPOS_ENV = "WS_RUN_REPOS"
 
 # Names spelled the usual way on the pages, whatever a project's own record says, and plain typos in them.
 DISPLAY_SPELLINGS = [(r"\bRisc-?V\b|\bRISCV\b", "RISC-V"), (r"(?i:\bwafer\.space\b)", "wafer.space"),
@@ -147,7 +150,8 @@ class Run:
 
 
 def load_run(name: str, repo_dir: Path | None = None) -> Run:
-    """Load ``runs/<name>.toml``. ``repo_dir`` defaults to a sibling checkout of the run repository.
+    """Load ``runs/<name>.toml``. ``repo_dir`` defaults to a checkout of the run repository in the directory
+    that ``$WS_RUN_REPOS`` names, or else beside this repository.
 
     Defaults: ``name`` is the file name, ``repo`` is ``wafer-space/<name>``, the
     layout is ``layout/<shuttle>.oas`` split into ``layout/<shuttle>-part-*``,
@@ -162,8 +166,9 @@ def load_run(name: str, repo_dir: Path | None = None) -> Run:
     layout.setdefault("parts", f"layout/{data['shuttle']}-part-*")
     layout.setdefault("file", f"layout/{data['shuttle']}.oas")
     if repo_dir is None:
-        # A sibling checkout of the run repository, and the run's folder in it.
-        repo_dir = RUNS_DIR.parent.parent / data["repo"].split("/")[-1] / data.get("path", "")
+        # A checkout of the run repository, and the run's folder in it.
+        root = Path(os.environ[REPOS_ENV]) if os.environ.get(REPOS_ENV) else RUNS_DIR.parent.parent
+        repo_dir = root / data["repo"].split("/")[-1] / data.get("path", "")
     return Run(repo_dir=Path(repo_dir).resolve(), **data)
 
 
