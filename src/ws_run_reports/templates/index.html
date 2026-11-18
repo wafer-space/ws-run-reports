@@ -180,7 +180,7 @@
           {{ words.reticle }}.{% if framed %} It is drawn at the same scale as the {{ '%.0f' | format(renders.reticle.frame_width_mm) }} × {{ '%.1f' | format(renders.reticle.frame_height_mm) }} mm
           reticles of wafer.space Runs 1 and 2, so its dies can be compared with theirs.{% endif %}{% set locked = placements | selectattr("private") | list | length %}{% if locked %} The locked
           slots hold <a href="private.html">private designs</a>, which are hidden in the public layout.{% endif %}{% if stats.placements + locked < run.slots %} Dark gaps are {{ 'empty slots' if locked else 'private designs or empty slots' }}.{% endif %}{% if run.site.slot_origin == "top-right" %} The slots are named as in the shuttle's own list: rows lettered from the top, columns numbered from the right.{% endif %}
-          <span class="d-none d-sm-inline">Point at a {{ words.die }} to see its name, and select it for its details.</span><span class="d-sm-none">Every {{ words.die }} is listed further down.</span></p>
+          <span class="d-none d-sm-inline">Point at a {{ words.die }} to see its name, and select it for its details.</span><span class="d-sm-none">Tap a {{ words.die }} for its details.</span></p>
         {% else %}
         <p class="text-muted">Renders have not been generated for this run yet.</p>
         {% endif %}
