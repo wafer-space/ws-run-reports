@@ -209,7 +209,11 @@ def parse_chips(markdown: str) -> list[dict]:
     link, made absolute).
     """
     rows, section, headers = [], None, None
+    footnotes = {}
     for line in markdown.splitlines():
+        footnote = FOOTNOTE.match(line)
+        if footnote:
+            footnotes[footnote.group(1)] = _plain(footnote.group(2))
         heading = re.match(r"#+\s*(.+?)\s*$", line)
         if heading:
             section, headers = CHIP_SECTIONS.get(heading.group(1)), None
@@ -225,12 +229,28 @@ def parse_chips(markdown: str) -> list[dict]:
             continue
         row = dict(zip(headers, (cell.replace("\\#", "#") for cell in cells)))
         link = re.match(r"\[([^\]]+)\]\(([^)]+)\)\s*(.*)", row.get("run", ""))
-        name = link.group(1) if link else row.get("run", "").rstrip("†* ")
+        name = link.group(1) if link else row.get("run", "").rstrip(MARKERS + " ")
         url = link.group(2) if link else ""
+        marker = (link.group(3) if link else row.get("run", "")[len(name):]).strip()
         rows.append({**row, "section": section, "run": name, "chip": name.lower(),
                      "url": f"https://tinytapeout.com{url}" if url.startswith("/") else url,
-                     "note": "†" in row.get("run", "")})
+                     "note": "†" in row.get("run", ""), "marker": marker})
+    for row in rows:
+        # The footnote is written below its table, so it is attached once the whole page is read.
+        row["note_text"] = footnotes.get(row["marker"], "") if row["marker"] else ""
     return rows
+
+
+# Footnote markers after a chip's name on tinytapeout.com/chips, and the footnotes below the tables
+# ("<small>† Currently reserved for ArtScience Museum Singapore. ...</small>").
+MARKERS = "†‡*"
+FOOTNOTE = re.compile(r"\s*(?:<small>)?\s*([†‡]|\*(?!\*))\s+(.+?)\s*(?:</small>)?\s*$")
+
+
+def _plain(text: str) -> str:
+    """A footnote as plain text: HTML tags dropped, Markdown links as their text."""
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    return " ".join(re.sub(r"<[^>]+>", "", text).split())
 
 
 def gf_chips(rows: list[dict]) -> list[dict]:

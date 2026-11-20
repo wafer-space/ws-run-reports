@@ -48,15 +48,20 @@
       {% set open_tiles = (c.tiles.tiles_total or 0) - (c.tiles.tiles_used or 0) - (c.tiles.tiles_reserved or 0) %}
       <div class="col-md-6 col-lg-5 mb-30">
         <div class="box bg-white shadow p-30 h-100 run-coming">
-          <p class="mb-5"><span class="run-status run-status-open">Taking projects</span></p>
+          <p class="mb-5"><span class="run-status run-status-open">{% if c.tiles.tiles_total and open_tiles <= 0 and c.tiles.tiles_reserved %}Reserved for now{% else %}Taking projects{% endif %}</span></p>
           <h4 class="mb-5">{{ link(tiny_name(c.run), c.url) }}</h4>
           <p class="mb-15 small">{% if c.ws_run %}To be made on {{ runs_linked(c.ws_run) }}{% else %}<span class="text-muted">wafer.space run not yet announced</span>{% endif %}</p>
           <ul class="run-method small mb-20">
             <li>Projects close <strong>{{ c.dates.closes }}</strong></li>
-            {% if c.tiles.tiles_total and open_tiles > 0 %}<li><strong>{{ open_tiles }} tiles still open</strong> of {{ c.tiles.tiles_total }}</li>{% endif %}
+            {% if c.tiles.tiles_total %}
+            {% if open_tiles > 0 %}<li><strong>{{ open_tiles }} tiles still open</strong> of {{ c.tiles.tiles_total }}{% if c.tiles.tiles_reserved %}, {{ c.tiles.tiles_reserved }} reserved{% endif %}</li>
+            {% elif c.tiles.tiles_reserved %}<li><strong>No tiles open right now:</strong> {{ c.tiles.tiles_used or 0 }} of {{ c.tiles.tiles_total }} taken, {{ c.tiles.tiles_reserved }} reserved</li>
+            {% else %}<li><strong>All {{ c.tiles.tiles_total }} tiles taken</strong></li>{% endif %}
+            {% endif %}
             {% if c.dates["chips expected"] %}<li>Chips expected {{ c.dates["chips expected"] }}</li>{% endif %}
             {% if c.dates["estimated shipping date"] %}<li>Shipping {{ c.dates["estimated shipping date"] }} (estimated)</li>{% endif %}
           </ul>
+          {% if c.note_text %}<p class="small text-muted mb-20 run-coming-note">{{ c.note_text }}</p>{% endif %}
           <p class="mb-0"><a class="btn btn-s me-10" href="{{ c.url or links.tinytapeout('create') }}">Submit a project</a>
             <a href="{{ links.tinytapeout('prepurchase') }}">Prepurchase tiles and boards</a></p>
         </div>
